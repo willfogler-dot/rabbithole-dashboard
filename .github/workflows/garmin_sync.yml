@@ -1,0 +1,36 @@
+# .github/workflows/garmin_sync.yml
+#
+# Pulls Garmin health data into Supabase.
+#  - Runs automatically at 9:00am Denver time (see cron note below)
+#  - Can be triggered manually: the "Sync now" button in the dashboard calls
+#    the Supabase Edge Function, which fires this workflow via workflow_dispatch
+#
+# GitHub Actions cron is UTC only. Currently set for MDT (summer): 9am = 15:00 UTC.
+# When Denver switches to MST (winter), change "0 15" to "0 16".
+
+name: Garmin Daily Sync
+
+on:
+  schedule:
+    - cron: "0 15 * * *"   # 9:00am MDT / 15:00 UTC  (winter MST: use "0 16")
+  workflow_dispatch: {}      # enables the dashboard's "Sync now" button
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install garminconnect garth requests
+
+      - name: Run sync
+        env:
+          GARMIN_TOKEN_B64: ${{ secrets.GARMIN_TOKEN_B64 }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: python garmin_sync.py
