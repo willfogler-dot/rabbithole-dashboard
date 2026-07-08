@@ -4,22 +4,22 @@ Daily Garmin Connect -> Supabase sync.
 Pulls the latest sleep, HRV, VO2 max, body battery, and resting HR from
 Garmin Connect and upserts a single row (keyed by date) into Supabase.
 
-Auth: restores the garth session you generated in Colab (GARMIN_TOKEN_B64),
-so this runs unattended with no interactive login / MFA on every run.
+Auth: restores the garminconnect DI-token session captured in Colab
+(GARMIN_TOKEN_B64 = base64 of Garmin().client.dumps()). garminconnect
+auto-refreshes the DI token on login, so this runs unattended with no
+interactive login / MFA on every run.
 
-Env vars (set as GitHub Actions secrets):
-    GARMIN_TOKEN_B64      - base64 of the tar.gz'd garth session dir
+Env vars (GitHub Actions secrets):
+    GARMIN_TOKEN_B64      - base64 of the DI-token JSON string
     SUPABASE_URL          - https://xxxx.supabase.co
     SUPABASE_SERVICE_KEY  - service_role key (server-side only)
 """
 
 import base64
-import io
 import os
-import tarfile
+import tempfile
 from datetime import date
 
-import garth
 import requests
 from garminconnect import Garmin
 
@@ -28,22 +28,26 @@ SUPABASE_SERVICE_KEY = os.environ["SUPABASE_SERVICE_KEY"]
 SUPABASE_TABLE = "garmin_daily"
 
 
-def restore_session():
-    """Unpack the base64 garth session into a dir and resume it."""
-    token_b64 = os.environ["GARMIN_TOKEN_B64"]
-    session_dir = "/tmp/garth_session"
-    os.makedirs(session_dir, exist_ok=True)
-    tar_bytes = base64.b64decode(token_b64)
-    with tarfile.open(fileobj=io.BytesIO(tar_bytes)) as tar:
-        tar.extractall(session_dir)
-    garth.resume(session_dir)
+def get_client() -> Garmin:
+    """Restore the Garmin session from the base64 DI-token string."""
+    token_json = base64.b64decode(os.environ["GARMIN_TOKEN_B64"]).decode()
+    g = Garmin()
+    # login() treats a >512-char tokenstore as a token string, else as a path.
+    if len(token_json) > 512:
+        g.login(tokenstore=token_json)
+    else:
+        d = tempfile.mkdtemp()
+        with open(os.path.join(d, "garmin_tokens.json"), "w") as f:
+            f.write(token_json)
+        g.login(tokenstore=d)
+    return g
 
 
-def fetch_metrics(client: Garmin, day: str) -> dict:
+def fetch_metrics(g: Garmin, day: str) -> dict:
     data = {"date": day}
 
     try:
-        sleep = client.get_sleep_data(day) or {}
+        sleep = g.get_sleep_data(day) or {}
         d = sleep.get("dailySleepDTO", {}) or {}
         data["sleep_seconds"] = d.get("sleepTimeSeconds")
         data["deep_sleep_seconds"] = d.get("deepSleepSeconds")
@@ -56,7 +60,7 @@ def fetch_metrics(client: Garmin, day: str) -> dict:
         print("sleep fetch failed:", e)
 
     try:
-        hrv = client.get_hrv_data(day) or {}
+        hrv = g.get_hrv_data(day) or {}
         summary = hrv.get("hrvSummary", {}) or {}
         data["hrv_last_night_avg"] = summary.get("lastNightAvg")
         data["hrv_status"] = summary.get("status")
@@ -64,7 +68,7 @@ def fetch_metrics(client: Garmin, day: str) -> dict:
         print("hrv fetch failed:", e)
 
     try:
-        mm = client.get_max_metrics(day) or []
+        mm = g.get_max_metrics(day) or []
         if mm:
             generic = mm[0].get("generic", {}) or {}
             data["vo2_max"] = generic.get("vo2MaxPreciseValue") or generic.get("vo2MaxValue")
@@ -72,7 +76,7 @@ def fetch_metrics(client: Garmin, day: str) -> dict:
         print("vo2max fetch failed:", e)
 
     try:
-        bb = client.get_body_battery(day, day) or []
+        bb = g.get_body_battery(day, day) or []
         if bb:
             data["body_battery_charged"] = bb[0].get("charged")
             data["body_battery_drained"] = bb[0].get("drained")
@@ -80,7 +84,7 @@ def fetch_metrics(client: Garmin, day: str) -> dict:
         print("body battery fetch failed:", e)
 
     try:
-        stats = client.get_stats(day) or {}
+        stats = g.get_stats(day) or {}
         data["resting_hr"] = stats.get("restingHeartRate")
     except Exception as e:
         print("stats fetch failed:", e)
@@ -102,11 +106,9 @@ def upsert(row: dict):
 
 
 def main():
-    restore_session()
-    client = Garmin()
-    client.garth = garth.client  # reuse the resumed session (no re-login)
+    g = get_client()
     today = date.today().isoformat()
-    row = fetch_metrics(client, today)
+    row = fetch_metrics(g, today)
     upsert(row)
 
 
