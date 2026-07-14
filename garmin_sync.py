@@ -28,9 +28,58 @@ SUPABASE_SERVICE_KEY = os.environ["SUPABASE_SERVICE_KEY"]
 SUPABASE_TABLE = "garmin_daily"
 
 
+AUTH_TABLE = "garmin_auth"
+AUTH_ID = "default"
+
+
+def _sb_headers() -> dict:
+    return {
+        "apikey": SUPABASE_SERVICE_KEY,
+        "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
+        "Content-Type": "application/json",
+    }
+
+
+def load_token_b64() -> str:
+    """Prefer the self-refreshing copy in Supabase. Fall back to the GitHub secret."""
+    try:
+        r = requests.get(
+            f"{SUPABASE_URL}/rest/v1/{AUTH_TABLE}",
+            params={"select": "token_b64", "id": f"eq.{AUTH_ID}"},
+            headers=_sb_headers(),
+            timeout=30,
+        )
+        r.raise_for_status()
+        rows = r.json()
+        if rows and rows[0].get("token_b64"):
+            print("[auth] using token from Supabase")
+            return rows[0]["token_b64"]
+    except Exception as e:
+        print(f"[auth] couldn't read token from Supabase ({e}) - falling back to secret")
+
+    print("[auth] using GARMIN_TOKEN_B64 secret (bootstrap)")
+    return os.environ["GARMIN_TOKEN_B64"]
+
+
+def save_token_b64(token_b64: str) -> None:
+    """Write the REFRESHED token back. This is the line that fixes the bug."""
+    try:
+        r = requests.post(
+            f"{SUPABASE_URL}/rest/v1/{AUTH_TABLE}",
+            headers={**_sb_headers(), "Prefer": "resolution=merge-duplicates"},
+            json=[{"id": AUTH_ID, "token_b64": token_b64}],
+            timeout=30,
+        )
+        r.raise_for_status()
+        print("[auth] refreshed token saved back to Supabase")
+    except Exception as e:
+        print(f"[auth] WARNING - couldn't save refreshed token ({e})")
+
+
 def get_client() -> Garmin:
-    """Restore the Garmin session from the base64 DI-token string."""
-    token_json = base64.b64decode(os.environ["GARMIN_TOKEN_B64"]).decode()
+    """Restore the Garmin session, then persist whatever garth refreshed."""
+    token_json = base64.b64decode(load_token_b64()).decode()
+
     g = Garmin()
     # login() treats a >512-char tokenstore as a token string, else as a path.
     if len(token_json) > 512:
@@ -40,6 +89,19 @@ def get_client() -> Garmin:
         with open(os.path.join(d, "garmin_tokens.json"), "w") as f:
             f.write(token_json)
         g.login(tokenstore=d)
+
+    # ---- the fix ----
+    # garth just refreshed the session during login(). Save it, or it dies with this
+    # process and tomorrow we replay today's stale token all over again.
+    try:
+        try:
+            fresh = g.garth.dumps()
+        except AttributeError:
+            fresh = g.client.dumps()
+        save_token_b64(base64.b64encode(fresh.encode()).decode())
+    except Exception as e:
+        print(f"[auth] WARNING - couldn't dump refreshed token ({e})")
+
     return g
 
 
