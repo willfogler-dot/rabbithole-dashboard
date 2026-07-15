@@ -12,7 +12,8 @@ name: Garmin Daily Sync
 
 on:
   schedule:
-    - cron: "0 15 * * *"   # 9:00am MDT / 15:00 UTC  (winter MST: use "0 16")
+    - cron: '0 13 * * *'   # 7:00 AM MDT
+    - cron: '30 14 * * *'  # 8:30 AM MDT
   workflow_dispatch: {}      # enables the dashboard's "Sync now" button
 
 jobs:
