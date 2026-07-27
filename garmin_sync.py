@@ -1,8 +1,8 @@
 """
 Daily Garmin Connect -> Supabase sync.
 
-Pulls the latest sleep, HRV, VO2 max, body battery, and resting HR from
-Garmin Connect and upserts a single row (keyed by date) into Supabase.
+Pulls the latest sleep, HRV, VO2 max, body battery, resting HR, calories and
+steps from Garmin Connect and upserts one row per date into Supabase.
 
 Auth: restores the garminconnect DI-token session captured in Colab
 (GARMIN_TOKEN_B64 = base64 of Garmin().client.dumps()). garminconnect
@@ -18,7 +18,9 @@ Env vars (GitHub Actions secrets):
 import base64
 import os
 import tempfile
-from datetime import date
+from datetime import date, timedelta
+from zoneinfo import ZoneInfo
+from datetime import datetime
 
 import requests
 from garminconnect import Garmin
@@ -27,9 +29,18 @@ SUPABASE_URL = os.environ["SUPABASE_URL"].rstrip("/")
 SUPABASE_SERVICE_KEY = os.environ["SUPABASE_SERVICE_KEY"]
 SUPABASE_TABLE = "garmin_daily"
 
-
 AUTH_TABLE = "garmin_auth"
 AUTH_ID = "default"
+
+# Runners are UTC. At 8pm Denver it is already tomorrow in UTC, so asking for
+# "today" would skip the day actually being lived. Anchor to local time.
+LOCAL_TZ = ZoneInfo("America/Denver")
+
+# Re-read yesterday as well as today. Garmin keeps revising a day's figures for
+# hours after midnight as the watch finishes uploading, and with several runs a
+# day the last one of the evening is often the only one that sees the full
+# picture. One extra call, and a whole class of off-by-one disappears.
+DAYS_BACK = 2
 
 
 def _sb_headers() -> dict:
@@ -105,6 +116,17 @@ def get_client() -> Garmin:
     return g
 
 
+def _int(v):
+    """Garmin returns these as ints, floats or strings depending on endpoint."""
+    try:
+        if v is None:
+            return None
+        n = round(float(v))
+        return n if n > 0 else None
+    except (TypeError, ValueError):
+        return None
+
+
 def fetch_metrics(g: Garmin, day: str) -> dict:
     data = {"date": day}
 
@@ -145,16 +167,40 @@ def fetch_metrics(g: Garmin, day: str) -> dict:
     except Exception as e:
         print("body battery fetch failed:", e)
 
+    # get_stats() IS Garmin's daily summary. It was already being called for
+    # resting HR alone while the whole energy picture came back in the same
+    # response and was discarded. Nothing extra is fetched here - the calories
+    # and steps below were always arriving, just never read.
     try:
         stats = g.get_stats(day) or {}
         data["resting_hr"] = stats.get("restingHeartRate")
+
+        data["active_calories"] = _int(stats.get("activeKilocalories"))
+        data["resting_calories"] = _int(stats.get("bmrKilocalories"))
+        data["total_calories"] = _int(stats.get("totalKilocalories"))
+        data["steps"] = _int(stats.get("totalSteps"))
+        data["floors_climbed"] = _int(stats.get("floorsAscended"))
+
+        # If any of the above land empty, the key name is wrong for this
+        # account or endpoint version. Uncomment to see what actually came back:
+        # print("[stats] raw keys:", sorted(stats.keys()))
     except Exception as e:
         print("stats fetch failed:", e)
 
+    data["synced_at"] = datetime.now(LOCAL_TZ).isoformat()
     return data
 
 
 def upsert(row: dict):
+    # Strip empties before writing. This matters far more now than it did on a
+    # once-a-day schedule: a midday run that can't see last night's sleep would
+    # otherwise send sleep_seconds=None and wipe what the morning run stored.
+    # Anything Garmin hasn't filled in yet keeps its previous value instead.
+    clean = {k: v for k, v in row.items() if v is not None}
+    if len(clean) <= 2:  # nothing beyond date + synced_at
+        print("Skipped", row["date"], "- nothing came back")
+        return
+
     url = f"{SUPABASE_URL}/rest/v1/{SUPABASE_TABLE}?on_conflict=date"
     headers = {
         "apikey": SUPABASE_SERVICE_KEY,
@@ -162,16 +208,27 @@ def upsert(row: dict):
         "Content-Type": "application/json",
         "Prefer": "resolution=merge-duplicates,return=minimal",
     }
-    resp = requests.post(url, headers=headers, json=[row])
+    resp = requests.post(url, headers=headers, json=[clean], timeout=60)
     resp.raise_for_status()
-    print("Synced", row["date"], "->", {k: v for k, v in row.items() if k != "date"})
+    print("Synced", clean["date"], "->", {k: v for k, v in clean.items() if k != "date"})
 
 
 def main():
     g = get_client()
-    today = date.today().isoformat()
-    row = fetch_metrics(g, today)
-    upsert(row)
+    today = datetime.now(LOCAL_TZ).date()
+
+    failures = 0
+    for i in range(DAYS_BACK):
+        day = (today - timedelta(days=i)).isoformat()
+        try:
+            upsert(fetch_metrics(g, day))
+        except Exception as e:
+            # one bad day shouldn't take the whole run down with it
+            failures += 1
+            print(f"FAILED {day}: {e}")
+
+    if failures == DAYS_BACK:
+        raise SystemExit("every day failed - see errors above")
 
 
 if __name__ == "__main__":
