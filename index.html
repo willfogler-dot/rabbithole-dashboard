@@ -5,12 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <link rel="apple-touch-icon" href="rabbit-hole-icon.png">
 <link rel="icon" type="image/png" href="rabbit-hole-icon.png">
-<link rel="manifest" href="data:application/manifest+json,{&quot;name&quot;:&quot;The Rabbit Hole&quot;,&quot;short_name&quot;:&quot;Rabbit Hole&quot;,&quot;display&quot;:&quot;standalone&quot;,&quot;background_color&quot;:&quot;%23090603&quot;,&quot;theme_color&quot;:&quot;%23090603&quot;,&quot;icons&quot;:[{&quot;src&quot;:&quot;rabbit-hole-icon.png&quot;,&quot;sizes&quot;:&quot;1024x1024&quot;,&quot;type&quot;:&quot;image/png&quot;}]}">
+<link rel="manifest" href="data:application/manifest+json,{&quot;name&quot;:&quot;The Rabbit Hole&quot;,&quot;short_name&quot;:&quot;Rabbit Hole&quot;,&quot;display&quot;:&quot;standalone&quot;,&quot;background_color&quot;:&quot;%23070910&quot;,&quot;theme_color&quot;:&quot;%23070910&quot;,&quot;icons&quot;:[{&quot;src&quot;:&quot;rabbit-hole-icon.png&quot;,&quot;sizes&quot;:&quot;1024x1024&quot;,&quot;type&quot;:&quot;image/png&quot;,&quot;purpose&quot;:&quot;any&quot;},{&quot;src&quot;:&quot;rabbit-hole-icon-maskable.png&quot;,&quot;sizes&quot;:&quot;1024x1024&quot;,&quot;type&quot;:&quot;image/png&quot;,&quot;purpose&quot;:&quot;maskable&quot;}]}">
+
 <meta name="apple-mobile-web-app-title" content="Rabbit Hole">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#090603">
+<meta name="theme-color" content="#070910">
 <title>The Rabbit Hole</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -28,36 +29,48 @@
 
   /* ── surfaces ──────────────────────────────────────────────
      Three stops for the page, one for raised chrome. */
-  --bg-top:#1c1409;
-  --bg-mid:#120c06;
-  --bg-bot:#090603;
-  --bg-lift:#241a10;
+  /* Deep space, not dark earth. Every stop is blue-black rather than neutral —
+     the cast is what separates obsidian from charcoal, and it is what lets a
+     luminous accent read as light emitted rather than paint applied. */
+  --bg-top:#161a24;
+  --bg-mid:#0e111a;
+  --bg-bot:#070910;
+  --bg-lift:#1c212d;
 
   /* ── neutrals ──────────────────────────────────────────────
-     A warm grey ramp with defined jobs. Six steps is enough to
-     express hierarchy and few enough that each one means something. */
-  --n1:#f4ece0;   /* primary text */
-  --n2:#c9bca8;   /* secondary text */
-  --n3:#a89877;   /* tertiary — labels, captions */
-  --n4:#8c7f66;   /* quaternary — disabled, faint */
-  --n5:rgba(226,200,156,.14);  /* hairline */
-  --n6:rgba(226,200,156,.07);  /* divider, faint fills */
+     Cool grey with a blue cast, matching the surfaces beneath them. */
+  --n1:#e6e9f2;   /* primary text */
+  --n2:#a8b0c4;   /* secondary text */
+  --n3:#7b8399;   /* tertiary — labels, captions */
+  --n4:#5a6377;   /* quaternary — disabled, faint */
+  --n5:rgba(150,170,220,.13);  /* hairline */
+  --n6:rgba(150,170,220,.06);  /* divider, faint fills */
 
-  /* ── brand accent, three strengths ─────────────────────────
-     One hue carrying hierarchy instead of one flat colour used
-     everywhere until it stops meaning anything. */
-  --a-hi:#ffd9a0;   /* hero figures only */
-  --a:#e8a94e;      /* interactive: buttons, active states */
-  --a-lo:#a8813f;   /* supporting: secondary numbers, marks */
-  --a-fill:rgba(232,169,78,.13);
-  --a-edge:rgba(232,169,78,.26);
+  /* ── accent ────────────────────────────────────────────────
+     ONE hue. The previous palette carried two — a green for interactive
+     things and a gold for hero figures — and the moment both landed in the
+     same chart it fell apart: a green line with gold dots reads as two
+     unrelated systems arguing. Hierarchy here comes from luminance within a
+     single hue, which is the whole discipline behind interfaces that look
+     engineered rather than decorated.
+     The hue is a luminous indigo: the colour of deep-sky imagery, unmistakably
+     cold, and the one thing that genuinely belongs on blue-black. */
+  --a-hi:#c2c9ff;   /* brightest step — hero figures, live endpoints */
+  --a:#8f9ae8;      /* the signature: interactive, lines, active states */
+  --a-lo:#5a648f;   /* supporting: axes, marks, secondary values */
+  --a-dim:#2b3048;  /* faintest: grid, rails, inactive track */
+  --a-fill:rgba(143,154,232,.10);
+  --a-edge:rgba(143,154,232,.24);
+  --a-glow:rgba(143,154,232,.26);
 
-  /* ── status, kept separate from brand ──────────────────────
-     A good HRV reading should not look like a button. */
-  --pos:#7fb894;
-  --neg:#cf6a44;
-  --info:#6a9fbd;
-  --warn:#e0ae55;
+  /* ── status ────────────────────────────────────────────────
+     Three, each with one job, none of them the accent — so a reading that
+     means something is the only saturated thing competing with the indigo.
+     All cool-side: ice for good, coral for bad, violet for notice. */
+  --pos:#7fd9bd;
+  --neg:#f08a99;
+  --info:#b39ae8;
+  --warn:#e8c58f;
 
   /* ── elevation ─────────────────────────────────────────────
      Four defined levels. Light falls from the upper left, so every
@@ -71,50 +84,118 @@
   --el0-line:rgba(0,0,0,.3);
   --el0-sh:inset 0 1px 2px rgba(6,3,1,.5);
 
-  --el1-bg:rgba(226,184,128,.045);
+  --el1-bg:rgba(143,154,232,.045);
   --el1-line:var(--n5);
   --el1-sh:0 1px 1px rgba(14,7,2,.34), 0 3px 8px -3px rgba(14,7,2,.4),
-           inset 0 1px 0 rgba(255,240,214,.045);
+           inset 0 1px 0 rgba(230,236,255,.045);
 
-  --el2-bg:rgba(226,184,128,.075);
-  --el2-line:rgba(226,200,156,.17);
+  --el2-bg:rgba(143,154,232,.075);
+  --el2-line:rgba(170,196,226,.17);
   --el2-sh:0 2px 3px rgba(14,7,2,.4), 0 10px 24px -8px rgba(14,7,2,.5),
-           inset 0 1px 0 rgba(255,240,214,.07);
+           inset 0 1px 0 rgba(230,236,255,.07);
 
   --el3-bg:#1a1208;
-  --el3-line:rgba(226,200,156,.16);
+  --el3-line:rgba(170,196,226,.16);
   --el3-sh:0 4px 8px rgba(9,4,1,.5), 0 22px 60px -14px rgba(9,4,1,.72),
-           inset 0 1px 0 rgba(255,240,214,.08);
+           inset 0 1px 0 rgba(230,236,255,.08);
 
   /* ── legacy aliases ────────────────────────────────────────
      Existing rules keep working while the new tokens take over. */
-  --honey:var(--a); --honey-hot:var(--a-hi); --clay:#b87a4c; --soil:#5a4632;
-  --sky:#a6cfe2; --sky-deep:var(--info); --rust:var(--neg); --sage:var(--pos);
+  --honey:var(--a); --honey-hot:var(--a-hi); --clay:#5a648f; --soil:#181c34;
+  --sky:#8fb6f0; --sky-deep:var(--info); --rust:var(--neg); --sage:var(--pos);
   --ink:var(--n1); --ink2:var(--n2); --ink3:var(--n3); --ink4:var(--n4);
   --card:var(--el1-bg); --card2:var(--el2-bg); --line:var(--n5);
   --shadow:var(--el1-sh); --r:18px;
 }
+/* ── light mode ───────────────────────────────────────────────────────
+   Not an inversion. Dark surfaces get depth by lifting toward the light —
+   a raised card is *brighter* than the page. Flip that naively and raised
+   cards go darker than the page, which reads as a hole rather than a plane.
+   So on light, elevation is carried by shadow and a hairline while the card
+   itself stays white, and the accent darkens: an indigo that glows against
+   black is unreadable against paper, so it drops in luminance to keep
+   contrast while staying the same hue. */
+[data-theme="light"]{
+  --bg-top:#f4f6fb;
+  --bg-mid:#eef1f7;
+  --bg-bot:#e7ebf3;
+  --bg-lift:#ffffff;
+
+  --n1:#161a24;   /* primary text */
+  --n2:#454d5e;   /* secondary */
+  --n3:#6b7387;   /* tertiary */
+  --n4:#8f97a8;   /* quaternary */
+  --n5:rgba(22,26,36,.11);
+  --n6:rgba(22,26,36,.05);
+
+  --a-hi:#3f4a9c;   /* hero figures — deepest, most contrast */
+  --a:#5a66c4;      /* signature */
+  --a-lo:#8f98d4;   /* supporting */
+  --a-dim:#d3d8ee;  /* grid, rails */
+  --a-fill:rgba(90,102,196,.09);
+  --a-edge:rgba(90,102,196,.24);
+  --a-glow:rgba(90,102,196,.16);
+
+  --pos:#2f9e7d;
+  --neg:#d4526a;
+  --info:#7a5cc4;
+  --warn:#b5822f;
+
+  /* on paper, a raised surface is white with a shadow under it */
+  --el1-bg:#ffffff;
+  --el2-bg:#ffffff;
+  --el1-sh:0 1px 2px rgba(22,30,52,.06), 0 4px 12px -4px rgba(22,30,52,.10);
+}
+/* the grain is a dark-surface trick; on paper it just looks dirty */
+[data-theme="light"] body::before{opacity:.16;mix-blend-mode:multiply;}
+/* and the glow treatments have nothing to glow against */
+[data-theme="light"] .g{text-shadow:none;}
+[data-theme="light"] .b-rest,[data-theme="light"] .b-act,[data-theme="light"] .b-move{box-shadow:none;}
+[data-theme="light"] .card::after,[data-theme="light"] .sheet::after{
+  background:linear-gradient(180deg,rgba(255,255,255,.6),transparent 40%);}
+[data-theme="light"] .card,[data-theme="light"] .sheet{border:1px solid var(--n5);}
+
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 html{-webkit-text-size-adjust:100%;}
 /* html carries the colour too, so rubber-band overscroll shows the app's own
    dark rather than a strip of white */
-/* Every surface derives from these three stops, so the app's depth is one
-   decision rather than forty hard-coded hexes. Deeper and browner than before:
-   the old floor sat close to black, which made the warm accents feel bolted on
-   instead of lit from within. */
-:root{
-  --bg-top:#1c1409;      /* behind the header */
-  --bg-mid:#120c06;      /* the body of the page */
-  --bg-bot:#090603;      /* the floor */
-  --bg-lift:#241a10;     /* raised chrome: toasts, sheets */
-}
+/* A second :root used to sit here re-declaring the surfaces in the old browns,
+   overriding the real palette above — and one of its values had become
+   self-referential (--bg-mid:var(--bg-mid)), which is why some surfaces were
+   still reading warm no matter what the token block said. Removed; the palette
+   is declared once, at the top, and nowhere else. */
 html{background:var(--bg-bot);overscroll-behavior:none;height:100%;}
 body{font-family:var(--fb);color:var(--ink);min-height:100vh;overflow-x:hidden;
-  background:radial-gradient(120% 58% at 50% 26%,rgba(232,169,78,0.075),transparent 54%),
-             radial-gradient(150% 100% at 50% -8%,var(--bg-top) 0%,var(--bg-mid) 46%,var(--bg-bot) 100%);
+  background:
+    /* a second, off-centre bloom — one light source reads as a spotlight,
+       two reads as depth, the way a real room is lit from more than one place */
+    radial-gradient(90% 44% at 82% 6%,rgba(179,154,232,.055),transparent 60%),
+    radial-gradient(120% 58% at 22% 22%,var(--a-fill),transparent 58%),
+    radial-gradient(150% 100% at 50% -8%,var(--bg-top) 0%,var(--bg-mid) 46%,var(--bg-bot) 100%);
   background-color:var(--bg-bot);
   background-attachment:fixed;overscroll-behavior:none;
   padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right);}
+
+/* ── grain ────────────────────────────────────────────────────────────
+   The single biggest thing separating a flat dark UI from one that feels
+   like a material. Large dark gradients band badly on OLED — visible steps
+   where the maths runs out of bits — and a fine noise layer dithers those
+   away while giving the surface something to catch light on. Fixed to the
+   viewport so it reads as the screen's own texture rather than something
+   printed on the page, and pinned under everything interactive. */
+body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  opacity:.4;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='.5'/%3E%3C/svg%3E");
+  background-size:140px 140px;}
+/* The grain layer needs page content to sit above it, but this was written as
+   `body > *{position:relative}` — which overrode `position:fixed` on every
+   bottom sheet, dropping all of them out of their own layer and into the
+   document flow. That is why scrolling any tab revealed a stack of stray
+   panels. Lift only the app shell; everything fixed keeps its own position. */
+.app{position:relative;z-index:1;}
+/* header is sticky and nav is fixed — give them a layer without touching
+   their positioning, which is what broke the sheets in the first place */
+.hdr,.nav{z-index:6;}
 button{font-family:inherit;cursor:pointer;color:inherit;}
 .app{max-width:520px;margin:0 auto;padding:0 18px 118px;}
 .scr{display:none;} .scr.on{display:block;animation:fade .3s ease;}
@@ -133,19 +214,19 @@ button{font-family:inherit;cursor:pointer;color:inherit;}
   animation:brandBreathe 4s ease-in-out infinite;}
 .brand-orb-in{display:block;position:relative;width:100%;height:100%;border-radius:50%;
   overflow:visible;
-  background:conic-gradient(from 210deg,#7fb894,#e0ae55 100deg,#6a9fbd 215deg,#7fb894);
+  background:conic-gradient(from 210deg,#7fd9bd,var(--a) 100deg,#9ac8e0 215deg,#7fd9bd);
   -webkit-mask:radial-gradient(circle,transparent 34%,#000 39%);
           mask:radial-gradient(circle,transparent 34%,#000 39%);
   animation:swirlA 7s linear infinite;}
 /* mid band — offset, unwinding against the outer one */
 .brand-orb-in::before{content:'';position:absolute;inset:14%;border-radius:50%;
-  background:conic-gradient(from 285deg,#8cc09f,#e8b95f 110deg,#74a8c4 225deg,#8cc09f);
+  background:conic-gradient(from 285deg,#7fd9bd,#8f9ae8 110deg,#b39ae8 225deg,#7fd9bd);
   -webkit-mask:radial-gradient(circle,transparent 30%,#000 36%);
           mask:radial-gradient(circle,transparent 30%,#000 36%);
   animation:swirlB 11s linear infinite reverse;opacity:.92;}
 /* the core — hot, soft, covering the convergence point */
 .brand-orb-in::after{content:'';position:absolute;inset:30%;border-radius:50%;
-  background:radial-gradient(circle at 42% 38%,#fff5dc 0%,#f2cf86 32%,#d9a441 62%,rgba(217,164,65,0) 100%);
+  background:radial-gradient(circle at 42% 38%,#e8ecff 0%,#c2c9ff 32%,#8f9ae8 62%,rgba(143,154,232,0) 100%);
   animation:coreGlow 4s ease-in-out infinite;filter:blur(.4px);}
 @keyframes swirlA{to{transform:rotate(360deg);}}
 @keyframes swirlB{to{transform:rotate(360deg);}}
@@ -156,7 +237,7 @@ button{font-family:inherit;cursor:pointer;color:inherit;}
   0%,100%{transform:scale(.94);box-shadow:0 0 9px -2px rgba(127,184,148,.35);
           filter:saturate(.97) brightness(.97);}
   50%    {transform:scale(1.07);
-          box-shadow:0 0 24px -1px rgba(224,174,85,.5),0 0 44px 2px rgba(127,184,148,.24);
+          box-shadow:0 0 24px -1px rgba(143,154,232,.5),0 0 44px 2px rgba(127,184,148,.24);
           filter:saturate(1.16) brightness(1.08);}}
 @media (prefers-reduced-motion:reduce){
   .brand-orb,.brand-orb-in,.brand-orb-in::before,.brand-orb-in::after{animation:none;}}
@@ -176,7 +257,7 @@ button{font-family:inherit;cursor:pointer;color:inherit;}
 .hero-head{display:flex;align-items:center;justify-content:space-between;padding:8px 2px 0;}
 .hero-head .r{font-size:10px;font-weight:600;letter-spacing:0.2em;text-transform:uppercase;color:var(--honey);}
 .portal{position:relative;width:212px;height:212px;margin:6px auto 0;}
-.pglow{position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at 50% 54%,rgba(232,169,78,0.30),rgba(184,122,76,0.10) 34%,rgba(127,184,148,0.05) 52%,transparent 62%);filter:blur(4px);animation:breathe 4.2s ease-in-out infinite;}
+.pglow{position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at 50% 54%,rgba(143,154,232,0.30),rgba(76,86,168,0.10) 34%,rgba(127,184,148,0.05) 52%,transparent 62%);filter:blur(4px);animation:breathe 4.2s ease-in-out infinite;}
 @keyframes breathe{0%,100%{opacity:.62;transform:scale(.96);}46%{opacity:1;transform:scale(1.05);}}
 
 
@@ -189,7 +270,7 @@ button{font-family:inherit;cursor:pointer;color:inherit;}
    stroked SVG circle gives true vector edges and round caps. */
 .parc{position:absolute;left:50%;top:50%;width:212px;height:212px;transform:translate(-50%,-50%);
   border-radius:50%;
-  background:conic-gradient(from 208deg,#7fb894,#e0ae55 104deg,#6a9fbd 216deg,#8cc09f 300deg,#7fb894);
+  background:conic-gradient(from 208deg,#7fd9bd,#8f9ae8 104deg,#b39ae8 216deg,#8f9ae8 300deg,#7fd9bd);
   -webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;
   -webkit-mask-size:100% 100%;mask-size:100% 100%;
   animation:arcBreathe 4.2s ease-in-out infinite;}
@@ -199,22 +280,22 @@ button{font-family:inherit;cursor:pointer;color:inherit;}
   0%,100%{transform:translate(-50%,-50%) scale(1);
           filter:saturate(.84) brightness(.88) drop-shadow(0 0 3px rgba(127,184,148,.20));}
   46%    {transform:translate(-50%,-50%) scale(1.035);
-          filter:saturate(1.32) brightness(1.26) drop-shadow(0 0 18px rgba(224,174,85,.60))
+          filter:saturate(1.32) brightness(1.26) drop-shadow(0 0 18px rgba(143,154,232,.60))
                  drop-shadow(0 0 34px rgba(127,184,148,.30));}}
 /* a soft halo that swells with the breath */
 .parc::after{content:'';position:absolute;inset:-6px;border-radius:50%;pointer-events:none;
   animation:arcHalo 4.2s ease-in-out infinite;}
 @keyframes arcHalo{
   0%,100%{box-shadow:0 0 12px -6px rgba(127,184,148,.22);}
-  46%    {box-shadow:0 0 30px -4px rgba(224,174,85,.38);}}
+  46%    {box-shadow:0 0 30px -4px rgba(143,154,232,.38);}}
 @media (prefers-reduced-motion:reduce){.parc,.parc::after{animation:none;}}
 .pcore{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
 .pnum{font-family:var(--fd);font-size:56px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums;
   letter-spacing:-.03em;color:var(--honey-hot);animation:numGlow 4.2s ease-in-out infinite;}
 @keyframes numGlow{
-  0%,100%{text-shadow:0 0 10px rgba(232,169,78,.25);}
-  46%    {text-shadow:0 0 20px rgba(232,169,78,.55);}}
-@media (prefers-reduced-motion:reduce){.pnum{animation:none;text-shadow:0 0 12px rgba(232,169,78,.35);}}
+  0%,100%{text-shadow:0 0 10px rgba(143,154,232,.25);}
+  46%    {text-shadow:0 0 20px rgba(143,154,232,.55);}}
+@media (prefers-reduced-motion:reduce){.pnum{animation:none;text-shadow:0 0 12px rgba(143,154,232,.35);}}
 .plbl{font-size:9.5px;font-weight:700;letter-spacing:.24em;text-transform:uppercase;color:var(--honey);margin-top:6px;}
 .greet{font-size:14px;line-height:1.62;color:var(--ink2);text-align:center;margin:12px 6px 0;}
 .greet b{color:var(--ink);font-weight:600;} .greet .g{color:var(--honey);font-weight:600;}
@@ -228,7 +309,7 @@ button{font-family:inherit;cursor:pointer;color:inherit;}
 .wk-v{font-family:var(--fd);font-size:21px;font-weight:600;font-variant-numeric:tabular-nums;} .wk-v .u{font-size:12.5px;color:var(--ink3);font-weight:400;}
 .wk-pct{font-size:10.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--honey);}
 .bar{height:8px;border-radius:99px;background:rgba(255,255,255,.05);overflow:hidden;}
-.bar>i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--clay),var(--honey));box-shadow:0 0 8px rgba(232,169,78,.4);}
+.bar>i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--clay),var(--honey));box-shadow:0 0 8px rgba(143,154,232,.4);}
 .bar.sky>i{background:linear-gradient(90deg,var(--sky-deep),var(--sky));box-shadow:0 0 8px rgba(166,207,226,.4);}
 
 /* survey rows */
@@ -260,13 +341,13 @@ button{font-family:inherit;cursor:pointer;color:inherit;}
 .yr-track{position:absolute;inset:0;border-radius:50%;border:7px solid rgba(255,255,255,.055);}
 /* same construction as the readiness arc: brandmark gradient, SVG mask, round caps */
 .yr-arc{position:absolute;inset:0;border-radius:50%;
-  background:conic-gradient(from 208deg,#7fb894,#e0ae55 104deg,#6a9fbd 216deg,#8cc09f 300deg,#7fb894);
+  background:conic-gradient(from 208deg,#7fd9bd,#8f9ae8 104deg,#b39ae8 216deg,#8f9ae8 300deg,#7fd9bd);
   -webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;
   -webkit-mask-size:100% 100%;mask-size:100% 100%;
   animation:yrBreathe 4.2s ease-in-out infinite;}
 @keyframes yrBreathe{
   0%,100%{transform:scale(1);filter:saturate(.86) brightness(.9) drop-shadow(0 0 2px rgba(127,184,148,.2));}
-  46%    {transform:scale(1.03);filter:saturate(1.3) brightness(1.22) drop-shadow(0 0 10px rgba(224,174,85,.5));}}
+  46%    {transform:scale(1.03);filter:saturate(1.3) brightness(1.22) drop-shadow(0 0 10px rgba(143,154,232,.5));}}
 @media (prefers-reduced-motion:reduce){.yr-arc{animation:none;}}
 .yr-c{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
 .yr-c .n{font-family:var(--fd);font-size:29px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums;}
@@ -285,7 +366,7 @@ button{font-family:inherit;cursor:pointer;color:inherit;}
 .cal-dow{text-align:center;font-size:9px;color:var(--ink4);text-transform:uppercase;letter-spacing:.06em;padding-bottom:5px;}
 .cal-d{aspect-ratio:1;border-radius:9px;background:rgba(255,255,255,.02);border:1px solid transparent;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--ink2);position:relative;font-variant-numeric:tabular-nums;}
 .cal-d.today{border-color:var(--honey);color:var(--honey);font-weight:600;}
-.cal-d.done{background:rgba(232,169,78,.15);color:var(--honey);}
+.cal-d.done{background:rgba(143,154,232,.15);color:var(--honey);}
 .cal-d.plan{background:rgba(166,207,226,.12);color:var(--sky);}
 .cal-d.mut{opacity:.25;}
 .cal-d .dot{position:absolute;bottom:5px;width:4px;height:4px;border-radius:50%;}
@@ -304,14 +385,14 @@ button{font-family:inherit;cursor:pointer;color:inherit;}
 /* profile */
 .prof-top{display:flex;align-items:center;gap:15px;padding:8px 2px 0;}
 .prof-av{position:relative;width:62px;height:62px;border-radius:50%;flex-shrink:0;
-  background:linear-gradient(180deg,#ffd696,#e8a94e 55%,var(--rust));
+  background:linear-gradient(180deg,var(--a-hi),var(--a) 55%,var(--a-lo));
   display:flex;align-items:center;justify-content:center;font-family:var(--fd);font-size:23px;
-  font-weight:600;color:#180f06;box-shadow:0 6px 20px rgba(0,0,0,.45),0 0 22px rgba(232,169,78,.28),
-  inset 0 1px 0 rgba(255,240,215,.45);}
+  font-weight:600;color:#180f06;box-shadow:0 6px 20px rgba(0,0,0,.45),0 0 22px rgba(143,154,232,.28),
+  inset 0 1px 0 rgba(230,236,255,.45);}
 .prof-av::before{content:'';position:absolute;inset:-4px;border-radius:50%;
-  border:1px solid rgba(232,169,78,.28);}
+  border:1px solid rgba(143,154,232,.28);}
 .prof-av::after{content:'';position:absolute;inset:-9px;border-radius:50%;
-  border:1px solid rgba(232,169,78,.13);}
+  border:1px solid rgba(143,154,232,.11);}
 .prof-n{font-family:var(--fd);font-size:20px;font-weight:600;} .prof-s{font-size:12.5px;color:var(--ink3);margin-top:2px;}
 .set{display:flex;align-items:center;gap:14px;padding:15px 16px;border-bottom:1px solid var(--line);}
 .set:last-child{border-bottom:none;} .set .l{flex:1;font-size:14px;} .set .sub{font-size:11.5px;color:var(--ink3);margin-top:2px;}
@@ -322,11 +403,11 @@ button{font-family:inherit;cursor:pointer;color:inherit;}
 .nav{position:fixed;left:0;right:0;bottom:calc(16px + env(safe-area-inset-bottom));z-index:9;
   display:flex;justify-content:center;pointer-events:none;}
 .nav-in{pointer-events:auto;display:flex;align-items:center;gap:2px;padding:7px;
-  background:linear-gradient(150deg,rgba(46,32,19,.88),rgba(24,16,9,.92));
+  background:linear-gradient(150deg,rgba(32,38,52,.86),rgba(14,17,26,.92));
   -webkit-backdrop-filter:blur(22px) saturate(150%);backdrop-filter:blur(22px) saturate(150%);
-  border:1px solid rgba(232,178,90,.16);border-radius:999px;
+  border:1px solid rgba(143,154,232,.16);border-radius:999px;
   box-shadow:0 16px 44px rgba(0,0,0,.6),0 3px 12px rgba(0,0,0,.4),
-             inset 0 1px 0 rgba(255,235,200,.10),inset 0 -1px 0 rgba(0,0,0,.3);
+             inset 0 1px 0 rgba(230,236,255,.10),inset 0 -1px 0 rgba(0,0,0,.3);
   animation:navRise .55s cubic-bezier(.22,1.2,.36,1) both;}
 @keyframes navRise{from{opacity:0;transform:translateY(26px) scale(.92);}to{opacity:1;transform:none;}}
 
@@ -344,9 +425,9 @@ button{font-family:inherit;cursor:pointer;color:inherit;}
 /* the active pill carries the brandmark's gradient, and it drifts slowly so the
    tab you are on feels lit rather than merely filled */
 .nav a::before{content:'';position:absolute;inset:0;border-radius:999px;z-index:0;
-  background:linear-gradient(115deg,#7fb894 0%,#e0ae55 30%,#f3bc63 48%,#6a9fbd 78%,#7fb894 100%);
+  background:linear-gradient(115deg,#7fd9bd 0%,var(--a) 30%,#c2c9ff 48%,#9ac8e0 78%,#7fd9bd 100%);
   background-size:260% 100%;
-  box-shadow:0 3px 14px rgba(232,169,78,.4),0 0 18px rgba(127,184,148,.18),
+  box-shadow:0 3px 14px rgba(143,154,232,.4),0 0 18px rgba(127,184,148,.18),
              inset 0 1px 0 rgba(255,255,255,.32);
   transform:scale(.5);opacity:0;
   transition:transform .42s cubic-bezier(.34,1.5,.5,1),opacity .28s;}
@@ -364,7 +445,7 @@ button{font-family:inherit;cursor:pointer;color:inherit;}
 /* a soft glow under the island so it reads as floating */
 .nav::after{content:'';position:absolute;bottom:-14px;left:50%;transform:translateX(-50%);
   width:min(360px,86vw);height:34px;border-radius:50%;pointer-events:none;
-  background:radial-gradient(ellipse at center,rgba(232,169,78,.16),transparent 70%);filter:blur(9px);}
+  background:radial-gradient(ellipse at center,rgba(143,154,232,.16),transparent 70%);filter:blur(9px);}
 
 .nav-in.squeeze{animation:navSqueeze .38s cubic-bezier(.34,1.5,.5,1);}
 @keyframes navSqueeze{0%{transform:scale(1);}35%{transform:scale(.965);}100%{transform:scale(1);}}
@@ -377,10 +458,10 @@ button{font-family:inherit;cursor:pointer;color:inherit;}
 }
 
 /* ═══════════ SHEETS / MODALS ═══════════ */
-.sheet-bd{position:fixed;inset:0;background:rgba(8,5,3,.62);backdrop-filter:blur(3px);z-index:20;opacity:0;pointer-events:none;transition:opacity .22s;}
+.sheet-bd{position:fixed;inset:0;background:rgba(5,7,12,.62);backdrop-filter:blur(3px);z-index:20;opacity:0;pointer-events:none;transition:opacity .22s;}
 .sheet-bd.on{opacity:1;pointer-events:auto;}
 .sheet{position:fixed;left:0;right:0;bottom:0;z-index:21;max-width:520px;margin:0 auto;
-  background:#1a1109;border:1px solid var(--line);border-bottom:none;border-radius:22px 22px 0 0;
+  background:var(--bg-lift);border:1px solid var(--line);border-bottom:none;border-radius:22px 22px 0 0;
   padding:10px 18px calc(22px + env(safe-area-inset-bottom));box-shadow:0 -12px 44px rgba(0,0,0,.6);
   transform:translateY(102%);transition:transform .3s cubic-bezier(.32,.72,0,1);max-height:88vh;overflow-y:auto;-webkit-overflow-scrolling:touch;}
 .sheet.on{transform:translateY(0);}
@@ -429,7 +510,7 @@ select.fi{appearance:none;background-image:linear-gradient(45deg,transparent 50%
 .vm-v{font-family:var(--fd);font-size:18px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.15;}
 .vm-v .u{font-size:10.5px;color:var(--ink3);margin-left:1px;}
 .vm-l{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin-top:4px;}
-.vm.lead .vm-v{color:var(--honey);} .vm.lead{border-color:rgba(232,169,78,.32);background:rgba(232,169,78,.07);}
+.vm.lead .vm-v{color:var(--honey);} .vm.lead{border-color:rgba(143,154,232,.32);background:rgba(143,154,232,.07);}
 /* the chart runs the full width of the card — the negative margin cancels the
    card's own padding, so only the text elements stay inset */
 .vol-svg{display:block;height:200px;overflow:visible;margin:2px -6px 0;width:calc(100% + 12px);}
@@ -471,7 +552,7 @@ select.fi{appearance:none;background-image:linear-gradient(45deg,transparent 50%
 .daylist{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden;}
 .dayrow{padding:13px 16px;border-bottom:1px solid var(--line);cursor:pointer;}
 .dayrow:last-child{border-bottom:none;}
-.dayrow.today{background:rgba(232,169,78,.06);}
+.dayrow.today{background:rgba(143,154,232,.06);}
 .dayrow.faded{opacity:.5;}
 .dl-head{display:flex;justify-content:space-between;align-items:baseline;}
 .dl-day{display:flex;align-items:baseline;gap:8px;min-width:0;}
@@ -528,7 +609,7 @@ select.fi{appearance:none;background-image:linear-gradient(45deg,transparent 50%
   background-position:calc(100% - 14px) 50%,calc(100% - 10px) 50%;background-size:4px 4px,4px 4px;background-repeat:no-repeat;}
 .gp-months{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
 .gp-m{background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:12px;padding:9px 8px 8px;text-align:center;}
-.gp-m.now{border-color:rgba(232,169,78,.4);background:rgba(232,169,78,.07);}
+.gp-m.now{border-color:rgba(143,154,232,.4);background:rgba(143,154,232,.07);}
 .gp-m-l{font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin-bottom:5px;}
 .gp-m.now .gp-m-l{color:var(--honey);}
 .gp-m-in{width:100%;background:transparent;border:none;border-bottom:1px solid var(--line);
@@ -568,8 +649,8 @@ select.fi{appearance:none;background-image:linear-gradient(45deg,transparent 50%
 .map-toggle{flex:0 0 auto;background:var(--card);border:1px solid var(--line);border-radius:11px;
   padding:9px 14px;font-size:12px;font-weight:600;color:var(--ink3);}
 .map-toggle.on{background:rgba(147,179,154,.16);border-color:rgba(147,179,154,.4);color:var(--sage);}
-#map{height:340px;border-radius:var(--r);border:1px solid var(--line);box-shadow:var(--shadow);overflow:hidden;background:#e8e4dc;}
-.leaflet-container{background:#e8e4dc;font-family:var(--fb);}
+#map{height:340px;border-radius:var(--r);border:1px solid var(--line);box-shadow:var(--shadow);overflow:hidden;background:#dfe4ea;}
+.leaflet-container{background:#dfe4ea;font-family:var(--fb);}
 .leaflet-control-attribution{background:rgba(255,255,255,.78)!important;color:#555!important;font-size:9px!important;}
 .leaflet-control-attribution a{color:#336!important;}
 .leaflet-bar a{background:#fff!important;color:#333!important;border-color:rgba(0,0,0,.15)!important;}
@@ -605,13 +686,13 @@ select.fi{appearance:none;background-image:linear-gradient(45deg,transparent 50%
 .rd-sum{display:flex;justify-content:space-between;align-items:center;padding:11px 14px;border-bottom:1px solid var(--line);font-size:12.5px;color:var(--ink2);}
 .rd-sum:last-child{border-bottom:none;}
 .rd-sum b{font-family:var(--fd);font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;}
-.rd-sum.total{background:rgba(232,169,78,.09);}
+.rd-sum.total{background:rgba(143,154,232,.09);}
 .rd-sum.total b{font-size:19px;color:var(--honey-hot);}
 .rd-tag{font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink4);margin-left:6px;}
 .rd-gauge{position:relative;height:7px;border-radius:99px;background:rgba(255,255,255,.06);}
 .rd-zone{position:absolute;left:40%;width:25%;top:0;bottom:0;background:rgba(147,179,154,.35);border-radius:99px;}
 .rd-gauge i{position:absolute;top:50%;width:11px;height:11px;border-radius:50%;background:var(--honey);
-  transform:translate(-50%,-50%);box-shadow:0 0 8px rgba(232,169,78,.6);border:2px solid var(--bg-mid);}
+  transform:translate(-50%,-50%);box-shadow:0 0 8px rgba(143,154,232,.6);border:2px solid var(--bg-mid);}
 
 .vm{cursor:pointer;font-family:inherit;transition:border-color .2s,background .2s;-webkit-appearance:none;appearance:none;}
 .vm:active{transform:scale(.97);}
@@ -623,12 +704,12 @@ select.fi{appearance:none;background-image:linear-gradient(45deg,transparent 50%
 .race-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;
   background:linear-gradient(180deg,var(--rust),var(--clay));}
 .race-card::after{content:'';position:absolute;right:-40px;top:-40px;width:150px;height:150px;
-  border-radius:50%;background:radial-gradient(circle,rgba(207,106,68,.12),transparent 70%);pointer-events:none;}
+  border-radius:50%;background:radial-gradient(circle,rgba(255,107,129,.12),transparent 70%);pointer-events:none;}
 .race-top{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
 .race-pri{font-family:var(--fd);font-size:9px;font-weight:700;letter-spacing:.1em;
   padding:3px 7px;border-radius:5px;line-height:1;}
 .pri-A{background:var(--rust);color:#fff;}
-.pri-B{background:rgba(232,169,78,.9);color:#1a1006;}
+.pri-B{background:rgba(143,154,232,.9);color:#1a1006;}
 .pri-C{background:rgba(255,255,255,.1);color:var(--ink2);}
 .race-phase{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);}
 .race-name{font-family:var(--fd);font-size:18px;font-weight:600;line-height:1.22;
@@ -644,9 +725,9 @@ select.fi{appearance:none;background-image:linear-gradient(45deg,transparent 50%
   background:rgba(166,207,226,.1);border:1px solid rgba(166,207,226,.2);
   padding:4px 9px;border-radius:999px;}
 
-.cal-d.israce{border-color:rgba(207,106,68,.55);color:var(--rust);font-weight:600;}
-.race-inline{display:flex;align-items:center;gap:11px;background:rgba(207,106,68,.12);
-  border:1px solid rgba(207,106,68,.3);border-radius:12px;padding:11px 13px;margin-bottom:12px;cursor:pointer;}
+.cal-d.israce{border-color:rgba(255,107,129,.55);color:var(--rust);font-weight:600;}
+.race-inline{display:flex;align-items:center;gap:11px;background:rgba(255,107,129,.12);
+  border:1px solid rgba(255,107,129,.3);border-radius:12px;padding:11px 13px;margin-bottom:12px;cursor:pointer;}
 .race-inline-n{font-family:var(--fd);font-size:14px;font-weight:600;}
 .race-inline-s{font-size:11px;color:var(--ink3);margin-top:2px;}
 
@@ -668,8 +749,8 @@ select.fi{appearance:none;background-image:linear-gradient(45deg,transparent 50%
 .plan-bar{display:flex;gap:9px;align-items:stretch;margin-bottom:12px;}
 .plan-bar .seg{flex:1;}
 .add-btn{flex:0 0 46px;display:flex;align-items:center;justify-content:center;
-  background:linear-gradient(135deg,#f3bc63,#d08840);border:none;border-radius:12px;color:#1a1006;
-  box-shadow:0 3px 12px rgba(232,169,78,.35);transition:transform .16s;}
+  background:linear-gradient(135deg,#c2c9ff,#5a648f);border:none;border-radius:12px;color:#080a12;
+  box-shadow:0 3px 12px rgba(143,154,232,.35);transition:transform .16s;}
 .add-btn:active{transform:scale(.94);}
 .add-btn svg{width:20px;height:20px;}
 .add-opt{display:flex;align-items:center;gap:14px;width:100%;text-align:left;
@@ -678,16 +759,16 @@ select.fi{appearance:none;background-image:linear-gradient(45deg,transparent 50%
 .add-ico{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .add-ico svg{width:21px;height:21px;}
 .add-ico.wk{background:rgba(166,207,226,.16);color:var(--sky);}
-.add-ico.rc{background:rgba(207,106,68,.18);color:var(--rust);}
+.add-ico.rc{background:rgba(255,107,129,.18);color:var(--rust);}
 .add-txt{flex:1;min-width:0;}
 .add-txt b{display:block;font-size:15px;font-weight:600;}
 .add-txt i{display:block;font-style:normal;font-size:11.5px;color:var(--ink3);margin-top:2px;}
 .add-go{color:var(--ink4);font-size:16px;}
 
-.sync-btn{flex:0 0 auto;margin-left:12px;background:rgba(232,169,78,.14);border:1px solid rgba(232,169,78,.32);
+.sync-btn{flex:0 0 auto;margin-left:12px;background:rgba(143,154,232,.14);border:1px solid rgba(143,154,232,.32);
   border-radius:999px;padding:7px 15px;font-size:11.5px;font-weight:700;color:var(--honey);
   letter-spacing:.02em;transition:transform .15s,background .2s;min-width:58px;text-align:center;}
-.sync-btn:active{transform:scale(.94);background:rgba(232,169,78,.24);}
+.sync-btn:active{transform:scale(.94);background:rgba(143,154,232,.24);}
 .sync-btn:disabled{opacity:.55;}
 .set .conn{margin-left:auto;}
 
@@ -699,40 +780,40 @@ select.fi{appearance:none;background-image:linear-gradient(45deg,transparent 50%
 
 /* health tab */
 .hl-hero{text-align:center;padding:20px 18px 16px;}
-.hl-cur{font-family:var(--fd);font-size:46px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums;color:var(--honey-hot);text-shadow:0 0 16px rgba(232,169,78,.25);}
+.hl-cur{font-family:var(--fd);font-size:46px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums;color:var(--honey-hot);text-shadow:0 0 18px rgba(194,201,255,.22);}
 .hl-cur .u{font-size:17px;color:var(--ink3);margin-left:3px;}
 .hl-cap{font-size:12.5px;color:var(--ink2);margin-top:9px;}
 .hl-band{position:relative;height:8px;border-radius:99px;background:rgba(255,255,255,.05);margin:18px 4px 0;}
 .hl-normal{position:absolute;top:0;bottom:0;background:rgba(166,207,226,.28);border-radius:99px;}
 .hl-band i{position:absolute;top:50%;width:13px;height:13px;border-radius:50%;background:var(--honey);
-  transform:translate(-50%,-50%);border:2.5px solid var(--bg-mid);box-shadow:0 0 10px rgba(232,169,78,.6);}
+  transform:translate(-50%,-50%);border:2.5px solid var(--bg-mid);box-shadow:0 0 10px rgba(143,154,232,.6);}
 .hl-band-l{display:flex;justify-content:space-between;font-size:10.5px;color:var(--ink2);margin:8px 4px 0;}
 .hl-band-l .mid{color:var(--sky);}
 .hl-legend{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;font-size:10.5px;color:var(--ink2);padding-top:9px;}
 .hl-legend span{display:flex;align-items:center;gap:5px;}
 .hl-legend .ln{width:14px;height:2px;border-radius:2px;background:var(--honey);display:inline-block;}
-.hl-legend .ln.faint{background:rgba(232,169,78,.45);height:1.5px;}
-.hl-legend .ln.dash{background:repeating-linear-gradient(90deg,#6ea6c1 0 4px,transparent 4px 7px);}
+.hl-legend .ln.faint{background:rgba(143,154,232,.45);height:1.5px;}
+.hl-legend .ln.dash{background:repeating-linear-gradient(90deg,#9ac8e0 0 4px,transparent 4px 7px);}
 .hl-read{font-size:12.5px;line-height:1.55;border-radius:12px;padding:13px 15px;margin-top:14px;
   background:rgba(255,255,255,.03);border:1px solid var(--line);}
 .hl-read b{font-weight:600;}
 .hl-read.good{background:rgba(147,179,154,.09);border-color:rgba(147,179,154,.24);}
 .hl-read.good b{color:var(--sage);}
-.hl-read.bad{background:rgba(207,106,68,.09);border-color:rgba(207,106,68,.24);}
+.hl-read.bad{background:rgba(255,107,129,.09);border-color:rgba(255,107,129,.24);}
 .hl-read.bad b{color:var(--rust);}
 .hl-read.flat b{color:var(--ink);}
 .hl-stack{display:flex;align-items:flex-end;gap:3px;height:104px;}
 .hl-col{flex:1;height:100%;display:flex;align-items:flex-end;}
 .hl-bar{width:100%;display:flex;flex-direction:column;justify-content:flex-end;border-radius:3px;overflow:hidden;}
 .hl-bar span{display:block;width:100%;}
-.s-lt{background:rgba(166,207,226,.28);} .s-rm{background:rgba(185,140,201,.7);} .s-dp{background:#6ea6c1;}
+.s-lt{background:rgba(166,207,226,.28);} .s-rm{background:rgba(185,140,201,.7);} .s-dp{background:#9ac8e0;}
 .hl-key{display:flex;gap:13px;flex-wrap:wrap;font-size:10.5px;color:var(--ink2);margin-top:11px;}
 .hl-key span{display:flex;align-items:center;gap:5px;}
 .hl-key .k{width:9px;height:9px;border-radius:2px;display:inline-block;}
 .hl-dow{display:flex;gap:5px;align-items:flex-end;}
 .hl-d{flex:1;text-align:center;}
 .hl-d-bar{height:74px;display:flex;align-items:flex-end;}
-.hl-d-bar i{display:block;width:100%;border-radius:4px 4px 0 0;background:rgba(224,180,120,.28);}
+.hl-d-bar i{display:block;width:100%;border-radius:4px 4px 0 0;background:rgba(143,154,232,.28);}
 .hl-d-v{font-family:var(--fd);font-size:9.5px;font-weight:600;color:var(--ink3);margin-top:5px;}
 .hl-d-v.hi{color:var(--honey);}
 .hl-d-l{font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink4);margin-top:2px;}
@@ -756,8 +837,8 @@ select.fi{appearance:none;background-image:linear-gradient(45deg,transparent 50%
 .ld-x{font-family:var(--fd);font-size:15px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--ink);}
 .ld-state{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:4px 9px;border-radius:999px;}
 .st-steady{background:rgba(147,179,154,.18);color:var(--sage);}
-.st-ramping{background:rgba(232,169,78,.18);color:var(--honey);}
-.st-spiking{background:rgba(207,106,68,.2);color:var(--rust);}
+.st-ramping{background:rgba(143,154,232,.18);color:var(--honey);}
+.st-spiking{background:rgba(255,107,129,.2);color:var(--rust);}
 .st-easing,.st-rested{background:rgba(166,207,226,.16);color:var(--sky);}
 .ld-nums{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:8px;}
 .ld-n{display:flex;flex-direction:column;gap:3px;}
@@ -771,17 +852,17 @@ select.fi{appearance:none;background-image:linear-gradient(45deg,transparent 50%
 /* the brandmark's own hues, unrolled left to right: pine, gold, slate, pine.
    The bar is sized to the full track so the gradient reads the same at any fill. */
 .ld-bar i{display:block;height:100%;border-radius:99px;
-  background:linear-gradient(90deg,#7fb894 0%,#e0ae55 28%,#6a9fbd 60%,#7fb894 100%);
+  background:linear-gradient(90deg,#7fd9bd 0%,var(--a) 28%,#9ac8e0 60%,#7fd9bd 100%);
   background-size:var(--track,100%) 100%;background-repeat:no-repeat;
-  box-shadow:0 0 10px rgba(232,169,78,.26);
+  box-shadow:0 0 10px rgba(143,154,232,.26);
   transition:width .55s cubic-bezier(.32,.72,0,1);}
-.ld-bar.over i{box-shadow:0 0 12px rgba(207,106,68,.3);}
+.ld-bar.over i{box-shadow:0 0 12px rgba(255,107,129,.3);}
 .ld-bar.under i{box-shadow:0 0 10px rgba(127,184,148,.24);}
 .ld-tick{position:absolute;top:-3px;bottom:-3px;width:2px;border-radius:2px;background:var(--ink2);opacity:.8;}
 .ld-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:13px;}
 .ld-foot b{font-size:12.5px;color:var(--ink);font-weight:600;}
 .ld-i{font-size:10px;font-weight:700;padding:3px 8px;border-radius:999px;white-space:nowrap;}
-.ld-i.bad{background:rgba(207,106,68,.16);color:var(--rust);}
+.ld-i.bad{background:rgba(255,107,129,.16);color:var(--rust);}
 .ld-i.flat{background:rgba(255,255,255,.05);color:var(--ink3);}
 .ld-i.good{background:rgba(147,179,154,.16);color:var(--sage);}
 
@@ -795,8 +876,8 @@ select.fi{appearance:none;background-image:linear-gradient(45deg,transparent 50%
 /* a planned day is an intention, not a fact — outline it instead of filling it */
 .dl-tag.plan{background:transparent;border:1px solid color-mix(in srgb, var(--tc) 45%, transparent);
   color:color-mix(in srgb, var(--tc) 82%, #fff);}
-.t-hard{background:rgba(207,106,68,.16);color:var(--rust);}
-.t-steady{background:rgba(232,169,78,.15);color:var(--honey);}
+.t-hard{background:rgba(255,107,129,.16);color:var(--rust);}
+.t-steady{background:rgba(143,154,232,.15);color:var(--honey);}
 .t-easy{background:rgba(166,207,226,.14);color:var(--sky);}
 .t-race{background:var(--rust);color:#fff;}
 
@@ -804,7 +885,7 @@ select.fi{appearance:none;background-image:linear-gradient(45deg,transparent 50%
    the hue stays true instead of muddying against the dark background */
 .cal-d.typed{background:color-mix(in srgb, var(--dc) 13%, transparent);
   border-color:color-mix(in srgb, var(--dc) 30%, transparent);
-  color:#f3ece0;font-weight:600;position:relative;overflow:hidden;}
+  color:#e6e9f2;font-weight:600;position:relative;overflow:hidden;}
 .cal-d.typed::after{content:'';position:absolute;left:50%;transform:translateX(-50%);
   bottom:5px;width:16px;height:3px;border-radius:99px;background:var(--dc);}
 .cal-d.typed.planned{background:transparent;
@@ -878,7 +959,7 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
 .fi,.gp-in,.gp-m-in,.vol-sel{font-size:16px;}
 .gp-m-in{font-size:15px;}
 select.fi,.vol-sel,.gp-msel{cursor:pointer;}
-.fi:focus,.gp-in:focus{outline:none;box-shadow:0 0 0 3px rgba(232,169,78,.12);}
+.fi:focus,.gp-in:focus{outline:none;box-shadow:0 0 0 3px rgba(143,154,232,.12);}
 
 /* consistent vertical rhythm between sections */
 .hsec{margin:26px 0 12px;}
@@ -904,7 +985,7 @@ select.fi,.vol-sel,.gp-msel{cursor:pointer;}
 @media (min-width:560px){
   .app{padding-left:20px;padding-right:20px;}
   body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:-1;
-    background:radial-gradient(120% 70% at 50% 0%,rgba(232,169,78,.05),transparent 60%);}
+    background:radial-gradient(120% 70% at 50% 0%,rgba(143,154,232,.05),transparent 60%);}
   #map{height:460px;}
 }
 /* iPad: still one column, just more air around it */
@@ -976,33 +1057,33 @@ select.fi,.vol-sel,.gp-msel{cursor:pointer;}
    leads — sparingly, so they stay a signature rather than a wallpaper. */
 
 /* a rule of gradient thread for every section header */
-.hsec i{background:linear-gradient(90deg,rgba(232,169,78,.32),rgba(127,184,148,.14) 38%,var(--line) 78%,transparent);}
+.hsec i{background:linear-gradient(90deg,rgba(143,154,232,.32),rgba(127,184,148,.14) 38%,var(--line) 78%,transparent);}
 
 /* every progress bar fills with the mark's own ramp, sized to the whole track
    so the colour at a given point never shifts as the bar grows */
 .bar>i,.gp-prog i,.ycard .ybar i{
-  background:linear-gradient(90deg,#7fb894 0%,#e0ae55 40%,#6a9fbd 78%,#7fb894 100%);
+  background:linear-gradient(90deg,#7fd9bd 0%,var(--a) 40%,#9ac8e0 78%,#7fd9bd 100%);
   background-size:var(--track,340%) 100%;background-repeat:no-repeat;
-  box-shadow:0 0 9px rgba(232,169,78,.3);
+  box-shadow:0 0 9px rgba(143,154,232,.3);
   transition:width .6s cubic-bezier(.32,.72,0,1);}
-.bar.sky>i{background:linear-gradient(90deg,#6a9fbd,#a6cfe2);background-size:100% 100%;
+.bar.sky>i{background:linear-gradient(90deg,#9ac8e0,#8fb6f0);background-size:100% 100%;
   box-shadow:0 0 8px rgba(166,207,226,.36);}
 
 /* the race card's spine */
-.race-card::before{background:linear-gradient(180deg,#7fb894,#e0ae55 42%,#cf6a44 100%);width:3.5px;}
+.race-card::before{background:linear-gradient(180deg,#8f9ae8,var(--a-hi) 48%,#f08a99 100%);width:3.5px;}
 
 /* the grip on every sheet */
-.sheet-grip{background:linear-gradient(90deg,rgba(127,184,148,.5),rgba(232,169,78,.7),rgba(106,159,189,.5));}
+.sheet-grip{background:linear-gradient(90deg,rgba(127,184,148,.5),rgba(143,154,232,.7),rgba(106,159,189,.5));}
 
 /* the selected item in a segmented control */
-.seg button.on{background:linear-gradient(112deg,#8cc09f,#e8b95f 42%,#e0ae55 72%,#7fb894);
+.seg button.on{background:linear-gradient(112deg,#7fd9bd,#8f9ae8 44%,#b39ae8 74%,#7fd9bd);
   background-size:200% 100%;color:var(--bg-bot);animation:segSheen 11s ease-in-out infinite;}
 @keyframes segSheen{0%,100%{background-position:0% 50%;}50%{background-position:100% 50%;}}
 
 /* primary buttons lead with the mark rather than flat sky */
-.btn.pri{background:linear-gradient(112deg,#8cc09f,#e8b95f 46%,#e0ae55);color:#170f05;
-  border-color:transparent;box-shadow:0 2px 12px rgba(232,169,78,.24);}
-.btn.pri:active{box-shadow:0 1px 6px rgba(232,169,78,.3);}
+.btn.pri{background:linear-gradient(112deg,#7fd9bd,#8f9ae8 46%,#b39ae8);color:#080a12;
+  border-color:transparent;box-shadow:0 2px 12px rgba(143,154,232,.24);}
+.btn.pri:active{box-shadow:0 1px 6px rgba(143,154,232,.3);}
 
 /* the day tag on Today gets a hairline of its own colour */
 .daytag{box-shadow:inset 0 0 0 1px color-mix(in srgb, currentColor 24%, transparent);}
@@ -1010,11 +1091,11 @@ select.fi,.vol-sel,.gp-msel{cursor:pointer;}
 /* record and stat cards get a whisper of warmth along the top edge */
 .stat,.yrbox{position:relative;overflow:hidden;}
 .stat::before,.yrbox::before{content:'';position:absolute;left:0;right:0;top:0;height:1px;
-  background:linear-gradient(90deg,transparent,rgba(232,169,78,.28) 40%,rgba(127,184,148,.16) 75%,transparent);}
+  background:linear-gradient(90deg,transparent,rgba(143,154,232,.28) 40%,rgba(127,184,148,.16) 75%,transparent);}
 
 /* the metric box the chart is plotting */
-.vm.lead{border-color:rgba(232,169,78,.34);
-  background:linear-gradient(160deg,rgba(232,169,78,.10),rgba(127,184,148,.05));}
+.vm.lead{border-color:rgba(143,154,232,.34);
+  background:linear-gradient(160deg,rgba(143,154,232,.10),rgba(127,184,148,.05));}
 
 /* the active nav icon picks up a hint of the pine end */
 .nav a.on svg{filter:drop-shadow(0 1px 1px rgba(255,255,255,.22));}
@@ -1060,7 +1141,7 @@ select.fi,.vol-sel,.gp-msel{cursor:pointer;}
 .ad-h{background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:14px;
   padding:14px 8px;text-align:center;position:relative;overflow:hidden;}
 .ad-h::before{content:'';position:absolute;left:0;right:0;top:0;height:1px;
-  background:linear-gradient(90deg,transparent,rgba(232,169,78,.3) 45%,rgba(127,184,148,.15) 80%,transparent);}
+  background:linear-gradient(90deg,transparent,rgba(143,154,232,.3) 45%,rgba(127,184,148,.15) 80%,transparent);}
 .ad-h-v{font-family:var(--fd);font-size:22px;font-weight:600;line-height:1.1;font-variant-numeric:tabular-nums;}
 .ad-h-v i{font-style:normal;font-size:11px;color:var(--ink3);margin-left:2px;}
 .ad-h-l{font-size:9px;letter-spacing:.11em;text-transform:uppercase;color:var(--ink3);margin-top:6px;}
@@ -1094,7 +1175,7 @@ select.fi,.vol-sel,.gp-msel{cursor:pointer;}
   color:var(--ink3);margin-top:7px;}
 .fuel-bar{position:relative;height:9px;border-radius:99px;background:rgba(255,255,255,.06);overflow:hidden;display:flex;}
 .fuel-bar i{display:block;height:100%;border-radius:99px;
-  background:linear-gradient(90deg,#7fb894,#e0ae55 60%,#e8a94e);transition:width .5s cubic-bezier(.32,.72,0,1);}
+  background:linear-gradient(90deg,#7fd9bd,var(--a) 60%,var(--a));transition:width .5s cubic-bezier(.32,.72,0,1);}
 .fuel-over{display:block;height:100%;background:var(--rust);opacity:.75;}
 .fuel-legend{display:flex;justify-content:space-between;font-size:11px;color:var(--ink3);margin-top:8px;}
 .fuel-split{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:16px;
@@ -1103,7 +1184,7 @@ select.fi,.vol-sel,.gp-msel{cursor:pointer;}
 .fs-l{display:block;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin-top:4px;}
 .mac-bar{display:flex;height:9px;border-radius:99px;overflow:hidden;background:rgba(255,255,255,.05);}
 .mac-bar i{display:block;height:100%;}
-.m-p{background:#6a9fbd;} .m-c{background:#e0ae55;} .m-f{background:#cf6a44;}
+.m-p{background:#8f9ae8;} .m-c{background:#8f9ae8;} .m-f{background:var(--a-hi);}
 .mac-key{display:flex;gap:14px;flex-wrap:wrap;font-size:10.5px;color:var(--ink3);margin-top:10px;}
 .mac-key span{display:flex;align-items:center;gap:5px;}
 .mac-key i{width:9px;height:9px;border-radius:3px;display:inline-block;}
@@ -1121,9 +1202,9 @@ select.fi,.vol-sel,.gp-msel{cursor:pointer;}
 .wf-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;cursor:pointer;}
 .wf-bars{flex:1;width:100%;display:flex;gap:2px;align-items:flex-end;justify-content:center;}
 .wf-bars i{display:block;width:44%;border-radius:3px 3px 0 0;min-height:2px;}
-.wf-eat{background:linear-gradient(180deg,#e8a94e,#b9843e);}
+.wf-eat{background:linear-gradient(180deg,var(--a),#2f6b50);}
 .wf-burn{background:rgba(127,184,148,.55);}
-.wf-col.sel .wf-eat{background:linear-gradient(180deg,#ffd48a,#e0ae55);}
+.wf-col.sel .wf-eat{background:linear-gradient(180deg,var(--a-hi),var(--a));}
 .wf-col.sel .wf-burn{background:rgba(140,192,159,.85);}
 .wf-d{font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink4);}
 .wf-col.sel .wf-d{color:var(--honey);}
@@ -1135,12 +1216,12 @@ select.fi,.vol-sel,.gp-msel{cursor:pointer;}
   background:rgba(166,207,226,.07);border:1px solid rgba(166,207,226,.16);border-radius:11px;padding:12px 13px;}
 .bd-calc b{display:block;font-family:var(--fd);font-size:17px;font-weight:600;color:var(--ink);margin-bottom:3px;}
 .bd-calc span{display:block;font-size:10.5px;color:var(--ink3);margin-top:3px;}
-.bd-calc.warn{background:rgba(207,106,68,.09);border-color:rgba(207,106,68,.24);color:var(--rust);}
+.bd-calc.warn{background:rgba(255,107,129,.09);border-color:rgba(255,107,129,.24);color:var(--rust);}
 .bd-warn{color:var(--rust)!important;font-size:11px!important;margin-top:7px!important;}
 
 /* meal builder */
-.bld-total{background:linear-gradient(150deg,rgba(232,169,78,.12),rgba(127,184,148,.05));
-  border:1px solid rgba(232,169,78,.22);border-radius:15px;padding:16px;text-align:center;}
+.bld-total{background:linear-gradient(150deg,rgba(143,154,232,.12),rgba(127,184,148,.05));
+  border:1px solid rgba(143,154,232,.22);border-radius:15px;padding:16px;text-align:center;}
 .bld-kcal{font-family:var(--fd);font-size:34px;font-weight:600;line-height:1;
   font-variant-numeric:tabular-nums;color:var(--honey-hot);}
 .bld-kcal i{font-style:normal;font-size:14px;color:var(--ink3);margin-left:4px;}
@@ -1168,7 +1249,7 @@ select.fi,.vol-sel,.gp-msel{cursor:pointer;}
 .fr-n i{display:block;font-style:normal;font-size:10.5px;color:var(--ink3);margin-top:2px;}
 .fr-k{font-family:var(--fd);font-size:13px;font-weight:600;color:var(--honey);flex-shrink:0;}
 
-.bd-primary{background:linear-gradient(150deg,rgba(127,184,148,.10),rgba(232,169,78,.05));
+.bd-primary{background:linear-gradient(150deg,rgba(127,184,148,.10),rgba(143,154,232,.05));
   border:1px solid rgba(127,184,148,.24);border-radius:14px;padding:14px 15px;margin-bottom:4px;}
 
 .fr-mine{font-size:8.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
@@ -1187,10 +1268,38 @@ select.fi,.vol-sel,.gp-msel{cursor:pointer;}
 .burn-lbl{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink3);}
 .burn-split{display:flex;height:11px;border-radius:99px;overflow:hidden;background:rgba(255,255,255,.05);}
 .burn-split i{display:block;height:100%;transition:width .5s cubic-bezier(.32,.72,0,1);}
-.b-rest{background:linear-gradient(90deg,#6a9fbd,#7fb894);}
-.b-act{background:linear-gradient(90deg,#e0ae55,#e07a45);}
-.b-move{background:linear-gradient(90deg,#9a8fbf,#7f8fc0);}
+.b-rest{background:linear-gradient(90deg,#8f9ae8,#8f9ae8);}
+.b-act{background:linear-gradient(90deg,#8f9ae8,#5a648f);}
+.b-move{background:linear-gradient(90deg,#b39ae8,#8f9ae8);}
 .lnk{background:none;border:none;color:var(--a);font-size:11px;text-decoration:underline;padding:0;cursor:pointer;}
+.jv-wait{display:flex;align-items:center;gap:11px;padding:18px 2px 20px;}
+.jv-dots{display:inline-flex;gap:5px;}
+.jv-dots i{width:6px;height:6px;border-radius:50%;background:var(--a);opacity:.3;
+  animation:jvp 1.25s ease-in-out infinite;}
+.jv-dots i:nth-child(2){animation-delay:.16s;} .jv-dots i:nth-child(3){animation-delay:.32s;}
+@keyframes jvp{0%,70%,100%{opacity:.25;transform:translateY(0);}35%{opacity:1;transform:translateY(-3px);}}
+.jv-wait-t{font-size:13px;color:var(--n3);letter-spacing:.01em;}
+.jv-offline{margin-top:12px;font-size:11px;color:var(--n4);}
+
+/* ── finish ───────────────────────────────────────────────────────────
+   What makes a dark interface read as engineered rather than merely dark.
+   Obsidian is a glassy stone, so raised surfaces catch a faint cold light
+   along their top edge and the accent carries a soft bloom — the same way a
+   lit element behaves against real black. Kept deliberately subtle: the
+   moment a glow is legible as a glow it looks like a toy. */
+/* Same trap as the grain layer: `.sheet{position:relative}` here would override
+   the `position:fixed` every bottom sheet depends on, leaving them rendered
+   somewhere in the document flow — the sheet opens, and the screen is blank.
+   Sheets are already positioned, so they need no help establishing a
+   containing block; only cards do. */
+.card,.lift{position:relative;}
+.card::after,.sheet::after{content:'';position:absolute;inset:0;border-radius:inherit;
+  pointer-events:none;background:linear-gradient(180deg,rgba(190,214,240,.055),transparent 38%);}
+.btn.pri{box-shadow:0 1px 0 rgba(255,255,255,.16) inset,0 6px 18px rgba(0,0,0,.45);}
+.seg button.on{box-shadow:0 1px 0 rgba(255,255,255,.14) inset,0 2px 10px rgba(0,0,0,.4);}
+/* live values get the faintest bloom; hero figures a touch more */
+.g{text-shadow:0 0 14px var(--a-glow);}
+.b-rest,.b-act,.b-move{box-shadow:0 0 12px rgba(143,154,232,.16);}
 .jv-fb{margin-top:14px;padding-top:12px;border-top:1px solid var(--line);}
 .jv-fb-q{font-size:12px;color:var(--ink2);margin-bottom:8px;}
 .jv-fb-b{width:calc(50% - 4px);display:inline-block;margin:0 4px 8px 0;font-size:12px;padding:8px 6px;}
@@ -1244,7 +1353,7 @@ select.fi,.vol-sel,.gp-msel{cursor:pointer;}
 .hsec-toggle span:first-child{font-size:10.5px;font-weight:700;letter-spacing:.16em;
   text-transform:uppercase;color:var(--ink3);white-space:nowrap;}
 .hsec-toggle i{flex:1;height:1px;
-  background:linear-gradient(90deg,rgba(232,169,78,.32),rgba(127,184,148,.14) 38%,var(--line) 78%,transparent);}
+  background:linear-gradient(90deg,rgba(143,154,232,.32),rgba(127,184,148,.14) 38%,var(--line) 78%,transparent);}
 .hsec-chev{font-size:15px;color:var(--ink4);line-height:1;transition:transform .24s cubic-bezier(.32,.72,0,1);}
 .hsec-toggle[aria-expanded="true"] .hsec-chev{transform:rotate(90deg);}
 .hsec-toggle:active .hsec-chev{color:var(--honey);}
@@ -1259,7 +1368,7 @@ select.fi,.vol-sel,.gp-msel{cursor:pointer;}
 /* ═══════════ DAY VIEW & COMPOSER ═══════════ */
 .sheet-lg{max-height:88vh;}
 .day-today{font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
-  background:rgba(232,169,78,.16);color:var(--honey);padding:3px 8px;border-radius:999px;margin-left:7px;}
+  background:rgba(143,154,232,.16);color:var(--honey);padding:3px 8px;border-radius:999px;margin-left:7px;}
 .day-stats{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:9px;margin:14px 0 4px;}
 .day-stats > div{background:rgba(255,255,255,.03);border:1px solid var(--line);
   border-radius:13px;padding:13px 8px;text-align:center;}
@@ -1270,7 +1379,7 @@ select.fi,.vol-sel,.gp-msel{cursor:pointer;}
   border:1px solid var(--line);border-radius:14px;padding:13px 14px;cursor:pointer;transition:background .15s;}
 .day-item:active{background:var(--card2);}
 .di-mark{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px;}
-.day-item.done .di-mark{background:var(--honey);box-shadow:0 0 8px rgba(232,169,78,.5);}
+.day-item.done .di-mark{background:var(--honey);box-shadow:0 0 8px rgba(143,154,232,.5);}
 .day-item.plan .di-mark{background:transparent;box-shadow:inset 0 0 0 1.5px var(--sky);}
 .day-item.plan.ok .di-mark{background:var(--sage);box-shadow:none;}
 .di-body{flex:1;min-width:0;}
@@ -1284,8 +1393,8 @@ select.fi,.vol-sel,.gp-msel{cursor:pointer;}
 .di-v{font-family:var(--fd);font-size:14px;font-weight:600;flex-shrink:0;font-variant-numeric:tabular-nums;}
 .di-v i{font-style:normal;font-size:10px;color:var(--ink3);margin-left:2px;}
 .di-chev{color:var(--ink4);font-size:15px;flex-shrink:0;line-height:1.2;}
-.day-race{display:flex;align-items:center;gap:11px;background:rgba(207,106,68,.09);
-  border:1px solid rgba(207,106,68,.22);border-radius:14px;padding:13px 14px;margin-bottom:12px;}
+.day-race{display:flex;align-items:center;gap:11px;background:rgba(255,107,129,.09);
+  border:1px solid rgba(255,107,129,.22);border-radius:14px;padding:13px 14px;margin-bottom:12px;}
 .dr-pri{font-family:var(--fd);font-size:10px;font-weight:700;padding:3px 7px;border-radius:5px;}
 .dr-n{font-family:var(--fd);font-size:14px;font-weight:600;}
 .dr-m{font-size:11px;color:var(--ink3);margin-top:2px;}
@@ -1306,8 +1415,8 @@ select.fi,.vol-sel,.gp-msel{cursor:pointer;}
 .cchip svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.8;
   stroke-linecap:round;stroke-linejoin:round;}
 .cchip i{font-style:normal;font-size:10px;color:var(--ink4);}
-.cchip.on{background:linear-gradient(140deg,rgba(232,169,78,.16),rgba(127,184,148,.08));
-  border-color:rgba(232,169,78,.36);color:var(--ink);}
+.cchip.on{background:linear-gradient(140deg,rgba(143,154,232,.16),rgba(127,184,148,.08));
+  border-color:rgba(143,154,232,.36);color:var(--ink);}
 .cchip.on i{color:var(--honey);}
 .cmp-nums{display:flex;gap:10px;}
 .cmp-nums > div{flex:1;min-width:0;}
@@ -1362,7 +1471,7 @@ select.fi,.vol-sel,.gp-msel{cursor:pointer;}
   background:var(--card);border:1px solid var(--line);border-radius:11px;font-family:inherit;cursor:pointer;}
 .cp-day span{font-size:8.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink4);}
 .cp-day b{font-family:var(--fd);font-size:14px;font-weight:600;color:var(--ink2);}
-.cp-day.has{border-color:rgba(232,169,78,.3);}
+.cp-day.has{border-color:rgba(143,154,232,.3);}
 .cp-day.has b{color:var(--honey);}
 .cp-day:active{background:var(--card2);}
 .cp-quick{display:flex;gap:9px;margin-top:14px;}
@@ -1407,10 +1516,10 @@ select.fi,.vol-sel,.gp-msel{cursor:pointer;}
 .ptr{position:fixed;top:-46px;left:50%;transform:translateX(-50%);z-index:50;
   opacity:0;pointer-events:none;transition:transform .32s cubic-bezier(.2,.9,.3,1),opacity .22s;}
 .ptr-ring{width:28px;height:28px;border-radius:50%;
-  border:2px solid rgba(232,169,78,.22);border-top-color:var(--honey);
+  border:2px solid rgba(143,154,232,.22);border-top-color:var(--honey);
   transition:transform .1s linear;}
-.ptr.ready .ptr-ring{border-color:rgba(232,169,78,.35);border-top-color:var(--honey-hot);
-  box-shadow:0 0 12px rgba(232,169,78,.35);}
+.ptr.ready .ptr-ring{border-color:rgba(143,154,232,.35);border-top-color:var(--honey-hot);
+  box-shadow:0 0 12px rgba(143,154,232,.35);}
 .ptr.spin .ptr-ring{animation:ptrSpin .7s linear infinite;transition:none;}
 @keyframes ptrSpin{to{transform:rotate(360deg);}}
 
@@ -1422,7 +1531,7 @@ select.fi,.vol-sel,.gp-msel{cursor:pointer;}
 
 /* the header earns a hairline once you have scrolled past it */
 .hdr::after{content:'';position:absolute;left:0;right:0;bottom:0;height:1px;
-  background:linear-gradient(90deg,transparent,rgba(232,169,78,.18),transparent);
+  background:linear-gradient(90deg,transparent,rgba(143,154,232,.18),transparent);
   opacity:0;transition:opacity .25s;}
 body.scrolled .hdr::after{opacity:1;}
 
@@ -1468,7 +1577,7 @@ img{-webkit-user-drag:none;}
 .empty b{display:block;font-family:var(--fd);font-size:14px;font-weight:600;color:var(--ink2);
   margin-bottom:5px;}
 .empty-act{display:inline-block;margin-top:12px;font-size:12px;color:var(--honey);
-  border:1px solid rgba(232,169,78,.28);border-radius:999px;padding:8px 15px;}
+  border:1px solid rgba(143,154,232,.28);border-radius:999px;padding:8px 15px;}
 
 /* content settles in rather than snapping */
 @keyframes riseIn{from{opacity:0;transform:translateY(7px);}to{opacity:1;transform:none;}}
@@ -1584,7 +1693,7 @@ body.sheet-open::after{z-index:19;}
    a rectangle. Already carried in the elevation shadows above, so
    here it only needs adding where a gradient would otherwise hide it. */
 .portal::before{content:'';position:absolute;inset:0;border-radius:50%;
-  box-shadow:inset 0 1px 0 rgba(255,240,214,.06);pointer-events:none;z-index:2;}
+  box-shadow:inset 0 1px 0 rgba(230,236,255,.06);pointer-events:none;z-index:2;}
 
 /* ── 13 · BLUR AS A MATERIAL ───────────────────────────────────
    Blur means "this is floating above the page". Applied consistently
@@ -1696,7 +1805,7 @@ body.sheet-open::after{z-index:19;}
 .lrow .sub{color:var(--n3);}
 .di-t em{color:var(--pos);}
 .fuel-bal.under .fuel-net{color:var(--info);}
-.ld-pill.over{background:rgba(207,106,68,.14);color:var(--neg);}
+.ld-pill.over{background:rgba(255,107,129,.14);color:var(--neg);}
 .ld-pill.under{background:rgba(106,159,189,.14);color:var(--info);}
 
 /* the briefing highlights the figure it is talking about, and nothing else */
@@ -1880,7 +1989,7 @@ body.sheet-open::after{z-index:19;}
     </div>
 
     <div id="rtHeatPane" style="display:none">
-      <div id="heatMap" style="height:400px;border-radius:var(--r);border:1px solid var(--line);box-shadow:var(--shadow);overflow:hidden;background:#e8e4dc;"></div>
+      <div id="heatMap" style="height:400px;border-radius:var(--r);border:1px solid var(--line);box-shadow:var(--shadow);overflow:hidden;background:#dfe4ea;"></div>
       <div id="heatNote" style="font-size:11.5px;color:var(--ink3);margin-top:10px;text-align:center"></div>
     </div>
 
@@ -1945,6 +2054,12 @@ body.sheet-open::after{z-index:19;}
         <div class="l">Goals<div class="sub" id="rowGoalsSub">—</div></div><span class="chev">›</span>
       </div>
       <div class="set" id="rowBody" style="cursor:pointer"><div class="l">Body stats<div class="sub" id="rowBodySub">for calorie estimates</div></div><span class="chev">›</span></div>
+      <div class="set" id="rowTheme">
+        <div class="l">Appearance<div class="sub" id="rowThemeSub">dark</div></div>
+        <div class="seg" id="themeSeg" style="width:auto;flex:0 0 auto">
+          <button data-th="dark">Dark</button><button data-th="light">Light</button>
+        </div>
+      </div>
       <div class="set" id="rowSync"><div class="l">Plan sync<div class="sub" id="syncNote">plans, races and goals sync across devices</div></div><span class="conn ok">● On</span></div>
       <div class="set" id="rowRecords" style="cursor:pointer">
         <div class="l">Records<div class="sub" id="rowRecordsSub">—</div></div><span class="chev">›</span>
@@ -2397,7 +2512,7 @@ window.rhRestorePlan = function(){
   pushPlan();
   renderCal(); setPlanView(planView); renderGreeting();
   console.log('%crestored ' + PLANNED.length + ' workouts from ' + new Date(b.at).toLocaleString(),
-    'color:#7fb894;font-weight:bold');
+    'color:#7fd9bd;font-weight:bold');
   return 'restored ' + PLANNED.length;
 };
 const CLOUD_PLAN_KEY = 'rh2_plan';
@@ -2776,6 +2891,9 @@ async function loadHealth(){
     if(sub) sub.textContent = String(e.message || e);
   }
   renderMetrics(); renderPortal(); renderGreeting(); renderHealth();
+  /* Only now is the overnight picture real. Guarded by the usual cache key, so
+     this is still one call a day. */
+  setTimeout(function(){ try { ensureJarvis(); } catch(e){} }, 60);
 }
 
 /* readiness: weighted z-scores vs own ~60d baseline, mapped so average ≈ 80 */
@@ -3062,14 +3180,14 @@ const DAY_TYPES = {
    the axis is HUE, not temperature: each kind of day owns a distinct family, and
    intensity within a family is carried by weight rather than by a new colour. */
 const DAY_COLOR = {
-  rest:        '#5f8f7a',   /* muted green   — nothing owed */
+  rest:        '#3f9f88',   /* muted green   — nothing owed */
   strength:    '#8b7fc4',   /* violet        — the only non-cardio day, so its own hue */
-  maintenance: '#4d9dc4',   /* blue          — ordinary aerobic miles */
-  hybrid:      '#3fa89b',   /* teal          — sits between lifting and running, literally */
-  quality:     '#e8a94e',   /* amber         — the first genuinely hard day */
-  vertday:     '#e07a45',   /* orange        — climbing */
-  longrun:     '#d9534f',   /* red           — distance */
-  bigday:      '#a8332f',   /* deep red      — distance and climbing */
+  maintenance: '#8fb4dc',   /* blue          — ordinary aerobic miles */
+  hybrid:      '#7f8ad0',   /* teal          — sits between lifting and running, literally */
+  quality:     '#b39ae8',   /* gold          \u2014 the first genuinely hard day, and the one warm note left */
+  vertday:     '#8f9ae8',   /* steel blue    — climbing */
+  longrun:     '#f08a99',   /* red           — distance */
+  bigday:      '#c47fb0',   /* deep magenta  — distance and climbing */
   race:        '#c026a0',   /* magenta       — unmistakably not a training day */
 };
 
@@ -3251,16 +3369,35 @@ function rarityOf(key){
 function blockContext(){
   const load = trainingLoad();
   if (!load) return null;
-  /* how many of the last 21 days carried real work */
-  let worked = 0, restDays = 0;
+  /* This counted any activity over ten minutes as a "worked" day, so a
+     seventeen-minute yoga session or a sauna sat in the same column as an
+     eighteen-mile trail run — and the answer came out "21 of 21 days, no true
+     off day" on a block that in fact had rest days in it, just rest days with
+     mobility on them. Three tiers now, because those are three different
+     things and collapsing them produces a true number that means nothing. */
+  let hard = 0, easy = 0, restorative = 0, off = 0;
   for (let i=0;i<21;i++){
     const d = new Date(todayD); d.setDate(d.getDate()-i);
     const k = iso(d);
-    const has = ACTS.some(function(a){ return a._iso===k && (a.moving_time||0) > 600; });
-    if (has) worked++; else restDays++;
+    const day = ACTS.filter(function(a){ return a._iso === k; });
+    if (!day.length){ off++; continue; }
+    const mi = day.reduce(function(s,a){ return s + (RUNLIKE.has(a.type) ? (a.distance_mi||0) : 0); }, 0);
+    const ld = day.reduce(function(s,a){ return s + loadOf(a); }, 0);
+    /* yoga, mobility and Portal are recovery, not training \u2014 a day with only
+       those on it is a rest day that happens to have been logged */
+    const onlySoft = day.every(function(a){
+      return /yoga|mobility|stretch|sauna|portal|walk/i.test((a.type||'') + ' ' + (a.name||''));
+    });
+    if (onlySoft) restorative++;
+    else if (mi >= 10 || ld >= 90) hard++;
+    else if (mi > 0 || ld > 0) easy++;
+    else restorative++;
   }
+  /* "true off" means no training stress, whether or not something was logged */
+  const trueOff = off + restorative;
   return { ratio: load.ratio, acute: load.acute, chronic: load.chronic,
-           worked: worked, restDays: restDays, state: load.state };
+           hard: hard, easy: easy, restorative: restorative, off: off,
+           worked: hard + easy, restDays: trueOff, state: load.state };
 }
 
 /* ── learned pattern: what your body does after a given kind of day ─────── */
@@ -5111,7 +5248,8 @@ function byTime(a,b){
 
 /* ═══════════ RENDER ═══════════ */
 function renderPortal(){
-  const stops=['#5a4632','#7a5a3a','#a06d40','#b87a4c','#d6924a','#e8a94e'], rad=[96,81,66,51,38,25];
+  /* cool ramp, deep to bright, ending on the accent */
+  const stops=['#141830','#1a2044','#232a5e','#2f3a80','#7fd9bd','var(--a)'], rad=[96,81,66,51,38,25];
   let s=''; rad.forEach((r,i)=>{ s+='<circle cx="106" cy="106" r="'+r+'" fill="none" stroke="'+stops[i]+'" stroke-opacity="'+(0.3+i*0.09).toFixed(2)+'" stroke-width="'+(i>=4?1.6:1)+'"'+(i>=4?' style="filter:drop-shadow(0 0 3px '+stops[i]+')"':'')+'/>'; });
   document.getElementById('prings').innerHTML = s;
   const R = computeReadiness();
@@ -5171,7 +5309,7 @@ function renderMetrics(){
   host.innerHTML = banner + R.mets.map(x => {
     const good = x.z >= 0.25, bad = x.z <= -0.25;
     const cls = good ? 'v-up' : bad ? 'v-dn' : 'v-fl';
-    const col = good ? '#a6cfe2' : bad ? '#cf6a44' : '#8fadbe';
+    const col = good ? '#8fb6f0' : bad ? '#f08a99' : '#8f9ae8';
     const dev = pctDev(x.cur, x.mean, true);
     return '<div class="row" data-metric="'+x.m.key+'" style="cursor:pointer"><div class="nm"><div class="n">'+x.m.label+'</div><div class="s">'+devWords(x)+'</div></div>'
       + '<div class="spark">'+sparkSvg(x.spark, col)+'</div>'
@@ -5193,7 +5331,7 @@ function renderGreeting(){
   const el = document.getElementById('greet');
   if (!el) return;
 
-  let painted = false;
+  /* Cached briefing for the current state \u2014 paint it and stop. */
   try {
     const c = loadAI();
     if (c && c.text){
@@ -5202,24 +5340,60 @@ function renderGreeting(){
       if (paras.length){
         paras[0] = jarvisGreeting() + ', <b>' + ATHLETE + '</b>. ' + paras[0];
         el.innerHTML = paras.map(function(x){ return '<p>'+x+'</p>'; }).join('');
-        painted = true;
+        return;
       }
     }
   } catch(e){}
 
-  if (!painted){
-    const b = buildBriefing();
-    el.innerHTML = '<p>'+b.p1+'</p>' + (b.p2 ? '<p>'+b.p2+'</p>' : '')
-      + (b.p3 ? '<p>'+b.p3+'</p>' : '')
-      + (b.p4 ? '<p class="obs">'+b.p4+'</p>' : '');
-    /* Falling back means there is no briefing for the current state \u2014 either
-       none yet today, or the plan just changed and invalidated the old one.
-       Either way something should go and get one, rather than leaving the
-       offline writer on screen until he happens to tap rewrite. The fetch is
-       guarded by the same cache key, so this cannot loop or double-spend. */
-    setTimeout(function(){ try { ensureJarvis(); } catch(e){} }, 200);
+  /* Nothing cached yet. The built-in writer used to fill the gap, which meant
+     every morning showed one briefing and then visibly swapped it for another
+     \u2014 two different voices arguing in the same box. Now it waits, and says so.
+     The offline writer is still the fallback, but only once the fetch has
+     actually failed, which is the only time it is the honest thing to show. */
+  if (syncCfg()){
+    el.innerHTML = '<div class="jv-wait"><span class="jv-dots">'
+      + '<i></i><i></i><i></i></span><span class="jv-wait-t" id="jvWaitT">'
+      + jarvisWaitLine() + '</span></div>';
+    setTimeout(function(){ try { ensureJarvis(); } catch(e){} }, 120);
+    return;
   }
+
+  /* No proxy configured at all \u2014 the offline writer is all there is. */
+  const b = buildBriefing();
+  el.innerHTML = '<p>'+b.p1+'</p>' + (b.p2 ? '<p>'+b.p2+'</p>' : '')
+    + (b.p3 ? '<p>'+b.p3+'</p>' : '')
+    + (b.p4 ? '<p class="obs">'+b.p4+'</p>' : '');
 }
+
+/* A line to read while it thinks. Rotates so it is not the same wait twice. */
+const THEME_KEY = 'rh_theme_v1';
+function applyTheme(mode){
+  const m = mode === 'light' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', m);
+  /* the browser chrome and the status bar should match, or the app ends in a
+     hard line against a colour it does not own */
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', m === 'light' ? '#eef1f7' : '#070910');
+  lsSet(THEME_KEY, m);
+  const sub = document.getElementById('rowThemeSub');
+  if (sub) sub.textContent = m;
+  const seg = document.getElementById('themeSeg');
+  if (seg) seg.querySelectorAll('button').forEach(function(b){
+    b.classList.toggle('on', b.dataset.th === m); });
+  /* charts paint their own colours into SVG, so they need redrawing */
+  try { renderVolChart(); } catch(e){}
+  try { renderLoadCard(); } catch(e){}
+  try { renderHealth(); } catch(e){}
+}
+
+function jarvisWaitLine(){
+  const bank = ['Reading your night\u2026','Going through the numbers\u2026',
+                'Checking what you got up to\u2026','Pulling the week together\u2026',
+                'Looking at the overnight\u2026','Working out what matters today\u2026',
+                'Consulting the data\u2026'];
+  return bank[Math.floor(Math.random()*bank.length)];
+}
+
 
 /* Fetch today's briefing quietly in the background so the Overview has it
    without him having to open the Jarvis sheet first. Guarded by the same cache
@@ -5230,6 +5404,15 @@ async function ensureJarvis(){
   if (_jvFetching) return;
   try { if (loadAI()) return; } catch(e){ return; }
   if (!syncCfg()) return;                 /* no proxy configured \u2014 nothing to call */
+  /* Last line of defence. If the health table has not arrived, a briefing
+     written now would be wrong AND cached, so it is better to wait and let the
+     next trigger handle it than to bank a bad one. Only overridden once the
+     morning is old enough that the data is genuinely not coming. */
+  const healthMissing = !Array.isArray(HEALTH) || !HEALTH.length;
+  if (healthMissing && new Date().getHours() < 22){
+    console.log('[jarvis] holding \u2014 overnight data not loaded yet');
+    return;
+  }
   _jvFetching = true;
   try {
     /* weather first, so the briefing that gets written already has it */
@@ -5240,8 +5423,19 @@ async function ensureJarvis(){
       renderGreeting();
     }
   } catch(e){
-    /* silent by design \u2014 the built-in writer is already on screen */
-    console.log('[jarvis] background fetch skipped:', e.message || e);
+    /* Now that the Overview waits rather than pre-filling, a failure here would
+       leave the loading state up forever. Fall back explicitly and say why. */
+    console.log('[jarvis] fetch failed:', e.message || e);
+    try {
+      const el = document.getElementById('greet');
+      if (el && el.querySelector('.jv-wait')){
+        const b = buildBriefing();
+        el.innerHTML = '<p>'+b.p1+'</p>' + (b.p2 ? '<p>'+b.p2+'</p>' : '')
+          + (b.p3 ? '<p>'+b.p3+'</p>' : '')
+          + (b.p4 ? '<p class="obs">'+b.p4+'</p>' : '')
+          + '<div class="jv-offline">Jarvis couldn\u2019t be reached \u2014 this is the built-in writer.</div>';
+      }
+    } catch(e2){}
   } finally { _jvFetching = false; }
 }
 
@@ -5320,7 +5514,7 @@ function renderRecent(){
   });
 }
 
-const TYPE_COLOR = { 'Run':'#e8a94e','Weight Training':'#a6cfe2','Yoga':'#b98cc9','Sauna':'#cf6a44','Hike':'#93b39a','Alpine Ski':'#6ea6c1','Golf':'#7d715a','Ride':'#8fadbe' };
+const TYPE_COLOR = { 'Run':'#8f9ae8','Weight Training':'#b39ae8','Yoga':'#a894dc','Sauna':'#f08a99','Hike':'#7fd9bd','Alpine Ski':'#9ac8e0','Golf':'#6a7285','Ride':'#8fb4dc' };
 
 /* ── year-level stats, computed once per year ── */
 function yearStats(y){
@@ -5382,7 +5576,7 @@ function renderProgress(){
   const mixTot = Object.values(S.mix).reduce((s,v)=>s+v,0) || 1;
   const order = Object.keys(S.mix).sort((a,b)=>S.mix[b]-S.mix[a]).slice(0,7);
   document.getElementById('mixCard').innerHTML = order.map(t => {
-    const h = S.mix[t], p = h/mixTot*100, c = TYPE_COLOR[t] || '#7d715a';
+    const h = S.mix[t], p = h/mixTot*100, c = TYPE_COLOR[t] || '#6a7285';
     return '<div><div class="mixrow"><span class="mk" style="background:'+c+'"></span>'
       + '<span class="mn">'+t+'</span><span class="mv">'+(Math.round(h))+'<span style="font-size:10px;color:var(--ink3)">h</span> '
       + '<span style="font-size:11px;color:var(--ink3)">'+Math.round(p)+'%</span></span></div>'
@@ -5547,11 +5741,15 @@ function renderVolChart(){
 
   const selX = pts[volSel][0];
   const marker = '<line x1="'+selX+'" y1="'+padT+'" x2="'+selX+'" y2="'+(padT+plotH)
-    + '" stroke="rgba(255,212,138,.22)" stroke-width="1" stroke-dasharray="3 4"/>';
+    + '" stroke="rgba(194,201,255,.22)" stroke-width="1" stroke-dasharray="3 4"/>';
 
-  /* a dot is coloured by its own height, matching the line beneath it */
+  /* A dot is coloured by its own height, matching the line beneath it. These
+     were RGB triplets rather than hex, which is how a blue-green-gold-amber
+     rainbow survived every colour sweep and left green line / orange dots on
+     the same chart. One hue now, climbing in luminance exactly as the stroke
+     ramp does, so a dot and the line under it are always the same colour. */
   const rampAt = function(t){
-    const stops = [[0,[106,159,189]],[.28,[127,184,148]],[.58,[201,171,99]],[.82,[232,169,78]],[1,[255,212,138]]];
+    const stops = [[0,[43,48,72]],[.35,[90,100,143]],[.75,[143,154,232]],[1,[194,201,255]]];
     t = Math.max(0, Math.min(1, t));
     for (let k=1;k<stops.length;k++){
       if (t <= stops[k][0]){
@@ -5559,13 +5757,17 @@ function renderVolChart(){
         return 'rgb('+a[1].map(function(c,j){ return Math.round(c+(b[1][j]-c)*f); }).join(',')+')';
       }
     }
-    return 'rgb(255,212,138)';
+    return 'rgb(194,201,255)';
   };
   const dots = pts.map((p,i)=>{
     const sel = i===volSel, has = data[i].v>0;
-    const col = has ? rampAt(data[i].v/max) : '#3a3226';
-    return '<circle class="vdot" cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="'+(sel?5.2:3.4)+'" '
-      + 'fill="'+col+'" stroke="#120c06" stroke-width="'+(sel?2:1.5)+'" data-i="'+i+'"></circle>'
+    const col = has ? rampAt(data[i].v/max) : '#232838';
+    /* Hollow: a ring reads as something you can act on, a filled disc reads as
+       a plotted point. Only the selected week fills in, so the chart shows at a
+       glance which one you are looking at without needing a second colour. */
+    return '<circle class="vdot" cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="'+(sel?5.4:3.8)+'" '
+      + 'fill="'+(sel ? col : 'var(--bg-mid)')+'" stroke="'+col+'" '
+      + 'stroke-width="'+(sel?2.2:1.8)+'" data-i="'+i+'"></circle>'
       + (sel && has ? '<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="9" fill="none" '
           + 'stroke="'+col+'" stroke-width="1.4" opacity=".38"><animate attributeName="r" values="7;11;7" '
           + 'dur="2.6s" repeatCount="indefinite"/><animate attributeName="opacity" values=".45;.08;.45" '
@@ -5580,30 +5782,30 @@ function renderVolChart(){
     const px = pts[i][0];
     return '<text x="'+px.toFixed(1)+'" y="'+(H-7)+'" text-anchor="'+anchor+'" font-size="11" '
       + 'font-weight="'+(i===volSel?'600':'500')+'" '
-      + 'fill="'+(i===volSel?'#ffd48a':'var(--ink3)')+'" font-family="var(--fb)">'+d.short+'</text>';
+      + 'fill="'+(i===volSel?'var(--a-hi)':'var(--ink3)')+'" font-family="var(--fb)">'+d.short+'</text>';
   }).join('');
 
-  /* The gradient is mapped to the PLOT, not the path: it runs bottom-to-top in
-     user space, so a point's colour is set by how high it sits. Quiet weeks come
-     out slate and pine, big weeks run gold and hot. The line tells you the shape
-     of the block and the temperature of it at the same time. */
+  /* The ramp is mapped to the PLOT, not the path: it runs bottom-to-top in user
+     space, so a point's colour is set by how high it sits. It used to sweep
+     across four hues on the way up — slate, pine, gold, hot — which meant a
+     single line was three different colours at once and read as decoration
+     rather than data. Now it is one hue climbing in luminance: quiet weeks sit
+     dim and recede, big weeks arrive bright. Same information, one voice. */
   const gTop = padT, gBot = padT + plotH;
   const defs =
       '<defs>'
     + '<linearGradient id="volStroke" gradientUnits="userSpaceOnUse" x1="0" y1="'+gBot+'" x2="0" y2="'+gTop+'">'
-    +   '<stop offset="0"    stop-color="#6a9fbd"/>'
-    +   '<stop offset="0.28" stop-color="#7fb894"/>'
-    +   '<stop offset="0.58" stop-color="#c9ab63"/>'
-    +   '<stop offset="0.82" stop-color="#e8a94e"/>'
-    +   '<stop offset="1"    stop-color="#ffd48a"/>'
+    +   '<stop offset="0"    stop-color="var(--a-dim)"/>'
+    +   '<stop offset="0.35" stop-color="var(--a-lo)"/>'
+    +   '<stop offset="0.75" stop-color="var(--a)"/>'
+    +   '<stop offset="1"    stop-color="var(--a-hi)"/>'
     + '</linearGradient>'
     + '<linearGradient id="volFill" gradientUnits="userSpaceOnUse" x1="0" y1="'+gTop+'" x2="0" y2="'+gBot+'">'
-    +   '<stop offset="0"   stop-color="#e8a94e" stop-opacity=".26"/>'
-    +   '<stop offset="0.5" stop-color="#b9a06a" stop-opacity=".12"/>'
-    +   '<stop offset="1"   stop-color="#7fb894" stop-opacity="0"/>'
+    +   '<stop offset="0"   stop-color="var(--a)" stop-opacity=".22"/>'
+    +   '<stop offset="1"   stop-color="var(--a)" stop-opacity="0"/>'
     + '</linearGradient>'
     + '<filter id="volGlow" x="-50%" y="-50%" width="200%" height="200%">'
-    +   '<feGaussianBlur stdDeviation="3" result="b"/><feMerge>'
+    +   '<feGaussianBlur stdDeviation="2.4" result="b"/><feMerge>'
     +   '<feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'
     + '</defs>';
 
@@ -5611,7 +5813,7 @@ function renderVolChart(){
       defs + g + marker
     + '<path d="'+area+'" fill="url(#volFill)"/>'
     + '<path d="'+line+'" fill="none" stroke="url(#volStroke)" stroke-width="2.6" '
-    +   'stroke-linejoin="round" stroke-linecap="round" filter="url(#volGlow)" opacity=".55"/>'
+    +   'stroke-linejoin="round" stroke-linecap="round" filter="url(#volGlow)" opacity=".34"/>'
     + '<path d="'+line+'" fill="none" stroke="url(#volStroke)" stroke-width="2.6" '
     +   'stroke-linejoin="round" stroke-linecap="round"/>'
     + dots + xlabels + hits;
@@ -5660,7 +5862,7 @@ function openYear(y){
   h += '<div style="display:flex;align-items:flex-end;gap:4px;height:110px">'
     + S.mo.map((v,i)=>'<div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%">'
       + (v>0?'<div style="font-size:8px;color:var(--ink3);text-align:center;margin-bottom:3px">'+Math.round(v)+'</div>':'')
-      + '<div style="height:'+Math.max((v/mx)*80,2)+'px;border-radius:3px 3px 0 0;background:'+(i===S.bestMo?'var(--honey)':'rgba(224,180,120,.3)')+'"></div></div>').join('')
+      + '<div style="height:'+Math.max((v/mx)*80,2)+'px;border-radius:3px 3px 0 0;background:'+(i===S.bestMo?'var(--honey)':'rgba(143,154,232,.3)')+'"></div></div>').join('')
     + '</div>'
     + '<div style="display:flex;gap:4px;margin-top:5px">'
     + ['J','F','M','A','M','J','J','A','S','O','N','D'].map((m,i)=>'<span style="flex:1;text-align:center;font-size:8px;color:'+(i===S.bestMo?'var(--honey)':'var(--ink4)')+'">'+m+'</span>').join('')
@@ -5679,7 +5881,7 @@ function openYear(y){
   const mixTot = Object.values(S.mix).reduce((s,v)=>s+v,0) || 1;
   const order = Object.keys(S.mix).sort((a,b)=>S.mix[b]-S.mix[a]).slice(0,8);
   h += '<div class="hsec" style="margin:20px 0 10px"><span>How the time was spent</span><i></i></div>'
-    + order.map(t=>{ const hh=S.mix[t], p=hh/mixTot*100, c=TYPE_COLOR[t]||'#7d715a';
+    + order.map(t=>{ const hh=S.mix[t], p=hh/mixTot*100, c=TYPE_COLOR[t]||'#6a7285';
       return '<div><div class="mixrow"><span class="mk" style="background:'+c+'"></span><span class="mn">'+t+'</span>'
         + '<span class="mv">'+Math.round(hh)+'<span style="font-size:10px;color:var(--ink3)">h</span></span></div>'
         + '<div class="mixbar"><i style="display:block;height:100%;width:'+p+'%;background:'+c+';border-radius:99px"></i></div></div>'; }).join('<div style="height:11px"></div>');
@@ -6124,7 +6326,7 @@ window.rhStrava = async function(){
   const redirect = location.protocol + '//' + location.host + dir;
   console.log('%cStrava connection diagnostics', 'font-weight:bold');
   console.log('  page URL        :', location.href);
-  if (location.protocol === 'file:') console.log('%c  ^ this is a LOCAL FILE \u2014 Strava cannot redirect back here', 'color:#cf6a44;font-weight:bold');
+  if (location.protocol === 'file:') console.log('%c  ^ this is a LOCAL FILE \u2014 Strava cannot redirect back here', 'color:#f08a99;font-weight:bold');
   console.log('  redirect_uri    :', redirect);
   console.log('  callback domain :', location.host, '  <- must match strava.com/settings/api exactly');
   const c = syncCfg();
@@ -6157,6 +6359,11 @@ async function stravaCallback(){
 }
 
 document.getElementById('stvHide').addEventListener('click', ()=>{ document.getElementById('stvAuth').style.display='none'; });
+(function(){
+  const seg = document.getElementById('themeSeg');
+  if (seg) seg.querySelectorAll('button').forEach(function(b){
+    b.addEventListener('click', function(){ applyTheme(b.dataset.th); }); });
+})();
 document.getElementById('stvSync').addEventListener('click', syncStrava);
 document.getElementById('routeBackfill').addEventListener('click', function(){ backfillRoutes(80); });
 document.getElementById('stvConnect').addEventListener('click', connectStrava);
@@ -6669,8 +6876,8 @@ function setBase(key){
   rtBaseLayer.bringToBack();
   lsSet('rh_map_base', key);
   /* route line reads better in a lighter colour over satellite */
-  if (rtLine) rtLine.setStyle({ color: key==='sat' ? '#ffd48a' : '#d2521f' });
-  rtMarkers.forEach(function(m){ m.setStyle && m.setStyle({ fillColor: key==='sat' ? '#ffd48a' : '#d2521f' }); });
+  if (rtLine) rtLine.setStyle({ color: key==='sat' ? 'var(--a-hi)' : '#f08a99' });
+  rtMarkers.forEach(function(m){ m.setStyle && m.setStyle({ fillColor: key==='sat' ? 'var(--a-hi)' : '#f08a99' }); });
 }
 function setTrails(on){
   if (!rtMap) return;
@@ -6756,7 +6963,7 @@ async function addPt(lat, lng){
 }
 function markPt(pt, first){
   const m = L.circleMarker(pt, { radius: first?7:5.5, color:'#fff', weight:2.5,
-    fillColor: first ? '#2b7fb8' : (rtBaseKey==='sat' ? '#ffd48a' : '#d2521f'), fillOpacity:1 }).addTo(rtMap);
+    fillColor: first ? '#5a648f' : (rtBaseKey==='sat' ? 'var(--a-hi)' : '#f08a99'), fillOpacity:1 }).addTo(rtMap);
   rtMarkers.push(m);
 }
 function fullPath(){
@@ -6768,7 +6975,7 @@ function redrawLine(){
   if (rtLine) rtMap.removeLayer(rtLine);
   const path = fullPath();
   if (path.length > 1)
-    rtLine = L.polyline(path, { color: rtBaseKey==='sat' ? '#ffd48a' : '#d2521f',
+    rtLine = L.polyline(path, { color: rtBaseKey==='sat' ? 'var(--a-hi)' : '#f08a99',
       weight:5, opacity:.95, lineJoin:'round', lineCap:'round' }).addTo(rtMap);
   updateStats();
 }
@@ -6847,9 +7054,9 @@ function drawProfile(){
   const area = d + ' L '+pts[pts.length-1][0]+' '+(H-6)+' L '+pts[0][0]+' '+(H-6)+' Z';
   document.getElementById('rtProfile').innerHTML =
       '<defs><linearGradient id="pg" x1="0" y1="0" x2="0" y2="1">'
-    + '<stop offset="0" stop-color="#e8a94e" stop-opacity=".35"/><stop offset="1" stop-color="#e8a94e" stop-opacity="0"/></linearGradient></defs>'
+    + '<stop offset="0" stop-color="var(--a)" stop-opacity=".35"/><stop offset="1" stop-color="var(--a)" stop-opacity="0"/></linearGradient></defs>'
     + '<path d="'+area+'" fill="url(#pg)"/>'
-    + '<path d="'+d+'" fill="none" stroke="#e8a94e" stroke-width="2" stroke-linejoin="round"/>';
+    + '<path d="'+d+'" fill="none" stroke="var(--a)" stroke-width="2" stroke-linejoin="round"/>';
   document.getElementById('rtProfileMeta').innerHTML =
       '<span>low '+Math.round(min).toLocaleString()+' ft</span>'
     + '<span style="color:var(--honey)">+'+Math.round(rtElev.gain).toLocaleString()+' ft gain</span>'
@@ -6975,7 +7182,7 @@ function initHeatmap(){
     const pts = decodePolyline(poly);
     if (pts.length < 2) return;
     allPts = allPts.concat(pts);
-    L.polyline(pts, { renderer: heatCanvasRenderer, color:'#e34a0f', weight:2.4,
+    L.polyline(pts, { renderer: heatCanvasRenderer, color:'#8f9ae8', weight:2.4,
       opacity:.14, lineCap:'round', lineJoin:'round' }).addTo(heatMapInstance);
   });
   if (allPts.length) heatMapInstance.fitBounds(L.latLngBounds(allPts), { padding:[24,24] });
@@ -7320,9 +7527,9 @@ function openMetric(key){
     const by = Y(allAvg);
     h += '<div class="hsec" style="margin:18px 0 10px"><span>Last 30 nights</span><i></i></div>'
       + '<div class="card" style="padding:12px 10px 8px"><svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto;aspect-ratio:'+W+'/'+H+';display:block">'
-      + '<line x1="0" y1="'+by+'" x2="'+W+'" y2="'+by+'" stroke="#6ea6c1" stroke-width="1" stroke-dasharray="4 4" opacity=".65"/>'
-      + '<path d="'+d+'" fill="none" stroke="#e8a94e" stroke-width="2" stroke-linejoin="round"/>'
-      + '<circle cx="'+X(rv.length-1).toFixed(1)+'" cy="'+Y(rv[rv.length-1]).toFixed(1)+'" r="4" fill="#ffd48a" stroke="#120c06" stroke-width="1.5"/>'
+      + '<line x1="0" y1="'+by+'" x2="'+W+'" y2="'+by+'" stroke="#9ac8e0" stroke-width="1" stroke-dasharray="4 4" opacity=".65"/>'
+      + '<path d="'+d+'" fill="none" stroke="var(--a)" stroke-width="2" stroke-linejoin="round"/>'
+      + '<circle cx="'+X(rv.length-1).toFixed(1)+'" cy="'+Y(rv[rv.length-1]).toFixed(1)+'" r="4" fill="var(--a-hi)" stroke="var(--bg-mid)" stroke-width="1.5"/>'
       + '</svg><div style="display:flex;justify-content:space-between;font-size:10.5px;color:var(--ink2);padding-top:4px">'
       + '<span>'+recent[0].d+'</span><span style="color:var(--sky)">baseline '+m.fmt(allAvg)+m.unit+'</span><span>last night</span></div></div>';
   }
@@ -7406,10 +7613,23 @@ const JARVIS_PERSONA = [
 'signpost a transition \u2014 flowing prose throughout.',
 '',
 '════ VOICE ════',
-'Think Jarvis from Iron Man: unflappable, quick, dryly amused, quietly delighted by a',
-'good number and entirely unbothered by a bad one. Total competence worn lightly. He',
-'anticipates \u2014 he does not just report. Warm without being soft, confident enough to',
-'be brief, and never, ever a cheerleader.',
+'You are the friend who happens to be a sports scientist. That is the whole thing: real',
+'expertise, delivered the way a mate texts you \u2014 not the way a clinician writes notes.',
+'',
+'Laid back. Peer to peer. You are not his coach and definitely not his doctor; you are',
+'the guy who knows this stuff cold and mentions the interesting bit over coffee. Say',
+'"nice" when something is nice. Say "huh" when something is odd. Contractions always.',
+'Short sentences. A fragment when it lands better than a sentence would.',
+'',
+'The trick is that the insight should be genuinely sharp and the delivery should be',
+'completely relaxed. A brilliant observation in casual clothes. Never lecture, never',
+'caveat, never hedge, never explain the science unless the science IS the point \u2014 and',
+'when it is, one clause, plain words, then move on. If you find yourself writing',
+'"it is worth noting that", delete the sentence and start again.',
+'',
+'Unflappable. Quietly pleased by a good number, entirely unbothered by a bad one. He',
+'chose this life; you are not going to fuss at him about it. Never a cheerleader,',
+'never a nag, never impressed by your own analysis.',
 '',
 'Sharp and fast. Short sentences do the heavy lifting. A fragment is fine when it hits.',
 'Cut every word that is not carrying something. "It seems that", "worth noting", "as',
@@ -7425,6 +7645,46 @@ const JARVIS_PERSONA = [
 'Plain American English. He is in Colorado, not London. No "fortnight", no "on the',
 'trot", no "quietly done what you\u2019d expect", no borrowed British idiom, no literary',
 'flourishes, no metaphors about numbers arguing with each other. Say the thing.',
+'',
+'════ WHAT YOU ACTUALLY KNOW ════',
+'You hold four kinds of expertise at once, and the value is in the overlap \u2014 the thing',
+'a runner looking at his own dashboard would not put together himself.',
+'',
+'  SPORTS SCIENTIST. You read physiology, not numbers. HRV falling while resting heart',
+'    rate stays low is fatigue, not illness; both moving together is a different story.',
+'    Sleep debt shows up in the deep and REM split before it shows up in duration.',
+'    Aerobic efficiency rising means the same effort is buying more pace \u2014 fitness',
+'    landing. Falling while volume climbs means he is absorbing, not adapting, yet.',
+'    A readiness score is a weighted composite; when it disagrees with how a session',
+'    actually went, the session is the better evidence.',
+'',
+'  PHYSICAL THERAPIST. You think about tissue, not just systems. Descending is eccentric',
+'    load and it is what wrecks quads late in a hundred; a big vert week costs more',
+'    than its mileage suggests. Consecutive hard days matter less than consecutive days',
+'    without variation \u2014 the same tissue loaded the same way is how things break.',
+'    Strength work is injury insurance whose absence shows up weeks later, never today.',
+'    Sudden pace at the end of a long easy run is where people get hurt.',
+'',
+'  ENDURANCE COACH. You know why a session is on the calendar. Back-to-back weekends',
+'    rehearse the second half of a race, which is the half that decides it. Easy days',
+'    exist to make hard days possible and stop working the moment they stop being easy.',
+'    Fitness is built in the build and revealed in the taper. Heat adaptation is real',
+'    physiology with a two-week half-life, so Portal close to race day is a training',
+'    decision, not a treat.',
+'',
+'  GENERAL HEALTH. Fuel, hydration, life load. A consistent calorie deficit during a',
+'    build reads as fatigue in every recovery metric and gets blamed on training.',
+'    Under-fuelling hits sleep quality before it hits weight. A resting heart rate that',
+'    jumps without a training reason usually means something non-training \u2014 travel,',
+'    alcohol, a bug arriving, a bad week at work.',
+'',
+'USE THIS TO TELL HIM SOMETHING HE DOES NOT ALREADY KNOW. He can see his own numbers.',
+'The whole reason you exist is the read across them: the cause that sits three days',
+'back, the metric that contradicts the one next to it, the thing that is quietly a',
+'record, the pattern that only shows up against his own history. One real insight,',
+'delivered casually, beats a paragraph of accurate description every single time.',
+'If you genuinely have not got one today, say so in a line and stop \u2014 that is honest,',
+'and it makes the days you do have one land harder.',
 '',
 '════ YOU KNOW WHAT TRAINING IS FOR ════',
 'You are not describing a calendar. You understand what each session is doing to him',
@@ -7468,6 +7728,14 @@ const JARVIS_PERSONA = [
 'how he feels.',
 '  INTERVALS \u2014 VO2max and mechanics. Rare in ultra training; when it appears it is',
 '    sharpening, not building.',
+'',
+'READ EVERY LOAD SIGNAL THROUGH THE PHASE YOU ARE TOLD HE IS IN. This is the single',
+'easiest way to sound like you have not been paying attention. A twenty-one day training',
+'streak, a fortnight without a full day off, a readiness score sitting below his average',
+'\u2014 in peak build these are the plan working, not the plan failing. The same numbers in a',
+'taper would be worth flagging. Never warn him about accumulated fatigue during a build',
+'phase unless a recovery metric has actually broken down; he knows he is tired, he chose',
+'this, and telling him it might catch up with him is both obvious and slightly insulting.',
 '',
 'HOW A BLOCK WORKS. Training toward an ultra runs base \u2192 build \u2192 peak \u2192 taper. In build,',
 'volume and vert climb week over week with recovery weeks folded in; a week that drops',
@@ -7531,47 +7799,56 @@ const JARVIS_PERSONA = [
 '   not a given. Never describe it as behind him or build a recommendation on it. Ask,',
 '   briefly, once, at the very end. "No 7am Portal on the log \u2014 pushing it to this',
 '   afternoon?" Two clauses. No lecture, no guilt.',
-'8. CREDIT WHAT HE DID. Anything under LOGGED TODAY ALREADY happened. Acknowledge it',
-'   before you ask about anything that did not.',
+'8. CREDIT WHAT HE DID, AND DO NOT AUDIT HIM. Anything under LOGGED TODAY ALREADY',
+'   happened \u2014 acknowledge it before you mention anything that did not. A planned',
+'   session that went by unlogged is only worth raising when nothing took its place:',
+'   the data tells you explicitly which of those it is, so follow what it says. If he',
+'   swapped planned strength for yoga, that is a training decision, not a failure \u2014',
+'   talk about the yoga and never mention the strength. Only Portal, or a day with',
+'   genuinely nothing logged, is always worth a question.',
 '9. REST DAYS ARE TRAINING, scheduled deliberately. Never call one waste or a shame.',
 '10. PORTAL is where he saunas and one of his favorite places on earth. Capitalize it,',
 '    be glad when it shows up, never flatten it to "sauna session".',
 '11. NEVER STATE THE OBVIOUS. He knows he ran on a day he planned to run.',
-'12. NEVER INVENT A NUMBER. Not in the data, does not exist.',
+'12. NEVER INVENT A NUMBER, AND NEVER LEAVE ONE BARE. Not in the data, does not exist.',
+'    Every number carries its unit and its meaning in the same breath. "Week sits at 40',
+'    against 36 the week before" fails twice \u2014 he cannot tell what is being counted, and',
+'    he has to do the subtraction himself to reach the only thing he wanted, which was',
+'    whether the build is climbing. Say the conclusion, not the arithmetic.',
 '13. Prose only. No lists, headings, bold, markdown.',
 '',
 '════ GOOD ════',
 '',
-'The reference. This is the register, the length and the shape to aim for:',
-'  "83 again, and honestly there is not much to argue with. Resting HR is now nine',
-'   nights under baseline, HRV still riding above it \u2014 the one wrinkle is REM at 48',
-'   minutes, well off the usual hour, though deep sleep picked up the slack.',
+'The register. Sharp read, relaxed delivery, and it tells him something:',
+'  "83, and the interesting bit is where it came from \u2014 resting heart rate has been',
+'   under baseline nine nights running while HRV holds. That is the combination that',
+'   means fit rather than just rested.',
 '',
-'   Yoga is logged, and you are already five miles up on a normal week before the 18',
-'   tomorrow even starts. Portal is on the board for 4 \u2014 good day for it, the body has',
-'   earned the heat."',
+'   Yoga is in, and you are five miles up on a normal week before Saturday\u2019s 18 even',
+'   starts. No 7am Portal on the log though \u2014 pushing it to this afternoon?"',
 '',
-'Strong day, nothing dramatic:',
-'  "88, and the body means it \u2014 HRV up, resting HR down a ninth straight night. Six',
-'   easy neighborhood miles at 6, legs tonight. You are five up on a normal Tuesday,',
-'   so today is maintenance, not heroics. Save it for Saturday."',
+'A quiet day. Short, and that is correct:',
+'  "Everything overnight landed within a few percent of normal, which after last week',
+'   is the whole point. Six easy neighborhood miles at 6, legs tonight. Nothing to',
+'   chase today \u2014 just bank it."',
 '',
-'Fatigue accumulating:',
-'  "71, and that is being generous. Five short nights finally caught up with HRV, down',
-'   11% on last week. Resting HR is still low though, so this is fatigue rather than',
-'   anything worse \u2014 the good version of bad news. Eighteen tomorrow will tell you',
-'   which way it is heading. Portal tonight could not be better timed."',
+'A read across metrics he would not make himself:',
+'  "70, and I would not read too much into it. Five short nights caught up with HRV,',
+'   down 11% on last week \u2014 but resting heart rate has not moved, which is the tell',
+'   that this is fatigue and not something you are coming down with. The good kind of',
+'   bad news.',
 '',
-'Body and plan disagree:',
-'  "44. Not a number to argue with, and there are eighteen miles and 4,200 feet still',
-'   on today\u2019s board. Something gives, and it is better decided now than at mile nine.',
-'   Last night is the culprit \u2014 5:38, your shortest in two weeks."',
+'   Eighteen tomorrow will answer it either way. Portal tonight is well timed \u2014 heat',
+'   adaptation is doing quiet work with the race five weeks out."',
 '',
-'Did one thing, skipped another:',
-'  "83 and it shows. Nice yoga this morning, and the numbers agree \u2014 resting HR down a',
-'   ninth straight night with HRV holding. Five miles up on a normal week, so nothing',
-'   to prove before Saturday\u2019s 18. No 7am Portal on the log, though. Pushing to this',
-'   afternoon?"',
+'Body and plan disagree \u2014 say it, then leave it with him:',
+'  "44. Not a number to argue with, and there are eighteen miles and 4,200 feet of',
+'   climbing still on today. Something gives, and it is better decided now than at',
+'   mile nine. Last night is the culprit \u2014 5:38, shortest in two weeks."',
+'',
+'Nothing to report. Also correct:',
+'  "Nothing much to tell you today \u2014 everything sitting where it usually sits.',
+'   Six easy miles at 6, Portal at 5. Enjoy it."',
 '',
 '════ BAD ════',
 '',
@@ -7611,18 +7888,53 @@ function jarvisFacts(){
   const open = PLANNED.filter(function(w){ return w && w.date >= TODAY && !isFulfilled(w); })
                       .sort(function(a,b){ return a.date.localeCompare(b.date) || byTime(a,b); }).slice(0,4);
   if (open.length){
+    /* A planned slot going by unlogged is only worth raising if nothing took
+       its place. Swapping planned strength for yoga is a training decision, not
+       a miss, and asking "still on for later?" about the strength while ignoring
+       the yoga he actually did reads as not having looked. So a missed session
+       is judged against what else got logged in the same category:
+         run      — replaced only by another run
+         support  — strength, yoga, mobility and core are interchangeable
+         Portal   — never substitutable; he wants to be asked about this one
+       If the category was covered, it is silent and the credit goes to what he
+       actually did. */
+    const catOf = function(s){
+      s = String(s || '').toLowerCase();
+      if (/\bportal\b/.test(s)) return 'portal';
+      if (/run|tempo|interval|long|shakeout|miles/.test(s)) return 'run';
+      if (/strength|weight|lift|legs|core|abs|yoga|mobility|stretch|pilates/.test(s)) return 'support';
+      return 'other';
+    };
+    const doneToday = ACTS.filter(function(a){ return a._iso === TODAY; });
+    const coveredCats = {};
+    doneToday.forEach(function(a){ coveredCats[catOf((a.type||'') + ' ' + (a.name||''))] = true; });
+
     lines.push('PLANNED, NOT YET LOGGED:');
     open.forEach(function(w){
       /* A slot on today whose clock has gone by is materially different from one
          still ahead. Left undistinguished it reads as upcoming, and a 7am
          session gets discussed as though it were happening at half past ten. */
       const stale = w.date === TODAY && isPastPlan(w);
+      const cat = catOf((w.type||'') + ' ' + (w.title||''));
+      const covered = cat !== 'portal' && coveredCats[cat];
+      let tail = '';
+      if (stale && covered){
+        tail = '   <-- time passed, but he did other ' + cat + ' work today instead. '
+             + 'This is a swap, not a miss. Say NOTHING about this one \u2014 credit what he '
+             + 'actually did and move on.';
+      } else if (stale && cat === 'portal'){
+        tail = '   <-- PORTAL WAS ON THE BOARD AND IS NOT LOGGED. This is the one worth '
+             + 'asking about, briefly, at the very end.';
+      } else if (stale && !doneToday.length){
+        tail = '   <-- time passed with NOTHING logged at all today. Worth one short '
+             + 'question at the very end.';
+      } else if (stale){
+        tail = '   <-- time passed and nothing in this category replaced it. Worth one '
+             + 'short question at the very end, after crediting what he did do.';
+      }
       lines.push('- ' + w.date + (w.time ? ' at ' + fmtTime(w.time) : '') + ': '
         + (w.title || w.type) + (w.distance_mi ? ' ' + w.distance_mi + ' mi' : '')
-        + (w.notes ? ' (' + w.notes + ')' : '')
-        + (stale ? '   <-- THIS TIME HAS PASSED AND NOTHING WAS LOGGED AGAINST IT. '
-                 + 'It may have moved, may still happen later, or may not happen. '
-                 + 'Do NOT treat it as done or as a given. Ask about it, briefly, at the very end.' : ''));
+        + (w.notes ? ' (' + w.notes + ')' : '') + tail);
     });
   } else lines.push('Nothing planned in the days ahead.');
   const done = ACTS.filter(function(a){ return a._iso === TODAY; });
@@ -7683,25 +7995,70 @@ function jarvisFacts(){
          month. Without this a 40-mile week reads the same eight weeks out as it
          does eight days out, and those are entirely different pieces of news. */
       const wks = Math.round(d / 7);
-      lines.push('  Roughly ' + wks + ' week' + (wks === 1 ? '' : 's') + ' out'
-        + (d <= 14 ? ' \u2014 TAPER. Volume should be falling on purpose; feeling flat here is normal.'
-         : d <= 28 ? ' \u2014 late build or the start of taper; the biggest weeks should be behind him or right here.'
-         : d <= 70 ? ' \u2014 the heart of the build. Peak weeks and the biggest back-to-backs belong in this window.'
-                   : ' \u2014 base or early build; specificity matters less than consistency this far out.'));
+      /* The phase is not decoration. Without it, "twenty-one consecutive days
+         with something logged" reads as a warning; with it, that is simply
+         what the peak block of a hundred-miler build looks like, and saying
+         otherwise makes the whole briefing sound like it has not been paying
+         attention. State the phase AND what is normal within it. */
+      const ultra = (gr.distance_mi || 0) >= 50;
+      lines.push('  Roughly ' + wks + ' week' + (wks === 1 ? '' : 's') + ' out.');
+      if (d <= 14){
+        lines.push('  PHASE: TAPER. Volume falls on purpose now. Feeling flat, heavy or oddly'
+          + ' restless is the normal experience of a taper and is not a warning sign.'
+          + ' Consecutive training days should be dropping; if they are not, that is worth a word.');
+      } else if (d <= 28){
+        lines.push('  PHASE: LATE BUILD / TAPER EDGE. The biggest weeks are behind him or happening'
+          + ' right now. Accumulated fatigue is expected and intended at this point \u2014 it is'
+          + ' what the taper exists to clear. Do not read it as a problem.');
+      } else if (d <= 70){
+        lines.push('  PHASE: PEAK BUILD' + (ultra ? ' for a ' + Math.round(gr.distance_mi) + '-mile race' : '') + '.'
+          + ' THIS IS THE HARDEST STRETCH OF THE WHOLE PLAN AND IT IS MEANT TO BE.'
+          + ' Long consecutive-day streaks, back-to-back weekends, high cumulative fatigue and'
+          + ' a readiness score that sits lower than usual are all the expected, correct'
+          + ' signature of this phase \u2014 not evidence that something is wrong. He is deep in'
+          + ' the work, on purpose, and a taper is coming to absorb it.'
+          + ' Do NOT frame accumulated load, missing rest days or a long training streak as a'
+          + ' concern here unless a specific recovery metric has genuinely broken down'
+          + ' (a multi-day collapse in HRV, resting HR climbing well above baseline, or'
+          + ' readiness in the bottom decile). Volume alone is not a red flag in peak build.');
+      } else {
+        lines.push('  PHASE: BASE / EARLY BUILD. Consistency matters more than specificity'
+          + ' this far out; there is time to absorb almost anything.');
+      }
 
-      /* four weeks of volume and vert, so the direction of the block is visible */
+      /* This used to hand over four raw week totals and leave the reading to the
+         model, which produced lines like "week sits at 40 against 36 the week
+         before" — units unstated, and two numbers he has to subtract himself to
+         learn the only thing he wanted: whether the build is climbing on
+         schedule. Do the arithmetic here and hand over the shape. */
       try {
         const wk = [];
         for (let w = 0; w < 4; w++){
           const hi = iso(new Date(todayD.getTime() - (w*7)*86400000));
           const lo = iso(new Date(todayD.getTime() - ((w+1)*7)*86400000));
           const acts = ACTS.filter(function(a){ return a._iso > lo && a._iso <= hi && RUNLIKE.has(a.type); });
-          const mi = acts.reduce(function(x,a){ return x + (a.distance_mi||0); }, 0);
-          const ft = acts.reduce(function(x,a){ return x + (a.elevation_ft||0); }, 0);
-          wk.push((w === 0 ? 'this week so far' : w + ' week' + (w===1?'':'s') + ' ago')
-            + ': ' + Math.round(mi) + ' mi / ' + Math.round(ft) + ' ft');
+          wk.push({ mi: acts.reduce(function(x,a){ return x + (a.distance_mi||0); }, 0),
+                    ft: acts.reduce(function(x,a){ return x + (a.elevation_ft||0); }, 0) });
         }
-        lines.push('  Block shape \u2014 ' + wk.join('; ') + '.');
+        /* week 0 is partial, so trajectory is read across the three complete weeks */
+        const c = [wk[1], wk[2], wk[3]];
+        const rising  = c[0].mi > c[1].mi && c[1].mi > c[2].mi;
+        const falling = c[0].mi < c[1].mi && c[1].mi < c[2].mi;
+        const stepBack = c[0].mi < c[1].mi * 0.82 && c[1].mi >= c[2].mi && c[2].mi > 0;
+        const shape = rising
+            ? 'CLIMBING \u2014 three straight weeks of progressive overload, exactly what a build should look like'
+          : stepBack
+            ? 'STEPPED BACK \u2014 the last complete week dropped sharply after a rise: a recovery week folded into the build, which is planned, not slipping'
+          : falling
+            ? 'EASING \u2014 three weeks trending down'
+            : 'HOLDING \u2014 volume flat across the last three complete weeks';
+        lines.push('  Build trajectory: ' + shape + '.');
+        lines.push('    Complete weeks, most recent first: ' + c.map(function(x){
+            return Math.round(x.mi) + ' miles / ' + Math.round(x.ft) + ' ft vert'; }).join(', then ')
+          + '. This week so far: ' + Math.round(wk[0].mi) + ' miles / ' + Math.round(wk[0].ft) + ' ft.');
+        lines.push('    He does not want these figures read back to him \u2014 he wants to know whether '
+          + 'the build is on track. Give him the shape, not the arithmetic, and if you name a '
+          + 'number always say what it is a number OF.');
       } catch(e){}
     }
   } catch(e){}
@@ -7717,8 +8074,8 @@ function jarvisFacts(){
       try {
         const b = blockContext();
         if (b && b.worked != null){
-          density = ' ' + b.worked + ' of the last 21 days had a session'
-                  + (b.restDays != null ? ', ' + b.restDays + ' were full rest' : '') + '.';
+          density = ' Of the last 21 days: ' + b.hard + ' hard, ' + b.easy + ' easy, '
+                  + (b.off + b.restorative) + ' carrying no training stress.';
         }
       } catch(e){}
       lines.push('TRAINING LOAD: acute/chronic ratio ' + L.ratio.toFixed(2)
@@ -8207,8 +8564,12 @@ function jarvisFacts(){
     /* density of the block, as a count */
     try {
       const b = blockContext();
-      if (b && b.worked != null){
-        facts.push('  Training density: ' + b.worked + ' of the last 21 days had a session');
+      if (b && b.hard != null){
+        facts.push('  Last 21 days by kind: ' + b.hard + ' hard days, ' + b.easy
+          + ' easy days, ' + b.restorative + ' restorative-only days (yoga/mobility/Portal), '
+          + b.off + ' with nothing logged. Treat restorative and empty days together \u2014 '
+          + (b.off + b.restorative) + ' days carried no training stress. Do NOT describe a '
+          + 'day with only yoga or Portal on it as a day without rest.');
       }
     } catch(e){}
 
@@ -8238,7 +8599,10 @@ const AI_CACHE_KEY = 'rh_jarvis_today_v1';
    So the key carries a fingerprint of today's plan and of what has been logged
    \u2014 change either and it rewrites once; reopen it fifty times and it does not. */
 function aiCacheKey(){
-  let sig = 'day:' + TODAY;
+  /* A briefing written without the overnight table is a different briefing, so
+     it must not share a cache key with a complete one \u2014 otherwise the degraded
+     version sticks for the day even after the data lands. */
+  let sig = 'day:' + TODAY + (Array.isArray(HEALTH) && HEALTH.length ? '' : ':nohealth');
   try {
     const plan = PLANNED.filter(function(w){ return w && w.date === TODAY; })
       .map(function(w){ return [w.type, w.title, w.time, w.distance_mi, w.elevation_ft].join('~'); })
@@ -9125,15 +9489,15 @@ function renderHealth(){
     + '<div class="card" data-hc="trend" style="padding:14px 12px 10px;cursor:pointer">'
     + '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto;aspect-ratio:'+W+'/'+H+';display:block">'
     + '<rect x="'+pl+'" y="'+Y(hi)+'" width="'+pw+'" height="'+Math.max(0,Y(lo)-Y(hi))+'" fill="rgba(166,207,226,.07)"/>'
-    + '<line x1="'+pl+'" y1="'+Y(st.mean)+'" x2="'+(W-pr)+'" y2="'+Y(st.mean)+'" stroke="#6ea6c1" stroke-dasharray="4 4" opacity=".7"/>'
+    + '<line x1="'+pl+'" y1="'+Y(st.mean)+'" x2="'+(W-pr)+'" y2="'+Y(st.mean)+'" stroke="#9ac8e0" stroke-dasharray="4 4" opacity=".7"/>'
     + grid
-    + '<defs><linearGradient id="hg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e8a94e" stop-opacity=".22"/><stop offset="1" stop-color="#e8a94e" stop-opacity="0"/></linearGradient></defs>'
+    + '<defs><linearGradient id="hg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--a)" stop-opacity=".22"/><stop offset="1" stop-color="var(--a)" stop-opacity="0"/></linearGradient></defs>'
     + '<path d="'+area+'" fill="url(#hg)"/>'
-    + '<path d="'+path+'" fill="none" stroke="rgba(232,169,78,.45)" stroke-width="1.2"/>'
-    + (roll ? '<path d="'+roll+'" fill="none" stroke="#e8a94e" stroke-width="2.4" stroke-linejoin="round"/>' : '')
-    + '<circle cx="'+X(vals.length-1).toFixed(1)+'" cy="'+Y(rollVals ? rollVals[rollVals.length-1] : cur).toFixed(1)+'" r="4.5" fill="#ffd48a" stroke="#120c06" stroke-width="1.8"/>'
+    + '<path d="'+path+'" fill="none" stroke="rgba(143,154,232,.45)" stroke-width="1.2"/>'
+    + (roll ? '<path d="'+roll+'" fill="none" stroke="var(--a)" stroke-width="2.4" stroke-linejoin="round"/>' : '')
+    + '<circle cx="'+X(vals.length-1).toFixed(1)+'" cy="'+Y(rollVals ? rollVals[rollVals.length-1] : cur).toFixed(1)+'" r="4.5" fill="var(--a-hi)" stroke="var(--bg-mid)" stroke-width="1.8"/>'
     + '<text x="'+pl+'" y="'+(H-6)+'" font-size="10" fill="var(--ink)">'+fmtHlDate(ser[0].d)+'</text>'
-    + '<text x="'+(W-pr)+'" y="'+(H-6)+'" text-anchor="end" font-size="10" fill="#e8a94e">last night</text>'
+    + '<text x="'+(W-pr)+'" y="'+(H-6)+'" text-anchor="end" font-size="10" fill="var(--a)">last night</text>'
     + '</svg>'
     + '<div class="hl-legend"><span><i class="ln solid"></i>7-night average</span>'
     + '<span><i class="ln faint"></i>nightly</span><span><i class="ln dash"></i>average, this window</span></div>'
@@ -9198,7 +9562,7 @@ function renderHealth(){
         const pctb = (v-dmn)/((dmx-dmn)||1);
         const isBest = v===best, isWorst = v===worst;
         return '<div class="hl-d"><div class="hl-d-bar"><i style="height:'+(18+pctb*62)+'%'
-          + (isBest?';background:linear-gradient(180deg,#f3bc63,#d08840)':isWorst?';background:rgba(207,106,68,.55)':'')+'"></i></div>'
+          + (isBest?';background:linear-gradient(180deg,#c2c9ff,#5a648f)':isWorst?';background:rgba(255,107,129,.5)':'')+'"></i></div>'
           + '<div class="hl-d-v'+(isBest?' hi':'')+'">'+m.fmt(v)+'</div>'
           + '<div class="hl-d-l">'+names[i]+'</div></div>'; }).join('') + '</div>'
       + '<div style="font-size:10.5px;color:var(--ink2);margin-top:10px;line-height:1.5">Best on <b style="color:var(--honey)">'
@@ -9345,15 +9709,15 @@ function openHealthDetail(section){
     /* past ~45 points, individual dots stop reading as data and start reading
        as texture — the rolling average line is the whole story at that point */
     const dots = ser.length <= 45
-      ? ser.map(function(p,i){ return '<circle cx="'+X(i).toFixed(1)+'" cy="'+Y(p.v).toFixed(1)+'" r="2.2" fill="#e8a94e" opacity=".4"/>'; }).join('')
+      ? ser.map(function(p,i){ return '<circle cx="'+X(i).toFixed(1)+'" cy="'+Y(p.v).toFixed(1)+'" r="2.2" fill="var(--a)" opacity=".4"/>'; }).join('')
       : '';
     h += '<div class="card" style="padding:16px 14px 12px">'
       + '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto;aspect-ratio:'+W+'/'+H+';display:block">'
       + '<rect x="'+pl+'" y="'+Y(hi)+'" width="'+pw+'" height="'+Math.max(0,Y(lo)-Y(hi))+'" fill="rgba(166,207,226,.07)"/>'
-      + '<line x1="'+pl+'" y1="'+Y(st.mean)+'" x2="'+(W-pr)+'" y2="'+Y(st.mean)+'" stroke="#6ea6c1" stroke-dasharray="4 4" opacity=".7"/>'
+      + '<line x1="'+pl+'" y1="'+Y(st.mean)+'" x2="'+(W-pr)+'" y2="'+Y(st.mean)+'" stroke="#9ac8e0" stroke-dasharray="4 4" opacity=".7"/>'
       + grid + dots
-      + '<path d="'+rollPath+'" fill="none" stroke="#e8a94e" stroke-width="2.6" stroke-linejoin="round"/>'
-      + '<circle cx="'+X(vals.length-1).toFixed(1)+'" cy="'+Y(roll[roll.length-1]).toFixed(1)+'" r="4.5" fill="#ffd48a" stroke="#120c06" stroke-width="1.8"/>'
+      + '<path d="'+rollPath+'" fill="none" stroke="var(--a)" stroke-width="2.6" stroke-linejoin="round"/>'
+      + '<circle cx="'+X(vals.length-1).toFixed(1)+'" cy="'+Y(roll[roll.length-1]).toFixed(1)+'" r="4.5" fill="var(--a-hi)" stroke="var(--bg-mid)" stroke-width="1.8"/>'
       + axisLabels
       + '</svg>'
       + '<div class="hl-legend"><span><i class="ln solid"></i>7-night average</span>'
@@ -9421,7 +9785,7 @@ function openHealthDetail(section){
           const isTarget = p.d === target.d;
           const dev = pctDev(p.v, st.mean, true);
           const cls = Math.abs(pctChange(p.v, st.mean)) < 2 ? 'v-fl' : ((m.down ? p.v < st.mean : p.v > st.mean) ? 'v-up' : 'v-dn');
-          return '<div class="rd-row"'+(isTarget?' style="background:rgba(255,212,138,.08)"':'')+'>'
+          return '<div class="rd-row"'+(isTarget?' style="background:rgba(194,201,255,.08)"':'')+'>'
             + '<span class="rd-m">'+fmtHlDate(p.d)+(isTarget?' \u2605':'')+'</span>'
             + '<span class="rd-n">'+m.fmt(p.v)+m.unit+'</span><span class="rd-e '+cls+'">'+dev+'</span></div>';
         }).join('')
@@ -9807,11 +10171,11 @@ function renderActMap(points){
   L.tileLayer(BASE_LAYERS.terrain.url, BASE_LAYERS.terrain.opts).addTo(adMapInstance).bringToBack();
 
   L.polyline(points, { color:'#ffffff', weight:7, opacity:.9, lineCap:'round', lineJoin:'round' }).addTo(adMapInstance);
-  const line = L.polyline(points, { color:'#d2521f', weight:3.5, opacity:1, lineCap:'round', lineJoin:'round' }).addTo(adMapInstance);
+  const line = L.polyline(points, { color:'#f08a99', weight:3.5, opacity:1, lineCap:'round', lineJoin:'round' }).addTo(adMapInstance);
 
   /* start (green) and finish (rust) — white-ringed so they sit on any terrain */
-  L.circleMarker(points[0], { radius:5.5, color:'#ffffff', weight:2.5, fillColor:'#4f9d69', fillOpacity:1 }).addTo(adMapInstance);
-  L.circleMarker(points[points.length-1], { radius:5.5, color:'#ffffff', weight:2.5, fillColor:'#d2521f', fillOpacity:1 }).addTo(adMapInstance);
+  L.circleMarker(points[0], { radius:5.5, color:'#ffffff', weight:2.5, fillColor:'#7fd9bd', fillOpacity:1 }).addTo(adMapInstance);
+  L.circleMarker(points[points.length-1], { radius:5.5, color:'#ffffff', weight:2.5, fillColor:'#f08a99', fillOpacity:1 }).addTo(adMapInstance);
 
   adMapInstance.fitBounds(line.getBounds(), { padding:[20,20] });
 }
@@ -9983,7 +10347,7 @@ function restingIsReal(dateISO){ return restingSource(dateISO) !== 'default'; }
 window.rhCalories = function(dateISO){
   const d = dateISO || TODAY;
   const p = restingParts(d);
-  console.log('%cresting calories for ' + d, 'font-weight:bold;color:#e8a94e');
+  console.log('%cresting calories for ' + d, 'font-weight:bold;color:var(--a)');
   console.log('  1. your Garmin entry      : ' + (p.own    || '\u2014 not set'));
   console.log('  2. garmin_daily resting   : ' + (p.direct || '\u2014 no such column'));
   console.log('  3. total minus active     : ' + (p.derived
@@ -9994,7 +10358,7 @@ window.rhCalories = function(dateISO){
   console.log('\n  note: the Fuel card shows RESTING ONLY here. "burned total" in the');
   console.log('  legend above it is resting + training, which will be a larger number.');
   console.log('%c  -> using ' + restingBurn(d) + ' from "' + restingSource(d) + '"',
-    'font-weight:bold;color:#7fb894');
+    'font-weight:bold;color:#7fd9bd');
   console.log('\nbody stats stored:', JSON.stringify(BODY));
   return 'set the Garmin figure in Profile > Body stats to override';
 };
@@ -10774,7 +11138,7 @@ function caloriesFor(a){
 window.rhBurn = function(dateISO){
   const d = dateISO || TODAY;
   const rows = ACTS.filter(function(a){ return a._iso === d; });
-  console.log('%cburn breakdown for ' + d, 'font-weight:bold;color:#e8a94e');
+  console.log('%cburn breakdown for ' + d, 'font-weight:bold;color:var(--a)');
   const gField = garminActive(d);
   console.log('  garmin active column   : ' + (gField || '\u2014 not found in garmin_daily'));
   console.log('  estimator calibration  : \u00d7' + calFactor().toFixed(3)
@@ -10805,7 +11169,7 @@ window.rhBurn = function(dateISO){
   console.log('  resting counted  : ' + rs + '  from "' + restingSource(d) + '"');
   console.log('  movement counted : ' + mv + '  from "' + movementSource(d) + '"'
     + (movementSource(d) === 'default' ? '  (set yours in Profile > Body stats)' : ''));
-  console.log('%c  day total        : ' + (tr + rs + mv), 'font-weight:bold;color:#7fb894');
+  console.log('%c  day total        : ' + (tr + rs + mv), 'font-weight:bold;color:#7fd9bd');
   if (!gField) console.log('\n  no Garmin active-calorie column found \u2014 if your watch reports one,\n  the sync function is not writing it into garmin_daily under any of:\n  ' + GARMIN_ACTIVE_FIELDS.join(', '));
   return 'rhCalories("' + d + '") breaks down the resting side';
 };
@@ -12567,10 +12931,16 @@ window.closeLoadDetail = closeLoadDetail;
 })();
 
 /* boot */
+/* Theme is read and applied as early as possible \u2014 waiting until after the
+   first render means a frame of the wrong background, which is the one thing
+   people always notice. */
+applyTheme(lsGet(THEME_KEY, 'dark'));
 renderPortal(); renderGreeting(); renderOvChips(); renderWeek(); renderRecent(); renderLoadCard();
-/* Kick the day's briefing off in the background. Deliberately after first
-   paint, so the page is readable immediately and this only ever upgrades it. */
-setTimeout(function(){ try { ensureJarvis(); } catch(e){} }, 1200);
+/* The briefing used to fire on a 1.2s timer while loadHealth() was still in
+   flight. On a slow morning the fetch lost the race, Jarvis wrote "no overnight
+   data available", and that answer was then cached for the entire day \u2014 which
+   is exactly the bug where a refresh fixed it. It is now triggered by
+   loadHealth() completing rather than by a stopwatch. */
 renderProgress(); renderVolChips(); renderVolChart(); refreshProfileRows(); renderCal(); setPlanView('today'); renderBigRuns(); renderProfile(); refreshConnStatus(); renderHlControls(); renderHealth(); renderSavedRoutes(); renderRaceCard(); renderRaceList();
 loadHealth();
 stravaCallback();
@@ -12617,7 +12987,7 @@ cloudPull().then(function(d){
 
 /* rhPlan() — where the plan stands, locally and in the cloud */
 window.rhPlan = async function(){
-  console.log('%cLOCAL', 'font-weight:bold;color:#e8a94e');
+  console.log('%cLOCAL', 'font-weight:bold;color:var(--a)');
   console.log('  planned workouts :', PLANNED.length);
   console.log('  races            :', RACES.length);
   console.log('  last write       :', lsGet(PLAN_TS_KEY,0) ? new Date(lsGet(PLAN_TS_KEY,0)).toLocaleString() : 'never');
@@ -12626,7 +12996,7 @@ window.rhPlan = async function(){
   try {
     const d = await cloudPull();
     const p = d && d[CLOUD_PLAN_KEY];
-    console.log('%c\nCLOUD', 'font-weight:bold;color:#7fb894');
+    console.log('%c\nCLOUD', 'font-weight:bold;color:#7fd9bd');
     if (!p){ console.log('  nothing stored yet'); }
     else {
       console.log('  planned workouts :', (p.planned||[]).length);
@@ -12634,7 +13004,7 @@ window.rhPlan = async function(){
       console.log('  written          :', p.ts ? new Date(p.ts).toLocaleString() : '?');
       console.log('  newer than local :', (p.ts||0) > lsGet(PLAN_TS_KEY,0));
     }
-  } catch(e){ console.log('%c\nCLOUD unreachable:', 'color:#cf6a44', e.message||e); }
+  } catch(e){ console.log('%c\nCLOUD unreachable:', 'color:#f08a99', e.message||e); }
   console.log('\nrhRestorePlan() puts the backup back and republishes it.');
   return PLANNED.length + ' local workouts';
 };
@@ -12656,9 +13026,9 @@ window.rhStorage = function(){
     ['Map view',          'rh_map_center / base / trails', 'a per-device preference'],
     ['Briefing memory',   'rh_narr_recent',                'stops phrases repeating; cosmetic'],
   ];
-  console.log('%cSYNCED TO SUPABASE (everything you enter)', 'font-weight:bold;color:#7fb894');
+  console.log('%cSYNCED TO SUPABASE (everything you enter)', 'font-weight:bold;color:#7fd9bd');
   cloud.forEach(function(r){ console.log('  ' + r[0].padEnd(18) + r[2]); });
-  console.log('%c\nDEVICE-ONLY (by design)', 'font-weight:bold;color:#6a9fbd');
+  console.log('%c\nDEVICE-ONLY (by design)', 'font-weight:bold;color:#9ac8e0');
   local.forEach(function(r){ console.log('  ' + r[0].padEnd(18) + r[2]); });
   const ts = lsGet(PLAN_TS_KEY, 0);
   console.log('\nlast plan write: ' + (ts ? new Date(ts).toLocaleString() : 'never'));
@@ -12668,7 +13038,7 @@ window.rhStorage = function(){
 window.rhForceSync = async function(){
   const ok = await pushPlan();
   console.log(ok ? '%cpushed to Supabase' : '%cpush failed \u2014 check the Supabase config',
-    'font-weight:bold;color:' + (ok ? '#7fb894' : '#cf6a44'));
+    'font-weight:bold;color:' + (ok ? '#7fd9bd' : '#f08a99'));
   return ok;
 };
 
@@ -12683,9 +13053,9 @@ window.rhHardReset = async function(){
   const runs = ACTS.filter(function(a){ return RUNLIKE.has(a.type) && a._date.getFullYear()===YEAR && a.distance_mi>0; });
   const mi = runs.reduce(function(s,a){ return s+a.distance_mi; },0);
   console.log('%ccleared ' + n + ' local overrides' + (ok ? ' and the cloud copy' : ' (cloud unreachable)'),
-    'color:#7fb894;font-weight:bold');
+    'color:#7fd9bd;font-weight:bold');
   console.log('%c' + YEAR + ' now: ' + Math.round(mi) + ' mi across ' + runs.length + ' runs',
-    'font-weight:bold;color:#e8a94e');
+    'font-weight:bold;color:var(--a)');
   return 'done';
 };
 
@@ -12711,7 +13081,7 @@ window.rhTypes = function(year){
     by[t].n++; by[t].mi += a.distance_mi||0; by[t].mins += (a.moving_time||0)/60;
     if (a._origType) by[t].renamed++;
   });
-  console.log('%c' + y + ' activity types', 'font-weight:bold;color:#e8a94e');
+  console.log('%c' + y + ' activity types', 'font-weight:bold;color:var(--a)');
   Object.keys(by).sort(function(a,b){ return by[b].n - by[a].n; }).forEach(function(t){
     const r = by[t];
     console.log('  ' + t.padEnd(18) + String(r.n).padStart(4) + ' acts  '
@@ -12733,7 +13103,7 @@ window.rhAudit = function(){
       RUNLIKE.has(t) ? '  <- counted as running' : ''));
   const runs = yr.filter(a=>RUNLIKE.has(a.type) && a.distance_mi>0);
   console.log('%cRUNNING TOTAL: '+runs.length+' runs, '+(Math.round(runs.reduce((s,a)=>s+a.distance_mi,0)*10)/10)+' mi, '
-    + Math.round(runs.reduce((s,a)=>s+(a.elevation_ft||0),0))+' ft', 'font-weight:bold;color:#e8a94e');
+    + Math.round(runs.reduce((s,a)=>s+(a.elevation_ft||0),0))+' ft', 'font-weight:bold;color:var(--a)');
   const d = window._dupList || [];
   console.log('%cduplicates merged: '+d.length, 'font-weight:bold');
   d.forEach(x => console.log('  dropped', x.dropped._iso, x.dropped.type, x.dropped.distance_mi+'mi',
@@ -12742,7 +13112,7 @@ window.rhAudit = function(){
   console.log('%cmanual overrides in play this year: '+manual.length, 'font-weight:bold');
   manual.forEach(a => console.log('  ', a._iso, a.type, a.distance_mi+'mi', a.name||'', a._rh2?'(this app)':'(FOREIGN \u2014 likely stale)'));
   const foreign = manual.filter(a => !a._rh2);
-  if (foreign.length) console.log('%c'+foreign.length+' overrides did not come from this app. Run rhClearEdits() to remove them.', 'color:#cf6a44;font-weight:bold');
+  if (foreign.length) console.log('%c'+foreign.length+' overrides did not come from this app. Run rhClearEdits() to remove them.', 'color:#f08a99;font-weight:bold');
   return 'run rhAudit() any time to re-check';
 };
 
@@ -12751,16 +13121,16 @@ window.rhGarmin = function(){
   if (!HEALTH.length){ console.log('no Garmin data loaded'); return; }
   const last = HEALTH[HEALTH.length-1];
   const keys = Object.keys(last).sort();
-  console.log('%cgarmin_daily columns (' + last.date + ')', 'font-weight:bold;color:#e8a94e');
+  console.log('%cgarmin_daily columns (' + last.date + ')', 'font-weight:bold;color:var(--a)');
   keys.forEach(function(k){ console.log('  ' + k.padEnd(26) + last[k]); });
   const cal = keys.filter(function(k){ return /cal/i.test(k); });
   const stp = keys.filter(function(k){ return RE_STEPS.test(k); });
   console.log('%c\ncalorie fields present: ' + (cal.length ? cal.join(', ') : 'NONE'),
-    'font-weight:bold;color:' + (cal.length ? '#7fb894' : '#cf6a44'));
+    'font-weight:bold;color:' + (cal.length ? '#7fd9bd' : '#f08a99'));
   console.log('%cstep fields present   : ' + (stp.length ? stp.join(', ') : 'NONE'),
-    'font-weight:bold;color:' + (stp.length ? '#7fb894' : '#cf6a44'));
+    'font-weight:bold;color:' + (stp.length ? '#7fd9bd' : '#f08a99'));
   const d = last.date;
-  console.log('\n%cwhat the app resolves from this row', 'font-weight:bold;color:#e8a94e');
+  console.log('\n%cwhat the app resolves from this row', 'font-weight:bold;color:var(--a)');
   console.log('  active calories : ' + (garminActive(d) || '\u2014 nothing matched'));
   console.log('  steps           : ' + (garminSteps(d)  || '\u2014 nothing matched'));
   console.log('  resting         : ' + restingBurn(d) + '  (via "' + restingSource(d) + '")');
@@ -12769,16 +13139,16 @@ window.rhGarmin = function(){
   console.log('  active calories or steps gets picked up whatever the sync named it.');
   if (!cal.length){
     console.log('%cGarmin Connect does record calories \u2014 they are simply not being written',
-      'color:#a6cfe2');
+      'color:#8fb6f0');
     console.log('into this table. Adding them means updating the trigger-garmin-sync');
     console.log('Edge Function to store totalKilocalories, activeKilocalories and');
     console.log('bmrKilocalories from the daily summary. Ask and I will write it.');
   }
   return keys.length + ' columns';
 };
-console.log('%cRun rhGarmin() to see what the health table actually contains.', 'color:#a6cfe2');
+console.log('%cRun rhGarmin() to see what the health table actually contains.', 'color:#8fb6f0');
 
-console.log('%cRun rhAudit() for mileage, rhStrava() for connection diagnostics.', 'color:#a6cfe2');
+console.log('%cRun rhAudit() for mileage, rhStrava() for connection diagnostics.', 'color:#8fb6f0');
 
 console.log('[RH] activities:', ACTS.length, '| planned:', PLANNED.length, '| week mi:', f1(wkMilesNow()));
 
