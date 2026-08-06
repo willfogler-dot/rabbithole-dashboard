@@ -1,37 +1,78 @@
 # .github/workflows/garmin_sync.yml
 #
 # Pulls Garmin health data into Supabase.
-#  - Runs automatically at 9:00am Denver time (see cron note below)
-#  - Can be triggered manually: the "Sync now" button in the dashboard calls
-#    the Supabase Edge Function, which fires this workflow via workflow_dispatch
+#  - Runs automatically three times each morning (see cron note below)
+#  - Can be triggered manually: the "Sync" button in the dashboard calls the
+#    Supabase Edge Function, which fires this workflow via workflow_dispatch
 #
-# GitHub Actions cron is UTC only. Currently set for MDT (summer): 9am = 15:00 UTC.
-# When Denver switches to MST (winter), change "0 15" to "0 16".
+# GitHub Actions cron is UTC only. Times below are MDT (summer, UTC−6).
+# When Denver switches to MST (winter) each one lands an hour earlier in local
+# terms; add 1 to each UTC hour then if you want to hold the local times.
 
 name: Garmin Daily Sync
 
 on:
   schedule:
-    - cron: '0 13 * * *'   # 7:00 AM MDT
-    - cron: '30 14 * * *'  # 8:30 AM MDT
-  workflow_dispatch: {}      # enables the dashboard's "Sync now" button
+    - cron: '30 12 * * *'   # 6:30 AM MDT
+    - cron: '30 13 * * *'   # 7:30 AM MDT
+    - cron: '0  15 * * *'   # 9:00 AM MDT
+  workflow_dispatch: {}     # enables the dashboard's "Sync" button
+
+# A queued run has staler data than the one already going, so never stack them.
+concurrency:
+  group: garmin-sync
+  cancel-in-progress: false
 
 jobs:
   sync:
     runs-on: ubuntu-latest
+    timeout-minutes: 10     # Garmin can hang; fail fast rather than burn minutes
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: 'pip'
 
       - name: Install dependencies
-        run: pip install garminconnect garth requests
+        # garminconnect talks to endpoints Garmin does not document and does not
+        # promise to keep. A new release can change method names or break auth
+        # outright, and because this was unpinned every run silently picked up
+        # whatever was newest — which is the most common way a sync that worked
+        # for weeks dies overnight without anything in this repo changing.
+        # Pinned deliberately. Bump on purpose, not by accident.
+        run: |
+          python -m pip install --upgrade pip
+          pip install "garminconnect==0.2.25" "garth>=0.4.46" requests
+
+      - name: Show versions
+        # Printed every run so that when something does break, the log already
+        # contains the one fact needed to tell a library change from an auth
+        # failure — no reproducing required.
+        run: pip show garminconnect garth | grep -E '^(Name|Version)'
 
       - name: Run sync
         env:
-          GARMIN_TOKEN_B64: ${{ secrets.GARMIN_TOKEN_B64 }}
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          GARMIN_TOKEN_B64:     ${{ secrets.GARMIN_TOKEN_B64 }}
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: python garmin_sync.py
+
+      - name: Explain a failure
+        if: failure()
+        run: |
+          echo "──────────────────────────────────────────────────────────"
+          echo "Sync failed. Read the 'Run sync' step above; the script"
+          echo "prints a line per metric, so a partial failure still says"
+          echo "which part gave up."
+          echo ""
+          echo "Most likely causes, in order:"
+          echo "  1. Token expired. If the log says 'using GARMIN_TOKEN_B64"
+          echo "     secret (bootstrap)' on EVERY run instead of 'using token"
+          echo "     from Supabase', the refreshed token is not being saved"
+          echo "     and it will keep expiring. Re-mint it in Colab."
+          echo "  2. garminconnect broke against Garmin's endpoints. Compare"
+          echo "     the version printed above against a run that worked."
+          echo "  3. Garmin rate-limited or is down. Retry before debugging."
+          echo "──────────────────────────────────────────────────────────"
