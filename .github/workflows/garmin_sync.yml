@@ -1,24 +1,36 @@
 # .github/workflows/garmin_sync.yml
 #
 # Pulls Garmin health data into Supabase.
-#  - Runs automatically three times each morning (see cron note below)
-#  - Can be triggered manually: the "Sync" button in the dashboard calls the
-#    Supabase Edge Function, which fires this workflow via workflow_dispatch
+#  - Runs automatically three times each morning
+#  - The dashboard's "Sync" button calls the Supabase Edge Function, which
+#    fires this workflow via workflow_dispatch
 #
-# GitHub Actions cron is UTC only. Times below are MDT (summer, UTC−6).
-# When Denver switches to MST (winter) each one lands an hour earlier in local
-# terms; add 1 to each UTC hour then if you want to hold the local times.
+# ── WHY THIS USES NO MARKETPLACE ACTIONS ──────────────────────────────────
+# Run #55 failed with "Failed to resolve action download info / Bad Gateway"
+# during "Set up job" — GitHub could not fetch actions/checkout and
+# actions/setup-python from its own registry, so the job died before a single
+# step ran. Nothing was wrong with Garmin, the token or the script.
+#
+# Every marketplace action is a network dependency resolved before your code
+# executes, and a failure there is not catchable or retryable from inside the
+# workflow. Neither action was earning its keep:
+#   • ubuntu-latest already ships Python 3.12, so setup-python bought nothing
+#   • the job needs exactly one file, which curl fetches in a line
+# Removing both makes this immune to that entire class of failure.
+# ───────────────────────────────────────────────────────────────────────────
 
 name: Garmin Daily Sync
 
 on:
+  # GitHub cron is UTC only. Times below are MDT (summer, UTC−6); when Denver
+  # moves to MST each lands an hour earlier locally — add 1 to each UTC hour
+  # then if you want to hold the local times.
   schedule:
     - cron: '30 12 * * *'   # 6:30 AM MDT
     - cron: '30 13 * * *'   # 7:30 AM MDT
     - cron: '0  15 * * *'   # 9:00 AM MDT
-  workflow_dispatch: {}     # enables the dashboard's "Sync" button
+  workflow_dispatch: {}     # the dashboard's "Sync" button
 
-# A queued run has staler data than the one already going, so never stack them.
 concurrency:
   group: garmin-sync
   cancel-in-progress: false
@@ -26,53 +38,64 @@ concurrency:
 jobs:
   sync:
     runs-on: ubuntu-latest
-    timeout-minutes: 10     # Garmin can hang; fail fast rather than burn minutes
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: 'pip'
+      - name: Fetch the sync script
+        # Straight from the API rather than a checkout: one file, one request,
+        # authenticated by the token the runner already has, and it works
+        # whether the repo is public or private.
+        run: |
+          curl -sSfL \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3.raw" \
+            -o garmin_sync.py \
+            "https://api.github.com/repos/${{ github.repository }}/contents/garmin_sync.py?ref=${{ github.ref_name }}"
+          test -s garmin_sync.py || { echo "script came back empty"; exit 1; }
+          echo "fetched $(wc -l < garmin_sync.py) lines"
 
       - name: Install dependencies
-        # garminconnect talks to endpoints Garmin does not document and does not
-        # promise to keep. A new release can change method names or break auth
-        # outright, and because this was unpinned every run silently picked up
-        # whatever was newest — which is the most common way a sync that worked
-        # for weeks dies overnight without anything in this repo changing.
-        # Pinned deliberately. Bump on purpose, not by accident.
+        # garminconnect talks to endpoints Garmin neither documents nor promises
+        # to keep, so its releases break things regularly. Unpinned, every run
+        # silently took whatever was newest — the usual way a sync that worked
+        # for weeks dies overnight with nothing in this repo having changed.
+        # Retried, because PyPI has bad minutes too and one is not a failure.
         run: |
-          python -m pip install --upgrade pip
-          pip install "garminconnect==0.2.25" "garth>=0.4.46" requests
-
-      - name: Show versions
-        # Printed every run so that when something does break, the log already
-        # contains the one fact needed to tell a library change from an auth
-        # failure — no reproducing required.
-        run: pip show garminconnect garth | grep -E '^(Name|Version)'
+          for i in 1 2 3; do
+            python3 -m pip install --quiet --upgrade pip \
+              && python3 -m pip install --quiet \
+                   "garminconnect==0.2.25" "garth>=0.4.46" requests \
+              && break
+            echo "pip attempt $i failed, retrying in 15s"; sleep 15
+          done
+          python3 -c "import garminconnect, garth, sys; \
+            print('python', sys.version.split()[0]); \
+            print('garminconnect', garminconnect.__version__ if hasattr(garminconnect,'__version__') else '?'); \
+            print('garth', garth.__version__ if hasattr(garth,'__version__') else '?')"
 
       - name: Run sync
         env:
           GARMIN_TOKEN_B64:     ${{ secrets.GARMIN_TOKEN_B64 }}
           SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-        run: python garmin_sync.py
+        run: python3 garmin_sync.py
 
       - name: Explain a failure
         if: failure()
         run: |
-          echo "──────────────────────────────────────────────────────────"
-          echo "Sync failed. Read the 'Run sync' step above; the script"
-          echo "prints a line per metric, so a partial failure still says"
-          echo "which part gave up."
+          echo "─────────────────────────────────────────────────────────────"
+          echo "Which step went red tells you what broke:"
           echo ""
-          echo "Most likely causes, in order:"
-          echo "  1. Token expired. If the log says 'using GARMIN_TOKEN_B64"
-          echo "     secret (bootstrap)' on EVERY run instead of 'using token"
-          echo "     from Supabase', the refreshed token is not being saved"
-          echo "     and it will keep expiring. Re-mint it in Colab."
-          echo "  2. garminconnect broke against Garmin's endpoints. Compare"
-          echo "     the version printed above against a run that worked."
-          echo "  3. Garmin rate-limited or is down. Retry before debugging."
-          echo "──────────────────────────────────────────────────────────"
+          echo "  Set up job      → GitHub infrastructure. Nothing to fix here;"
+          echo "                    the next scheduled run will pick it up."
+          echo "  Fetch script    → repo, branch or filename moved."
+          echo "  Install deps    → PyPI, or a pinned version was yanked."
+          echo "  Run sync        → the real one. Read the log above:"
+          echo "     • 'using GARMIN_TOKEN_B64 secret (bootstrap)' on EVERY run"
+          echo "       means the refreshed token is not reaching the garmin_auth"
+          echo "       table and will keep expiring. Re-mint it in Colab."
+          echo "     • a TypeError/AttributeError inside garminconnect means the"
+          echo "       library moved. Compare the version printed above against"
+          echo "       a run that worked."
+          echo "     • 'Synced <date> -> {...}' means it worked; if the app still"
+          echo "       shows nothing, the problem is on the read side, not here."
+          echo "─────────────────────────────────────────────────────────────"
