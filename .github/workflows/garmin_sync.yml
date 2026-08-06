@@ -58,12 +58,18 @@ jobs:
         # to keep, so its releases break things regularly. Unpinned, every run
         # silently took whatever was newest — the usual way a sync that worked
         # for weeks dies overnight with nothing in this repo having changed.
+        #
+        # garth is pinned exactly, not with >=. A loose pin let 0.5.x in, which
+        # changed what dumps()/loads() speak (JSON became base64) and broke the
+        # token round-trip. The script now detects either dialect, so this pin
+        # is belt as well as braces — but a floating version on a library this
+        # volatile is how the same morning gets lost twice.
         # Retried, because PyPI has bad minutes too and one is not a failure.
         run: |
           for i in 1 2 3; do
             python3 -m pip install --quiet --upgrade pip \
               && python3 -m pip install --quiet \
-                   "garminconnect==0.2.25" "garth>=0.4.46" requests \
+                   "garminconnect==0.2.25" "garth==0.5.7" requests \
               && break
             echo "pip attempt $i failed, retrying in 15s"; sleep 15
           done
