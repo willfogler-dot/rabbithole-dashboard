@@ -31,9 +31,12 @@ on:
     - cron: '0  15 * * *'   # 9:00 AM MDT
   workflow_dispatch: {}     # the dashboard's "Sync" button
 
-concurrency:
-  group: garmin-sync
-  cancel-in-progress: false
+# A concurrency group used to sit here. It was defensive rather than necessary
+# — three runs a day were never going to collide — and it can hold a new run
+# queued indefinitely behind an earlier one that never properly finished or
+# released the lock. That is a real cost for no real protection, so it is gone.
+# If two runs ever do overlap, the upsert is idempotent: the same date simply
+# gets written twice with the same values.
 
 jobs:
   sync:
