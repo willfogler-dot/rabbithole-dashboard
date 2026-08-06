@@ -88,28 +88,80 @@ def save_token_b64(token_b64: str) -> None:
 
 
 def get_client() -> Garmin:
-    """Restore the Garmin session, then persist whatever garth refreshed."""
-    token_json = base64.b64decode(load_token_b64()).decode()
+    """Restore the Garmin session, then persist whatever garth refreshed.
+
+    garth changed what dumps()/loads() speak. Older versions handed back raw
+    JSON and expected raw JSON; newer ones hand back base64 and expect base64.
+    The script assumed the old contract on both sides, which produced two bugs
+    at once after a library update:
+
+      loading  - we base64-decoded the stored token and passed JSON to garth,
+                 which base64-decoded it AGAIN:
+                 UnicodeDecodeError: 'utf-8' codec can't decode byte 0x91
+      saving   - dumps() already returned base64 and we base64-encoded it a
+                 second time, storing a double-wrapped token for tomorrow
+
+    Rather than pin to one garth and be broken by the next change, detect which
+    dialect is in front of us and speak it.
+    """
+    stored_b64 = load_token_b64()
+
+    def _decoded(s: str):
+        try:
+            return base64.b64decode(s).decode()
+        except Exception:
+            return None
 
     g = Garmin()
-    # login() treats a >512-char tokenstore as a token string, else as a path.
-    if len(token_json) > 512:
-        g.login(tokenstore=token_json)
-    else:
-        d = tempfile.mkdtemp()
-        with open(os.path.join(d, "garmin_tokens.json"), "w") as f:
-            f.write(token_json)
-        g.login(tokenstore=d)
+    attempts = []
 
-    # ---- the fix ----
-    # garth just refreshed the session during login(). Save it, or it dies with this
-    # process and tomorrow we replay today's stale token all over again.
+    # Newer garth: hand it the base64 exactly as stored.
+    attempts.append(("base64 as stored", lambda: g.login(tokenstore=stored_b64)))
+
+    # Older garth: hand it the decoded JSON.
+    plain = _decoded(stored_b64)
+    if plain:
+        attempts.append(("decoded JSON", lambda: g.login(tokenstore=plain)))
+        # Oldest path: a directory containing the token file.
+        def _via_dir():
+            d = tempfile.mkdtemp()
+            with open(os.path.join(d, "garmin_tokens.json"), "w") as f:
+                f.write(plain)
+            return g.login(tokenstore=d)
+        attempts.append(("token directory", _via_dir))
+
+    last = None
+    for label, fn in attempts:
+        try:
+            fn()
+            print(f"[auth] logged in via {label}")
+            last = None
+            break
+        except Exception as e:
+            print(f"[auth] {label} did not work ({type(e).__name__}: {e})")
+            last = e
+    if last is not None:
+        raise last
+
+    # garth refreshed the session during login(). Save it, or it dies with this
+    # process and tomorrow replays today's stale token.
     try:
         try:
             fresh = g.garth.dumps()
         except AttributeError:
             fresh = g.client.dumps()
-        save_token_b64(base64.b64encode(fresh.encode()).decode())
+
+        # Store base64, always — but only wrap it if it is not already wrapped.
+        # A string starting with { or [ is raw JSON and needs encoding; one that
+        # survives a base64 round-trip is already encoded and must be left alone.
+        stripped = fresh.strip()
+        if stripped.startswith("{") or stripped.startswith("["):
+            out = base64.b64encode(fresh.encode()).decode()
+            print("[auth] dumps() returned JSON - encoding before save")
+        else:
+            out = fresh
+            print("[auth] dumps() returned base64 already - saving as-is")
+        save_token_b64(out)
     except Exception as e:
         print(f"[auth] WARNING - couldn't dump refreshed token ({e})")
 
