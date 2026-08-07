@@ -62,17 +62,18 @@ jobs:
         # silently took whatever was newest — the usual way a sync that worked
         # for weeks dies overnight with nothing in this repo having changed.
         #
-        # garth is pinned exactly, not with >=. A loose pin let 0.5.x in, which
-        # changed what dumps()/loads() speak (JSON became base64) and broke the
-        # token round-trip. The script now detects either dialect, so this pin
-        # is belt as well as braces — but a floating version on a library this
-        # volatile is how the same morning gets lost twice.
+        # garth is deliberately NOT pinned. Pinning it to 0.5.7 alongside
+        # garminconnect 0.2.25 produced "conflicting dependencies" and nothing
+        # installed at all — garminconnect declares its own garth range and the
+        # two did not overlap. Let pip resolve it: the script detects whichever
+        # dumps()/loads() dialect it is handed, so the version does not need to
+        # be nailed down. Belt without braces, and the braces were the problem.
         # Retried, because PyPI has bad minutes too and one is not a failure.
         run: |
           for i in 1 2 3; do
             python3 -m pip install --quiet --upgrade pip \
               && python3 -m pip install --quiet \
-                   "garminconnect==0.2.25" "garth==0.5.7" requests \
+                   "garminconnect==0.2.25" requests \
               && break
             echo "pip attempt $i failed, retrying in 15s"; sleep 15
           done
