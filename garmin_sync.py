@@ -16,6 +16,7 @@ Env vars (GitHub Actions secrets):
 """
 
 import base64
+import json
 import os
 import tempfile
 from datetime import date, timedelta
@@ -106,61 +107,74 @@ def get_client() -> Garmin:
     """
     stored_b64 = load_token_b64()
 
-    def _decoded(s: str):
-        try:
-            return base64.b64decode(s).decode()
-        except Exception:
-            return None
+    def _decode(txt):
+        """Peel base64 until JSON appears. A previous version of this script
+        double-encoded on save, so some stored tokens are wrapped twice."""
+        for _ in range(3):
+            try:
+                obj = json.loads(txt)
+                return obj
+            except Exception:
+                pass
+            try:
+                txt = base64.b64decode(txt).decode()
+            except Exception:
+                return None
+        return None
+
+    token = _decode(stored_b64)
+    if token is None:
+        raise RuntimeError("stored token is neither JSON nor base64-wrapped JSON")
+
+    # garth wants the two OAuth blobs as SEPARATE files named oauth1_token.json
+    # and oauth2_token.json. The old code wrote a single garmin_tokens.json,
+    # which is why the directory attempt failed with FileNotFoundError, and it
+    # passed the whole dict to loads(), which is why that failed with
+    # "too many values to unpack (expected 2)" — loads() destructures exactly
+    # two items and got a dict with more.
+    if isinstance(token, dict):
+        oauth1 = token.get("oauth1") or token.get("oauth1_token")
+        oauth2 = token.get("oauth2") or token.get("oauth2_token")
+    elif isinstance(token, (list, tuple)) and len(token) == 2:
+        oauth1, oauth2 = token
+    else:
+        oauth1 = oauth2 = None
+
+    if oauth1 is None or oauth2 is None:
+        raise RuntimeError(
+            "could not find oauth1/oauth2 in the stored token; top-level keys were: "
+            + str(list(token.keys()) if isinstance(token, dict) else type(token))
+        )
+
+    d = tempfile.mkdtemp()
+    with open(os.path.join(d, "oauth1_token.json"), "w") as f:
+        json.dump(oauth1, f)
+    with open(os.path.join(d, "oauth2_token.json"), "w") as f:
+        json.dump(oauth2, f)
 
     g = Garmin()
-    attempts = []
-
-    # Newer garth: hand it the base64 exactly as stored.
-    attempts.append(("base64 as stored", lambda: g.login(tokenstore=stored_b64)))
-
-    # Older garth: hand it the decoded JSON.
-    plain = _decoded(stored_b64)
-    if plain:
-        attempts.append(("decoded JSON", lambda: g.login(tokenstore=plain)))
-        # Oldest path: a directory containing the token file.
-        def _via_dir():
-            d = tempfile.mkdtemp()
-            with open(os.path.join(d, "garmin_tokens.json"), "w") as f:
-                f.write(plain)
-            return g.login(tokenstore=d)
-        attempts.append(("token directory", _via_dir))
-
-    last = None
-    for label, fn in attempts:
-        try:
-            fn()
-            print(f"[auth] logged in via {label}")
-            last = None
-            break
-        except Exception as e:
-            print(f"[auth] {label} did not work ({type(e).__name__}: {e})")
-            last = e
-    if last is not None:
-        raise last
+    g.login(tokenstore=d)
+    print("[auth] logged in from split oauth1/oauth2 token files")
 
     # garth refreshed the session during login(). Save it, or it dies with this
     # process and tomorrow replays today's stale token.
+    #
+    # Store the same shape this function reads: a dict with oauth1/oauth2,
+    # base64-encoded exactly once. Writing back whatever dumps() happens to
+    # return is how the format drifted in the first place.
     try:
         try:
             fresh = g.garth.dumps()
         except AttributeError:
             fresh = g.client.dumps()
 
-        # Store base64, always — but only wrap it if it is not already wrapped.
-        # A string starting with { or [ is raw JSON and needs encoding; one that
-        # survives a base64 round-trip is already encoded and must be left alone.
-        stripped = fresh.strip()
-        if stripped.startswith("{") or stripped.startswith("["):
-            out = base64.b64encode(fresh.encode()).decode()
-            print("[auth] dumps() returned JSON - encoding before save")
-        else:
-            out = fresh
-            print("[auth] dumps() returned base64 already - saving as-is")
+        parsed = _decode(fresh) if isinstance(fresh, str) else fresh
+        if isinstance(parsed, (list, tuple)) and len(parsed) == 2:
+            parsed = {"oauth1": parsed[0], "oauth2": parsed[1]}
+        if not isinstance(parsed, dict) or "oauth1" not in parsed:
+            parsed = {"oauth1": oauth1, "oauth2": oauth2}
+
+        out = base64.b64encode(json.dumps(parsed).encode()).decode()
         save_token_b64(out)
     except Exception as e:
         print(f"[auth] WARNING - couldn't dump refreshed token ({e})")
