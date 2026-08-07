@@ -1409,6 +1409,149 @@ select.fi,.vol-sel,.gp-msel{cursor:pointer;}
 @keyframes jvp{0%,70%,100%{opacity:.25;transform:translateY(0);}35%{opacity:1;transform:translateY(-3px);}}
 .jv-wait-t{font-size:13px;color:var(--n3);letter-spacing:.01em;}
 .jv-offline{margin-top:12px;font-size:11px;color:var(--n4);}
+/* Overlay controls sit at 1200 because Leaflet's own layers do not leave room
+   below that: its map panes run to z-index 700 and its built-in controls sit at
+   1000. At the z-index:5 these started on, the tiles rendered straight over the
+   top and the buttons were invisible until a zoom happened to move them. */
+#mapFull{position:fixed;inset:0;z-index:60;background:var(--bg-bot);display:none;}
+#mapFull.on{display:block;}
+#mapFull #mapFullSlot,#mapFull #map{position:absolute;inset:0;height:100%!important;
+  width:100%!important;border-radius:0;border:none;box-shadow:none;}
+/* Controls float over the map rather than framing it — on a phone every pixel
+   of map is worth more than a toolbar, and a pill reads as temporary. */
+/* One panel, bottom, thumb-reachable. Grouped by purpose: what you have drawn,
+   what you are looking at, what you can toggle, what you can do with it. */
+.tk-pop{min-width:230px;font-family:var(--fb);}
+.tk-h{font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:#6b7387;
+  margin-bottom:7px;}
+/* Scrolls rather than growing: on shared trail a dozen routes can overlap and
+   a popup taller than the map is useless. */
+.tk-list{max-height:210px;overflow-y:auto;display:flex;flex-direction:column;gap:5px;
+  -webkit-overflow-scrolling:touch;}
+.tk-item{display:block;width:100%;text-align:left;padding:8px 10px;border-radius:10px;
+  border:1px solid rgba(22,26,36,.12);background:#f4f6fb;font-family:var(--fb);}
+.tk-item:active{background:#e4e9f2;}
+.tk-n{display:block;font-size:12.5px;font-weight:600;color:#161a24;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tk-m{display:block;font-size:11px;color:#5a6377;margin-top:1px;}
+/* ══ THE COCKPIT ══
+   This is the instrument panel, not a strip of chrome to be tucked away. It
+   gets weight: a heavier surface, a lit top edge, real spacing, and numbers
+   large enough to read at a glance while your attention is on the map. */
+.mf-panel{position:absolute;left:50%;transform:translateX(-50%);
+  bottom:calc(16px + env(safe-area-inset-bottom));z-index:1200;
+  max-width:calc(100vw - 16px);padding:11px 14px;border-radius:20px;
+  background:linear-gradient(180deg,rgba(31,37,52,.97),rgba(19,23,33,.97));
+  -webkit-backdrop-filter:blur(28px) saturate(140%);backdrop-filter:blur(28px) saturate(140%);
+  border:1px solid rgba(150,170,220,.18);
+  box-shadow:0 1px 0 rgba(190,214,240,.09) inset,
+             0 10px 30px rgba(2,4,8,.55),
+             0 30px 70px -20px rgba(2,4,8,.7);
+  display:flex;align-items:center;gap:10px;
+  overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;}
+.mf-panel::-webkit-scrollbar{display:none;}
+.mf-panel > *{flex:0 0 auto;}
+
+/* The readout is the reason the bar exists \u2014 give it the size to prove it. */
+.mf-readout{display:flex;gap:16px;padding:0 4px 0 3px;}
+.mf-readout span{display:flex;flex-direction:column;align-items:center;
+  font-size:8.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--n4);}
+.mf-readout b{font-family:var(--fd);font-size:23px;font-weight:600;color:var(--a-hi);
+  font-variant-numeric:tabular-nums;letter-spacing:-.01em;line-height:1;margin-bottom:3px;
+  text-shadow:0 0 18px rgba(194,201,255,.28);}
+
+.mf-sep{width:1px;height:30px;background:linear-gradient(180deg,
+  transparent,rgba(150,170,220,.28) 22%,rgba(150,170,220,.28) 78%,transparent);}
+
+.mf-sel{background:rgba(10,13,20,.6);border:1px solid rgba(150,170,220,.16);
+  border-radius:11px;color:var(--n1);font-size:12.5px;font-weight:600;
+  font-family:var(--fb);padding:10px 26px 10px 12px;outline:none;
+  -webkit-appearance:none;appearance:none;
+  background-image:linear-gradient(45deg,transparent 50%,var(--n3) 50%),
+                   linear-gradient(135deg,var(--n3) 50%,transparent 50%);
+  background-position:calc(100% - 13px) 50%,calc(100% - 9px) 50%;
+  background-size:5px 5px,5px 5px;background-repeat:no-repeat;}
+.mf-sel option{background:var(--bg-lift);color:var(--n1);}
+
+.mf-pin{background:rgba(10,13,20,.6);border:1px solid rgba(150,170,220,.16);
+  color:var(--n2);font-size:12.5px;font-weight:600;padding:10px 14px;border-radius:11px;
+  font-family:var(--fb);white-space:nowrap;transition:background .15s ease;}
+.mf-pin.on{background:var(--a-fill);border-color:var(--a-edge);color:var(--a);
+  box-shadow:0 0 16px rgba(143,154,232,.14);}
+.mf-pin:active{background:rgba(143,154,232,.2);}
+
+.mf-go{padding:10px 18px;border-radius:11px;border:none;font-size:13px;
+  font-weight:700;font-family:var(--fb);color:#0b0f18;white-space:nowrap;
+  background:linear-gradient(112deg,#7fd9bd,#8f9ae8 46%,#b39ae8);
+  box-shadow:0 3px 14px rgba(143,154,232,.35);}
+
+.mf-ico{width:38px;height:38px;padding:0;border-radius:11px;
+  background:rgba(10,13,20,.6);border:1px solid rgba(150,170,220,.16);color:var(--n2);
+  font-size:17px;line-height:1;font-family:var(--fb);}
+.mf-ico:active{background:var(--a);color:var(--bg-bot);border-color:var(--a);}
+
+/* Leaflet's own zoom control is redundant now the bar carries one, and it was
+   floating over the map for no reason. */
+#mapFull .leaflet-top.leaflet-left{display:none;}
+#mapFull .leaflet-control-attribution{margin-bottom:0;font-size:8.5px;opacity:.7;}
+/* Slightly desaturated and darkened so white paths and an amber route sit
+   clearly above the imagery rather than fighting it. */
+.tile-sat{filter:saturate(.82) brightness(.93) contrast(1.04);}
+
+@media (min-width:820px){
+  /* Centred on desktop too. Pinning it to a corner put the controls as far
+     from the middle of the map as they could physically be \u2014 exactly where
+     your attention is not. */
+  .mf-panel{bottom:22px;}
+}
+.ft-in{width:100%;font-size:15px;line-height:1.5;resize:none;font-family:var(--fb);}
+.ft-hint{margin-top:8px;font-size:11.5px;color:var(--n4);line-height:1.5;}
+.ft-wait{padding:16px 0;text-align:center;font-size:13px;color:var(--n3);}
+.ft-err{padding:12px 14px;border-radius:12px;font-size:12.5px;line-height:1.5;
+  color:var(--neg);background:rgba(240,138,153,.08);border:1px solid rgba(240,138,153,.2);}
+.ft-list{display:flex;flex-direction:column;gap:10px;}
+.ft-item{padding:11px 12px;border-radius:13px;background:var(--el1-bg);border:1px solid var(--n5);}
+.cmp-date{position:relative;}
+.cmp-dtxt{pointer-events:none;}
+.cmp-datebtn{pointer-events:none;}
+/* Invisible over the row so the whole thing is tappable, rather than asking
+   you to hit a small "change" link. */
+.cmp-dinput{position:absolute;inset:0;width:100%;height:100%;opacity:0;
+  border:none;background:none;cursor:pointer;font-size:16px;}
+.cmp-jumps{display:flex;gap:6px;margin:10px 0 2px;}
+.cmp-jump{flex:1;padding:9px 4px;border-radius:11px;font-size:12px;font-weight:600;
+  font-family:var(--fb);background:var(--el0-bg);border:1px solid var(--n5);color:var(--n2);}
+.cmp-jump.on{background:var(--a-fill);border-color:var(--a-edge);color:var(--a);}
+.pt-day{font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--a);
+  margin-bottom:6px;}
+.pt-n,.pt-t{width:100%;background:var(--el0-bg);border:1px solid var(--n5);border-radius:8px;
+  padding:6px 7px;color:var(--n1);font-size:13px;font-family:var(--fd);outline:none;}
+.pt-note{margin-top:8px;font-size:11px;color:var(--n4);}
+.pt-warn{margin-top:8px;font-size:11px;color:var(--warn);}
+.ft-row{display:flex;align-items:center;gap:8px;}
+.ft-known{flex:0 0 auto;font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--a);background:var(--a-fill);border:1px solid var(--a-edge);
+  padding:3px 7px;border-radius:999px;cursor:pointer;}
+.ft-name{width:100%;background:none;border:none;color:var(--n1);font-size:14px;font-weight:600;
+  font-family:var(--fb);padding:0 0 8px;outline:none;}
+.ft-macros{display:flex;gap:8px;}
+.ft-macros label{flex:1;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--n4);
+  display:flex;flex-direction:column;gap:4px;}
+.ft-n{width:100%;background:var(--el0-bg);border:1px solid var(--n5);border-radius:8px;
+  padding:6px 7px;color:var(--n1);font-size:13px;font-family:var(--fd);
+  font-variant-numeric:tabular-nums;outline:none;}
+.ft-tot{margin-top:12px;text-align:center;font-size:12px;color:var(--n3);}
+.trail-head{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--n3);
+  margin-bottom:14px;}
+.trail-head span{text-transform:none;letter-spacing:0;color:var(--n4);font-size:11.5px;}
+.trail-row{display:flex;align-items:baseline;gap:12px;padding:11px 0;border-bottom:1px solid var(--n6);}
+.trail-row:last-of-type{border-bottom:none;}
+.trail-win{flex:0 0 52px;font-size:12px;font-weight:600;color:var(--n2);letter-spacing:.02em;}
+.trail-val{flex:1;font-family:var(--fd);font-size:21px;font-weight:600;color:var(--a-hi);
+  font-variant-numeric:tabular-nums;line-height:1;}
+.trail-val i{font-style:normal;font-size:11px;color:var(--n3);margin-left:3px;font-family:var(--fb);}
+.trail-sub{flex:0 0 auto;font-size:11.5px;color:var(--n3);text-align:right;}
+.trail-note{margin-top:14px;font-size:11px;color:var(--n4);line-height:1.5;}
 .stale-warn{padding:11px 14px;margin-bottom:14px;border-radius:12px;font-size:12.5px;
   line-height:1.5;color:var(--warn);background:rgba(232,197,143,.08);
   border:1px solid rgba(232,197,143,.22);}
@@ -1987,10 +2130,15 @@ body.sheet-open::after{z-index:19;}
       <div class="vol-controls">
         <select class="vol-sel" id="volType"></select>
         <div class="seg vol-seg" id="volGran">
-          <button class="on" data-g="week">Wk</button><button data-g="month">Mo</button><button data-g="year">Yr</button>
+          <button class="on" data-g="week">Wk</button><button data-g="month">Mo</button><button data-g="year">Yr</button><button data-g="trail">Trail</button>
         </div>
       </div>
-      <div class="card vol-card">
+      <div class="card vol-card" id="trailCard" style="display:none">
+        <div class="trail-head">Trailing totals <span id="trailWhat"></span></div>
+        <div id="trailRows"></div>
+        <div class="trail-note">Rolling windows counted back from today — not calendar weeks or months.</div>
+      </div>
+      <div class="card vol-card" id="volCardMain">
         <div class="vol-head">
           <div id="volRange" class="vol-period"></div>
           <div class="vol-avg-inline" id="volAvgWrap">
@@ -2064,6 +2212,9 @@ body.sheet-open::after{z-index:19;}
       <div class="seg" id="planSeg">
         <button class="on" data-v="today">Today</button><button data-v="week">Week</button><button data-v="month">Month</button>
       </div>
+      <button class="add-btn" id="tellPlanBtn" aria-label="Tell Jarvis" style="margin-right:7px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      </button>
       <button class="add-btn" id="addBtn" aria-label="Add">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
       </button>
@@ -2089,11 +2240,14 @@ body.sheet-open::after{z-index:19;}
     <div id="rtDrawPane">
       <div class="map-bar">
         <div class="seg map-seg" id="rtBase">
-          <button class="on" data-b="map">Map</button><button data-b="sat">Satellite</button><button data-b="topo">Topo</button>
+          <button class="on" data-b="map">Map</button><button data-b="sat">Sat</button><button data-b="topo">Topo</button><button data-b="paths">Paths</button>
         </div>
         <button class="map-toggle on" id="rtTrails">Trails</button>
+        <button class="map-toggle" id="rtTracks">My tracks</button>
+        <button class="map-toggle on" id="rtSnapBtn">Snap</button>
+        <button class="map-toggle" id="rtExpand" aria-label="Fullscreen">&#9974;</button>
       </div>
-      <div id="map"></div>
+      <div id="mapHome"><div id="map"></div></div>
       <div class="rt-stats">
         <div class="rt-s"><div class="l">Distance</div><div class="v" id="rtDist">0.0<span class="u">mi</span></div></div>
         <div class="rt-s"><div class="l">Vert gain</div><div class="v" id="rtGain">—<span class="u">ft</span></div></div>
@@ -2162,13 +2316,13 @@ body.sheet-open::after{z-index:19;}
         <button class="sync-btn" id="stvSync">Sync</button>
       </div>
       <div class="set">
-        <div class="l">Garmin health<div class="sub" id="setHealthSub">—</div></div>
+        <div class="l">Health<div class="sub" id="setHealthSub">—</div></div>
         <span class="conn" id="setHealthStatus">● …</span>
-        <button class="sync-btn" id="gmSync">Sync</button>
       </div>
     </div>
     <div id="stvProgress" style="font-size:11.5px;color:var(--ink3);margin-top:10px;display:none"></div>
-    <button class="btn sec" id="routeBackfill" style="width:100%;margin-top:10px">Backfill older routes</button>
+    <button class="btn sec" id="routeQuick" style="width:100%;margin-top:10px">Get all route shapes</button>
+    <button class="btn sec" id="routeBackfill" style="width:100%;margin-top:8px">Sharpen 80 recent routes</button>
     <div id="routeNote" style="font-size:11.5px;color:var(--ink3);margin-top:8px"></div>
     <div id="stvAuth" style="display:none;margin-top:16px;padding-top:16px;border-top:1px solid var(--line)">
       <div class="fl" style="margin-top:0">Connect Strava</div>
@@ -2223,6 +2377,91 @@ body.sheet-open::after{z-index:19;}
 
 
 <!-- the Daily Briefing sheet lived here; removed with the Brief pill -->
+
+<!-- Fullscreen map. The map element is MOVED here rather than duplicated:
+     two map instances means two sets of state that drift apart, and the route
+     you drew on one would not exist on the other. -->
+<div id="mapFull">
+  <div id="mapFullSlot"></div>
+  <!-- Everything the small map can do, available here. Splitting controls
+       between the two views meant leaving fullscreen to save a route, which
+       defeats the point of a fullscreen drawing mode. -->
+  <!-- Controls were spread across four floating pieces: two pills top, a tool
+       column right, actions and stats bottom. Each fine alone, incoherent
+       together — you had to hunt for the one you wanted. Everything that is
+       not the map now lives in one panel at the bottom, where a thumb reaches
+       it, grouped by what it does. -->
+  <!-- Three clusters of controls in three corners meant hunting for whichever
+       one you wanted. Everything lives on the bar now. -->
+  <!-- One horizontal bar. Stacked rows of options were tall enough to eat the
+       bottom third of the map, which is the part you are usually drawing on.
+       The two settings with several choices become dropdowns \u2014 compact, and
+       still one tap to see everything. -->
+  <div class="mf-panel">
+    <div class="mf-readout">
+      <span><b id="mfDist">0</b>miles</span>
+      <span><b id="mfGain">0</b>ft vert</span>
+      <span><b id="mfPts">0</b>points</span>
+    </div>
+
+    <span class="mf-sep"></span>
+
+    <select class="mf-sel" id="mfBaseSel" aria-label="Map layer">
+      <option value="sat">Satellite</option>
+      <option value="map">Standard</option>
+      <option value="topo">Topo</option>
+      <option value="paths">Paths</option>
+    </select>
+    <select class="mf-sel" id="mfSnapSel" aria-label="Drawing mode">
+      <option value="free">Free draw</option>
+      <option value="foot">Follow paths</option>
+    </select>
+
+    <span class="mf-sep"></span>
+
+    <button class="mf-pin on" data-mt="trails">Trails</button>
+    <button class="mf-pin" id="mfTracks">Tracks</button>
+
+    <span class="mf-sep"></span>
+
+    <button class="mf-ico" id="mfZoomIn"  aria-label="Zoom in">+</button>
+    <button class="mf-ico" id="mfZoomOut" aria-label="Zoom out">&#8722;</button>
+    <button class="mf-ico" id="mfUndo"    aria-label="Undo last point">&#8630;</button>
+    <button class="mf-ico" id="mfClear"   aria-label="Clear route">&#10005;</button>
+
+    <span class="mf-sep"></span>
+
+    <button class="mf-pin" id="mfElev">Elev</button>
+    <button class="mf-pin" id="mfSave">Save</button>
+    <button class="mf-go" id="mfPlan">Add to plan</button>
+    <button class="mf-pin" id="mfMin">Done</button>
+  </div>
+
+</div>
+
+<div class="sheet-bd" id="ptBd"></div>
+<div class="sheet" id="ptSheet">
+  <div class="sheet-grip"></div>
+  <div class="sheet-head"><div><div class="sheet-date">What are you planning?</div>
+    <div class="sheet-sub">Plain English — name a route and it will find your figures</div></div>
+    <button class="sheet-x" id="ptClose">&#10005;</button></div>
+  <textarea class="fi ft-in" id="ptInput" rows="3"
+    placeholder="Double Morrison Sunday 7am, easy 6 Tuesday morning, legs and core Thursday evening"></textarea>
+  <button class="btn pri" id="ptGo" style="width:100%;margin-top:12px">Work it out</button>
+  <div id="ptResult" style="margin-top:14px"></div>
+</div>
+
+<div class="sheet-bd" id="ftBd"></div>
+<div class="sheet" id="ftSheet">
+  <div class="sheet-grip"></div>
+  <div class="sheet-head"><div><div class="sheet-date">What did you eat?</div>
+    <div class="sheet-sub" id="ftDate"></div></div><button class="sheet-x" id="ftClose">&#10005;</button></div>
+  <textarea class="fi ft-in" id="ftInput" rows="4"
+    placeholder="Two eggs on sourdough and a flat white, chicken burrito bowl for lunch, handful of almonds after my run"></textarea>
+  <div class="ft-hint">Plain English. Rough is fine — you can adjust the numbers before it saves.</div>
+  <button class="btn pri" id="ftGo" style="width:100%;margin-top:12px">Work it out</button>
+  <div id="ftResult" style="margin-top:14px"></div>
+</div>
 
 <div class="sheet-bd" id="yrBd"></div>
 <div class="sheet" id="yrSheet">
@@ -2673,6 +2912,7 @@ async function pushPlan(force){
                             nutrition: NUTRI, body: BODY, recipes: RECIPES, calories: CALCACHE,
                             routesFull: ROUTECACHE,
                             jarvisFeedback: lsGet(FB_KEY, []),
+                            foodMemory: lsGet(FOODMEM_KEY, {}),
                             customFoods: CUSTOM, templates: TEMPLATES,
                             stravaActs: stravaActs,
                             stravaSyncedAt: lsGet(STRAVA_SYNCED, null),
@@ -2765,6 +3005,16 @@ async function reconcilePlan(){
     CALCACHE = Object.assign({}, p.calories, CALCACHE); lsSet(CAL_KEY, CALCACHE); }
   if (p.routesFull && typeof p.routesFull === 'object'){
     ROUTECACHE = Object.assign({}, p.routesFull, ROUTECACHE); lsSet(ROUTE_KEY, ROUTECACHE); }
+  if (p.foodMemory && typeof p.foodMemory === 'object'){
+    /* merge rather than replace: a correction made on the phone should not be
+       wiped by a stale copy from another device */
+    const mine = lsGet(FOODMEM_KEY, {}) || {};
+    const merged = Object.assign({}, p.foodMemory);
+    Object.keys(mine).forEach(function(k){
+      if (!merged[k] || (mine[k].at||0) > (merged[k].at||0)) merged[k] = mine[k];
+    });
+    lsSet(FOODMEM_KEY, merged);
+  }
   if (Array.isArray(p.jarvisFeedback) && p.jarvisFeedback.length){
     const byDay = {};
     p.jarvisFeedback.concat(lsGet(FB_KEY, []) || []).forEach(function(f){ if (f && f.d) byDay[f.d] = f; });
@@ -3045,7 +3295,19 @@ async function loadHealth(){
        a quota error and takes the whole load path down with it. */
     try { lsSet(HEALTH_CACHE, { at: Date.now(), rows: HEALTH.slice(-400) }); } catch(e){}
     if(st){ st.className='conn ok'; st.textContent='● Connected'; }
-    if(sub){ const last = HEALTH[HEALTH.length-1]; sub.textContent = last ? ('last night ' + last.date) : 'no rows yet'; }
+    if(sub){
+      /* Name the real source and say how fresh it is. "Garmin health" was
+         misleading once the feed moved to Apple Health, and a bare date does
+         not tell you whether the pipeline is alive. */
+      const last = HEALTH[HEALTH.length-1];
+      if (!last){ sub.textContent = 'Apple Health \u00b7 no rows yet'; }
+      else {
+        const days = Math.floor((todayD - new Date(last.date+'T00:00:00')) / 86400000);
+        sub.textContent = 'Apple Health \u00b7 '
+          + (days <= 0 ? 'up to date' : days === 1 ? 'through last night'
+             : days + ' days behind \u2014 open HRV Sync');
+      }
+    }
   } catch(e){
     console.error('[health]', e);
     if(st){ st.className='conn no'; st.textContent='● Error'; }
@@ -6177,6 +6439,64 @@ function renderVolChart(){
   document.getElementById('volChart').querySelectorAll('.vdot').forEach(el =>
     el.addEventListener('click', ()=>{ volSel = +el.dataset.i; renderVolChart(); }));
 }
+/* ══ TRAILING TOTALS ══
+   Calendar weeks and months answer "how am I doing against the box the
+   calendar drew". Trailing windows answer "how much have I actually done
+   lately", which on the 3rd of a month is a completely different and usually
+   more useful number. Shown as plain figures rather than against a goal:
+   these are for orientation, not scoring. */
+const TRAIL_WINDOWS = [
+  { key:'7d',  days:7,   label:'7d'  },
+  { key:'30d', days:30,  label:'30d' },
+  { key:'90d', days:90,  label:'90d' },
+  { key:'6mo', days:182, label:'6mo' },
+  { key:'1yr', days:365, label:'1yr' },
+];
+
+function renderTrailing(){
+  const host = document.getElementById('trailRows');
+  if (!host) return;
+  const t = VOL_TYPES.find(function(x){ return x.key === volType; }) || VOL_TYPES[0];
+  const what = document.getElementById('trailWhat');
+  if (what) what.textContent = '\u00b7 ' + (t.label || 'Running');
+
+  /* Exactly the filter renderVolChart uses. Written out rather than
+     approximated, so switching to Trail cannot silently change what is being
+     counted \u2014 two views of the same thing disagreeing is worse than either
+     being slightly wrong. */
+  const inType = function(a){
+    return normType(a.type) === normType(volType)
+        || (volType === 'Run' && RUNLIKE.has(a.type));
+  };
+
+  const rows = TRAIL_WINDOWS.map(function(w){
+    const cutoff = todayD.getTime() - (w.days - 1) * 86400000;
+    const acts = ACTS.filter(function(a){ return a._ts >= cutoff && inType(a); });
+    const mi = acts.reduce(function(s,a){ return s + (a.distance_mi||0); }, 0);
+    const ft = acts.reduce(function(s,a){ return s + (a.elevation_ft||0); }, 0);
+    const sec = acts.reduce(function(s,a){ return s + (a.moving_time||0); }, 0);
+    /* per-week rate makes windows of different lengths comparable at a glance,
+       which is the whole point of showing five of them together */
+    const perWk = mi / (w.days/7);
+    return { w:w, n:acts.length, mi:mi, ft:ft, sec:sec, perWk:perWk };
+  });
+
+  host.innerHTML = rows.map(function(r){
+    const primary = r.mi > 0.05
+      ? f1mi(r.mi) + '<i>mi</i>'
+      : (r.sec > 0 ? fmtDur(r.sec) : '\u2014');
+    const bits = [];
+    if (r.mi > 0.05) bits.push(Math.round(r.perWk) + ' mi/wk');
+    if (r.ft > 0) bits.push(fmtK(r.ft) + ' ft');
+    bits.push(r.n + (r.n === 1 ? ' session' : ' sessions'));
+    return '<div class="trail-row">'
+      + '<span class="trail-win">' + r.w.label + '</span>'
+      + '<span class="trail-val">' + primary + '</span>'
+      + '<span class="trail-sub">' + bits.join(' \u00b7 ') + '</span>'
+      + '</div>';
+  }).join('');
+}
+
 function renderVolChips(){
   const sel = document.getElementById('volType');
   sel.innerHTML = VOL_TYPES.map(t =>
@@ -6184,13 +6504,20 @@ function renderVolChips(){
   sel.onchange = function(){
     volType = sel.value; volSel = null;
     if (volMetrics().indexOf(volMetric) < 0) volMetric = volMetrics()[0];
-    renderVolChart();
+    if (volGran === 'trail') renderTrailing(); else renderVolChart();
   };
 }
 document.getElementById('volGran').querySelectorAll('[data-g]').forEach(b =>
   b.addEventListener('click', ()=>{
     document.getElementById('volGran').querySelectorAll('button').forEach(x=>x.classList.remove('on'));
-    b.classList.add('on'); volGran = b.dataset.g; volSel = null; renderVolChart();
+    b.classList.add('on'); volGran = b.dataset.g; volSel = null;
+    /* Trail replaces the chart rather than sitting beside it \u2014 a bar chart of
+       overlapping windows would be misleading, since each contains the last */
+    const isTrail = volGran === 'trail';
+    const tc = document.getElementById('trailCard'), vc = document.getElementById('volCardMain');
+    if (tc) tc.style.display = isTrail ? '' : 'none';
+    if (vc) vc.style.display = isTrail ? 'none' : '';
+    if (isTrail) renderTrailing(); else renderVolChart();
   }));
 
 /* ═══════════ YEAR RECAP ═══════════ */
@@ -6487,51 +6814,12 @@ function deleteWorkout(id){
   toast('Workout removed');
 }
 
-/* ═══════════ GARMIN SYNC TRIGGER ═══════════ */
-/* The deployed function is called dynamic-processor. This pointed at
-   'trigger-garmin-sync', a name that has never existed on the project — so
-   every manual sync was a silent 404 reported as "Sync started". */
-const EDGE_FN = 'dynamic-processor';
-async function triggerSync(){
-  const c = syncCfg();
-  const btn = document.getElementById('gmSync');
-  if (!c){ toast('No Supabase config found'); return; }
-  const lbl = btn ? btn.textContent : '';
-  if (btn){ btn.disabled = true; btn.textContent = '\u2026'; }
-  try {
-    const res = await fetch(c.url.replace(/\/$/,'') + '/functions/v1/' + EDGE_FN, {
-      method:'POST', headers:{ apikey:c.key, Authorization:'Bearer '+c.key, 'Content-Type':'application/json' }
-    });
-    if (!res.ok){
-      const t = await res.text().catch(()=> '');
-      let why;
-      if (res.status === 404) why = 'Sync function not deployed';
-      else if (res.status === 401 || res.status === 403) why = 'Sync function rejected the request ('+res.status+')';
-      else if (res.status >= 500) why = 'Sync function crashed ('+res.status+')';
-      else why = 'HTTP '+res.status+(t?' — '+t.slice(0,80):'');
-      throw new Error(why);
-    }
-    /* The workflow takes 40-90s on GitHub's side, so a single reload at 20s
-       usually fired before the data landed and looked like a failed sync.
-       Poll instead, and say something true when it actually arrives. */
-    toast('Sync started \u2014 Garmin takes about a minute');
-    let tries = 0;
-    const before = (HEALTH && HEALTH.length) ? HEALTH[HEALTH.length-1] : null;
-    const beforeKey = before ? (before.date + ':' + (before.sleep_seconds||0)) : '';
-    const poll = async function(){
-      tries++;
-      try { await loadHealth(); } catch(e){}
-      const now = (HEALTH && HEALTH.length) ? HEALTH[HEALTH.length-1] : null;
-      const nowKey = now ? (now.date + ':' + (now.sleep_seconds||0)) : '';
-      if (nowKey && nowKey !== beforeKey){ toast('Garmin data updated'); return; }
-      if (tries < 6) setTimeout(poll, 20000);
-      else toast('Sync ran, but no new Garmin data came back');
-    };
-    setTimeout(poll, 25000);
-  } catch(e){
-    console.error('[sync]', e); toast(String(e.message||e));
-  } finally { if (btn){ btn.disabled = false; btn.textContent = lbl || 'Sync'; } }
-}
+/* ═══════════ GARMIN SYNC TRIGGER ═══════════
+   Removed. It fired a GitHub workflow that logged into Garmin Connect through
+   an unofficial library; Garmin now requires MFA, so an unattended login can
+   never complete and the button could only ever fail. Health data now arrives
+   from Apple Health via Health Auto Export, which pushes on its own schedule
+   and needs nothing in this app to trigger it. */
 
 /* wiring */
 document.getElementById('dayClose').addEventListener('click', closeDay);
@@ -6802,8 +7090,8 @@ document.getElementById('stvHide').addEventListener('click', ()=>{ document.getE
 })();
 document.getElementById('stvSync').addEventListener('click', syncStrava);
 document.getElementById('routeBackfill').addEventListener('click', function(){ backfillRoutes(80); });
+document.getElementById('routeQuick').addEventListener('click', backfillSummaryRoutes);
 document.getElementById('stvConnect').addEventListener('click', connectStrava);
-document.getElementById('gmSync').addEventListener('click', triggerSync);
 
 
 /* ═══════════ GOALS ═══════════ */
@@ -7261,8 +7549,11 @@ let rtMap = null, rtPts = [], rtLine = null, rtMarkers = [], rtElev = null;
 const BASE_LAYERS = {
   map:  { url:'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
           opts:{ maxZoom:19, subdomains:'abcd', attribution:'&copy; OpenStreetMap &copy; CARTO' } },
+  /* className is used to mute the imagery a touch in CSS. Raw satellite is
+     high-contrast and busy; pulling saturation down a little is what lets a
+     thin white line read against it, and it is what every trail app does. */
   sat:  { url:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-          opts:{ maxZoom:19, attribution:'Imagery &copy; Esri' } },
+          opts:{ maxZoom:19, attribution:'Imagery &copy; Esri', className:'tile-sat' } },
   /* OpenTopoMap adds contours and terrain shading when you need the detail */
   topo: { url:'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
           opts:{ maxZoom:17, subdomains:'abc', attribution:'&copy; OpenTopoMap &copy; OpenStreetMap' } },
@@ -7271,8 +7562,57 @@ const BASE_LAYERS = {
      "topo" entry above) is stronger on contour detail but much busier */
   terrain: { url:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
           opts:{ maxZoom:19, attribution:'&copy; Esri &copy; OpenStreetMap' } },
+  /* CyclOSM renders raw OSM paths and tracks prominently \u2014 unnamed singletrack
+     that the standard style draws faintly and Waymarked Trails omits entirely,
+     since it only shows named route relations. */
+  paths: { url:'https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png',
+          opts:{ maxZoom:18, subdomains:'abc', attribution:'CyclOSM | &copy; OpenStreetMap' } },
 };
+/* ══ MAP INK ══
+   Rebuilt against how the good trail apps actually do it, which is less
+   colourful than instinct suggests:
+
+     PATHS ARE WHITE, NOT COLOURED. A thin white dotted line reads on grass,
+     rock, snow, shadow and tarmac without ever being retuned, and it never
+     competes for attention. Colour then means something, because only one
+     thing has it.
+
+     ONE ACCENT, ONE JOB. The route you are drawing is the only saturated
+     thing on the map. Amber against green terrain is about the strongest
+     signal available and cannot be confused with anything the basemap does.
+
+     TEAL FOR FACT. Recorded runs, when you are browsing them to pick one, sit
+     between the two: clearly deliberate, clearly not the thing being edited.
+
+   Light basemaps invert the logic — white dots vanish on paper, so paths go
+   dark grey there and the amber deepens to hold contrast. */
+const MAP_INK = {
+  dark: {                       /* satellite, and anything else dark */
+    route:  '#ff9838',  routeCase: 'rgba(10,12,18,.5)',
+    node:   '#ff9838',  nodeRing:  '#ffffff',
+    start:  '#20e3b2',
+    track:  '#20e3b2',  trackCase: 'rgba(10,12,18,.35)',
+    net:    '#ffffff',  netCase:   'rgba(10,12,18,.3)',
+    ghost:  '#ffffff',
+  },
+  light: {                      /* standard, topo, paths */
+    route:  '#e8620c',  routeCase: 'rgba(255,255,255,.9)',
+    node:   '#e8620c',  nodeRing:  '#ffffff',
+    start:  '#0f9b7e',
+    track:  '#0f9b7e',  trackCase: 'rgba(255,255,255,.7)',
+    net:    '#3d4654',  netCase:   'rgba(255,255,255,.55)',
+    ghost:  '#1a1e28',
+  },
+};
+function ink(){ return MAP_INK[rtBaseKey === 'sat' ? 'dark' : 'light']; }
+
 const TRAILS_URL = 'https://tile.waymarkedtrails.org/hiking/{z}/{x}/{y}.png';
+/* A second trail source. Waymarked Trails only renders *named, routed* trails
+   — the ones someone has tagged as part of a route relation. CyclOSM draws raw
+   OSM paths and tracks, which is where most of the unnamed singletrack lives.
+   Two sources disagreeing is itself informative: a line on one and not the
+   other is worth checking on satellite before committing to it. */
+const PATHS_URL = 'https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png';
 let rtBaseKey = 'map', rtBaseLayer = null, rtTrailLayer = null, rtTrailsOn = true;
 
 function setBase(key){
@@ -7284,13 +7624,21 @@ function setBase(key){
   rtBaseLayer.bringToBack();
   lsSet('rh_map_base', key);
   /* route line reads better in a lighter colour over satellite */
-  if (rtLine) rtLine.setStyle({ color: key==='sat' ? 'var(--a-hi)' : '#f08a99' });
-  rtMarkers.forEach(function(m){ m.setStyle && m.setStyle({ fillColor: key==='sat' ? 'var(--a-hi)' : '#f08a99' }); });
+  /* Ink is chosen for the basemap underneath, so switching layers restyles
+     everything drawn on top of it. */
+  const c = MAP_INK[key === 'sat' ? 'dark' : 'light'];
+  if (rtLine) rtLine.setStyle({ color:c.route });
+  if (typeof rtLineCase !== 'undefined' && rtLineCase) rtLineCase.setStyle({ color:c.routeCase });
+  rtMarkers.forEach(function(m, i){
+    if (m.setStyle) m.setStyle({ color:c.nodeRing, fillColor: i===0 ? c.start : c.node });
+  });
+  if (typeof rtTracksOn !== 'undefined'){ if (rtTracksOn) setTracks(true); else drawNetwork(); }
 }
 function setTrails(on){
   if (!rtMap) return;
   rtTrailsOn = on;
-  document.getElementById('rtTrails').classList.toggle('on', on);
+  const b = document.getElementById('rtTrails');
+  if (b) b.classList.toggle('on', on);
   if (rtTrailLayer){ rtMap.removeLayer(rtTrailLayer); rtTrailLayer = null; }
   if (on){
     rtTrailLayer = L.tileLayer(TRAILS_URL, { maxZoom:18, opacity:0.85,
@@ -7298,20 +7646,104 @@ function setTrails(on){
   }
   lsSet('rh_map_trails', on);
 }
+
+/* CyclOSM is a complete basemap, not an overlay — added on top at high opacity
+   it simply covered the map rather than contributing trail data, which is what
+   it was doing until now. It belongs in the base-layer choices instead, where
+   it earns its place: it renders unnamed paths and tracks that the standard
+   style leaves faint and OpenTopoMap draws differently. Three renderings of the
+   same OSM data disagreeing is genuinely useful when you are trying to work out
+   whether a trail exists. */
+function setPaths(on){ setBase(on ? 'paths' : 'map'); }
+let rtPathsOn = false;
+
+/* ══ FULLSCREEN ══
+   Route-finding on a 340px map means constant pan-and-zoom, and you lose the
+   shape of the thing you are drawing. Rather than build a second map — two
+   maps means two states to keep in sync, and they always drift — this moves
+   the existing one into a fullscreen container and hands it back afterwards.
+   Same map object, same route, same undo history. */
+let rtFull = false;
+function toggleMapFull(on){
+  const host = document.getElementById('mapFull');
+  const map = document.getElementById('map');
+  const home = document.getElementById('mapHome');
+  if (!host || !map || !home) return;
+  rtFull = (on === undefined) ? !rtFull : !!on;
+
+  if (rtFull){
+    document.getElementById('mapFullSlot').appendChild(map);
+    host.classList.add('on');
+    document.body.style.overflow = 'hidden';   /* stop the page scrolling behind it */
+  } else {
+    home.appendChild(map);
+    host.classList.remove('on');
+    document.body.style.overflow = '';
+  }
+  const btn = document.getElementById('rtExpand');
+  if (btn) btn.classList.toggle('on', rtFull);
+  /* Leaflet caches container size; without this the map renders at the old
+     dimensions and half the tiles never load */
+  setTimeout(function(){ if (rtMap) rtMap.invalidateSize(); }, 60);
+}
 function rtInit(){
   if (rtMap || typeof L === 'undefined') return;
-  const last = lsGet('rh_map_center', null) || { lat: 39.7392, lng: -105.0, z: 11 };
+  /* It restored whatever spot you last panned to and kept it forever, which is
+     how the map ended up opening somewhere you have never run \u2014 and why "My
+     tracks" then reported nothing in view. Your most recent GPS activity is a
+     far better guess at where you want to start, so that wins unless you moved
+     the map recently enough that it was clearly deliberate. */
+  const last = (function(){
+    const saved = lsGet('rh_map_center', null);
+    const FRESH = 3 * 86400000;          /* a pan from this week is intentional */
+    if (saved && saved.at && (Date.now() - saved.at) < FRESH) return saved;
+
+    const recent = ACTS.filter(function(a){
+      return (RUNLIKE.has(a.type) || /hike/i.test(a.type||''))
+        && (ROUTECACHE[String(a.id)] || a.poly_summary);
+    }).sort(function(x,y){ return y._ts - x._ts; })[0];
+    if (recent){
+      try {
+        const pts = decodePolyline(ROUTECACHE[String(recent.id)] || recent.poly_summary);
+        if (pts.length) return { lat: pts[0][0], lng: pts[0][1], z: 13 };
+      } catch(e){}
+    }
+    return saved || { lat: 39.7392, lng: -105.0, z: 11 };
+  })();
   rtMap = L.map('map', { zoomControl: true, attributionControl: true }).setView([last.lat, last.lng], last.z);
-  setBase(lsGet('rh_map_base', 'map'));
+  /* Satellite by default. The whole point of this tool is trails the maps do
+     not have, and imagery is the only place they show up. */
+  setBase(lsGet('rh_map_base', 'sat'));
   const t = lsGet('rh_map_trails', null);
   setTrails(t === null ? true : !!t);
+  syncFullPill();
   document.getElementById('rtBase').querySelectorAll('button').forEach(function(b){
     b.classList.toggle('on', b.dataset.b === rtBaseKey);
   });
+  /* restore the tracks layer after the map has settled, so getBounds() is real */
+  setTimeout(function(){ if (lsGet('rh_map_tracks', false)) setTracks(true); else drawNetwork(); }, 400);
   rtMap.on('click', e => addPt(e.latlng.lat, e.latlng.lng));
+
+  /* A ghost marker on the nearest track under the cursor. Guessing where a
+     click will land is the difference between this feeling precise and
+     feeling arbitrary. */
+  let ghost = null;
+  rtMap.on('mousemove', function(e){
+    if (rtSnap === 'free'){ if (ghost){ rtMap.removeLayer(ghost); ghost = null; } return; }
+    const near = nearestTrackPoint(e.latlng, 60);
+    if (!near){ if (ghost){ rtMap.removeLayer(ghost); ghost = null; } return; }
+    if (!ghost){
+      /* hollow on purpose: a filled dot looks like a point already placed */
+      ghost = L.circleMarker(near.pt, { radius:7, color:ink().ghost, weight:2,
+        fill:false, opacity:.9, dashArray:'2 3', interactive:false }).addTo(rtMap);
+    } else ghost.setLatLng(near.pt);
+  });
+  rtMap.on('mouseout', function(){ if (ghost){ rtMap.removeLayer(ghost); ghost = null; } });
   rtMap.on('moveend', () => {
+    /* the visible-tracks filter is view-dependent, so it has to follow the map */
+    if (rtTracksOn) setTracks(true); else drawNetwork();
     const c = rtMap.getCenter();
-    lsSet('rh_map_center', { lat:c.lat, lng:c.lng, z: rtMap.getZoom() });
+    lsSet('rh_map_center', { lat:c.lat, lng:c.lng, z: rtMap.getZoom(), at: Date.now() });
   });
   if (navigator.geolocation && !lsGet('rh_map_center', null)){
     navigator.geolocation.getCurrentPosition(p => rtMap.setView([p.coords.latitude, p.coords.longitude], 12), ()=>{}, {timeout:4000});
@@ -7328,15 +7760,117 @@ function haversine(a, b){
 /* Each click adds a SEGMENT: the routed path from the previous point to this one.
    Keeping segments separate is what makes undo work cleanly. */
 let rtSegs = [];          // [{ to:[lat,lng], path:[[lat,lng],...], miles:Number, routed:Bool }]
-const rtSnap = 'foot';    // always route along real trails and paths
+/* Snapping was hardcoded on. That is right when the trail is in OpenStreetMap
+   and actively wrong when it is not: the router either sends you the long way
+   round on roads, or spends nine seconds timing out before giving up. Plenty
+   of real trails — Mount Morrison among them — are missing or badly connected
+   in OSM, and no router can follow a line that is not there.
+   Free mode draws exactly what you click. It is the honest default for
+   exploring, and snapping stays for when the path is known. */
+/* Free is the default. Snapping is only right when the trail is already in
+   OpenStreetMap, and the trails worth mapping usually are not \u2014 so the helpful
+   default is the one that draws exactly what you click. */
+let rtSnap = (function(){
+  const s = lsGet('rh_map_snap', 'free');
+  return s === 'mine' ? 'foot' : (s === 'foot' ? 'foot' : 'free');   // 'free' | 'foot'
+})();
 
 const OSRM_FOOT = 'https://routing.openstreetmap.de/routed-foot/route/v1/foot/';
 
+/* Follow a recorded track between two points, when both sit on the same one.
+   This is what turns the tracks layer into something you can route along:
+   OpenStreetMap does not know the trail exists, but your watch does. */
+/* Every index on a track that sits near a point. An out-and-back passes the
+   same spot twice, so there is rarely just one answer. */
+function candidatesOn(track, pt, maxMetres){
+  const out = [];
+  let run = null;
+  for (let i = 0; i < track.pts.length; i++){
+    const d = metresBetween(pt, track.pts[i]);
+    if (d <= maxMetres){
+      /* collapse consecutive near points into one candidate, keeping the
+         closest index in each pass */
+      if (run && i - run.last <= 3){
+        run.last = i;
+        if (d < run.d){ run.d = d; run.i = i; }
+      } else {
+        run = { d:d, i:i, last:i };
+        out.push(run);
+      }
+    }
+  }
+  return out;
+}
+
+function routeAlongTrack(a, b){
+  const near = 60;
+
+  /* Taking the globally nearest index at each end was the bug: on an
+     out-and-back the second click could match the RETURN leg while the first
+     matched the outbound, and the stretch between those two indices is the
+     whole run. Which is exactly the "it suddenly grabbed the entire route"
+     behaviour \u2014 it was following the track faithfully, just the long way.
+
+     Consider every pass near each click instead, and take the pairing that
+     gives the SHORTEST connection. Clicking a little further along a trail
+     should advance a little further along it. */
+  let best = null;
+
+  trackIndex().forEach(function(t){
+    const A = candidatesOn(t, a, near);
+    if (!A.length) return;
+    const B = candidatesOn(t, b, near);
+    if (!B.length) return;
+
+    A.forEach(function(ca){
+      B.forEach(function(cb){
+        const span = Math.abs(cb.i - ca.i);
+        if (span < 1) return;
+        /* how far apart in index, plus how far the clicks missed by: a slightly
+           worse snap that avoids a huge detour is the better answer */
+        const cost = span + (ca.d + cb.d) * 0.5;
+        if (!best || cost < best.cost) best = { cost:cost, t:t, ai:ca.i, bi:cb.i };
+      });
+    });
+  });
+
+  if (!best) return null;
+
+  const pts = best.t.pts;
+  const lo = Math.min(best.ai, best.bi), hi = Math.max(best.ai, best.bi);
+  let slice = pts.slice(lo, hi + 1);
+  if (best.ai > best.bi) slice = slice.reverse();
+
+  let m = 0;
+  for (let i = 1; i < slice.length; i++) m += haversine(slice[i-1], slice[i]);
+
+  /* A single click should not be able to add half a marathon. If following the
+     track costs wildly more than going direct, the two points are not really
+     connected along it and a straight line is the honest answer. */
+  const direct = haversine(a, b);
+  if (direct > 0.02 && m > direct * 6) return null;
+
+  return { path: slice, miles: m, routed: true, snapFrom: slice[0], snapTo: slice[slice.length-1] };
+}
+
 async function routeBetween(a, b){
+  /* Free mode: no network call at all, so drawing stays instant */
+  if (rtSnap === 'free') return { path:[a,b], miles: haversine(a,b), routed:false };
+
+  /* Your own tracks are tried first, then OpenStreetMap. Splitting these into
+     two modes was an implementation detail leaking into the interface: from
+     where you are standing they are the same thing \u2014 a path that exists, and
+     evidence for it. Your GPS history is simply the part of the trail library
+     that nobody else has surveyed.
+
+     Tracks go first because they are free, instant, and proof rather than
+     inference. OSM covers everywhere you have not been. */
+  const mine = routeAlongTrack(a, b);
+  if (mine) return mine;
   try {
     const url = OSRM_FOOT + a[1]+','+a[0]+';'+b[1]+','+b[0] + '?overview=full&geometries=geojson';
     const ctl = new AbortController();
-    const t = setTimeout(()=>ctl.abort(), 9000);
+    const t = setTimeout(()=>ctl.abort(), 4000);
     const res = await fetch(url, { signal: ctl.signal });
     clearTimeout(t);
     if (!res.ok) throw new Error('routing '+res.status);
@@ -7344,7 +7878,15 @@ async function routeBetween(a, b){
     const r = d.routes && d.routes[0];
     if (!r || !r.geometry || !r.geometry.coordinates) throw new Error('no route');
     const path = r.geometry.coordinates.map(c => [c[1], c[0]]);   // geojson is lng,lat
-    return { path, miles: (r.distance||0)/1609.34, routed:true };
+    /* The router moves your click to the nearest routable path before it plans
+       anything. The line therefore starts at that snapped position while the
+       marker stayed where you actually tapped \u2014 which is why the route appeared
+       to begin somewhere else. Hand the snapped positions back so the markers
+       can be moved to match, and what you see is what was drawn. */
+    const wp = d.waypoints || [];
+    const snapFrom = wp[0] && wp[0].location ? [wp[0].location[1], wp[0].location[0]] : null;
+    const snapTo   = wp[1] && wp[1].location ? [wp[1].location[1], wp[1].location[0]] : null;
+    return { path, miles: (r.distance||0)/1609.34, routed:true, snapFrom, snapTo };
   } catch(e){
     console.warn('[route] falling back to straight line:', e.message||e);
     return { path:[a,b], miles: haversine(a,b), routed:false };
@@ -7352,7 +7894,21 @@ async function routeBetween(a, b){
 }
 
 async function addPt(lat, lng){
-  const pt = [lat, lng];
+  let pt = [lat, lng];
+
+  /* In track-following mode every point belongs on a track, including the
+     first. It was left where clicked, so the opening segment was a straight
+     line to wherever the second point snapped — and the route appeared to sit
+     still and then leap onto the trail all at once. Snap on the way in and
+     each click behaves the same as the last. */
+  /* Snap onto a recorded track when there is one under the click. OSM routing
+     does its own snapping a moment later; this covers the trails only your
+     watch knows about, and keeps the first point behaving like the rest. */
+  if (rtSnap !== 'free'){
+    const near = nearestTrackPoint({ lat:lat, lng:lng }, 45);
+    if (near) pt = near.pt;
+  }
+
   if (!rtSegs.length && !rtPts.length){
     rtPts.push(pt);
     rtSegs.push({ to:pt, path:[pt], miles:0, routed:true });
@@ -7363,15 +7919,28 @@ async function addPt(lat, lng){
   const busy = document.getElementById('rtDist');
   busy.innerHTML = '…<span class="u">mi</span>';
   const seg = await routeBetween(prev, pt);
-  rtPts.push(pt);
-  rtSegs.push({ to:pt, path:seg.path, miles:seg.miles, routed:seg.routed });
-  markPt(pt, false);
-  if (!seg.routed && rtSnap === 'foot') toast('No trail found there — straight line used');
+
+  /* Move the markers onto the line the router actually produced. Without this
+     the first marker drifts away from the route the moment a second point is
+     added, which reads as the map placing points at random. */
+  if (seg.routed && seg.snapFrom){
+    rtPts[rtPts.length-1] = seg.snapFrom;
+    const m = rtMarkers[rtMarkers.length-1];
+    if (m && m.setLatLng) m.setLatLng(seg.snapFrom);
+    if (rtSegs.length === 1) rtSegs[0] = { to:seg.snapFrom, path:[seg.snapFrom], miles:0, routed:true };
+  }
+  const landed = (seg.routed && seg.snapTo) ? seg.snapTo : pt;
+
+  rtPts.push(landed);
+  rtSegs.push({ to:landed, path:seg.path, miles:seg.miles, routed:seg.routed });
+  markPt(landed, false);
+  if (!seg.routed && rtSnap === 'foot') toast('No trail found there \u2014 straight line used');
   redrawLine(); rtElev = null; hideProfile(); scheduleElev();
 }
 function markPt(pt, first){
-  const m = L.circleMarker(pt, { radius: first?7:5.5, color:'#fff', weight:2.5,
-    fillColor: first ? '#5a648f' : (rtBaseKey==='sat' ? 'var(--a-hi)' : '#f08a99'), fillOpacity:1 }).addTo(rtMap);
+  const c = ink();
+  const m = L.circleMarker(pt, { radius: first?7:5.5, color:c.nodeRing, weight:2.5,
+    fillColor: first ? c.start : c.node, fillOpacity:1 }).addTo(rtMap);
   rtMarkers.push(m);
 }
 function fullPath(){
@@ -7379,21 +7948,40 @@ function fullPath(){
   rtSegs.forEach((s,i) => { (i===0 ? s.path : s.path.slice(1)).forEach(p => out.push(p)); });
   return out;
 }
+let rtLineCase = null;
 function redrawLine(){
   if (rtLine) rtMap.removeLayer(rtLine);
+  if (rtLineCase) rtMap.removeLayer(rtLineCase);
+  rtLine = rtLineCase = null;
   const path = fullPath();
-  if (path.length > 1)
-    rtLine = L.polyline(path, { color: rtBaseKey==='sat' ? 'var(--a-hi)' : '#f08a99',
-      weight:5, opacity:.95, lineJoin:'round', lineCap:'round' }).addTo(rtMap);
+  if (path.length > 1){
+    const c = ink();
+    /* A casing under the line is what lets one colour work over forest, snow,
+       rock and paper without ever being retuned. */
+    rtLineCase = L.polyline(path, { color:c.routeCase, weight:9, opacity:1,
+      lineJoin:'round', lineCap:'round', interactive:false }).addTo(rtMap);
+    rtLine = L.polyline(path, { color:c.route, weight:4.5, opacity:1,
+      lineJoin:'round', lineCap:'round' }).addTo(rtMap);
+  }
   updateStats();
 }
 function routeMiles(){ return rtSegs.reduce((s,x)=>s+(x.miles||0), 0); }
 function updateStats(){
-  document.getElementById('rtDist').innerHTML = f1(routeMiles()) + '<span class="u">mi</span>';
+  const mi = routeMiles();
+  document.getElementById('rtDist').innerHTML = f1(mi) + '<span class="u">mi</span>';
   document.getElementById('rtPts').textContent = rtPts.length;
   document.getElementById('rtGain').innerHTML = rtElev
     ? Math.round(rtElev.gain).toLocaleString() + '<span class="u">ft</span>'
     : '—<span class="u">ft</span>';
+  /* the fullscreen readout is the same numbers, written to a second place —
+     cheaper and less error-prone than keeping two update paths in step */
+  const d = document.getElementById('mfDist'), g = document.getElementById('mfGain'),
+        pz = document.getElementById('mfPts');
+  if (d) d.textContent = f1(mi);
+  if (pz) pz.textContent = rtPts.length;
+  /* An em dash reads as broken before you have drawn anything. Zero is honest:
+     no route means no climbing. It becomes a real figure once elevation lands. */
+  if (g) g.textContent = rtElev ? Math.round(rtElev.gain).toLocaleString() : (rtPts.length > 1 ? '\u2026' : '0');
 }
 function hideProfile(){ document.getElementById('rtProfileWrap').style.display='none'; updateStats(); }
 
@@ -7497,6 +8085,26 @@ function saveRoute(){
 }
 function routeToPlan(){
   if (rtPts.length < 2){ toast('Draw a route first'); return; }
+
+  /* Adding a route to a day that already has a run planned silently produced
+     two runs, which then both counted toward the day's mileage and quietly
+     inflated everything downstream. Ask instead. */
+  const existing = PLANNED.filter(function(w){
+    return w && w.date === TODAY && RUNLIKE.has(normType(w.type||''));
+  });
+  if (existing.length){
+    const what = existing.map(function(w){
+      return (w.title || w.type) + (w.distance_mi ? ' (' + f1mi(w.distance_mi) + ' mi)' : '');
+    }).join(', ');
+    const replace = confirm(
+      'Today already has: ' + what + '\n\n'
+      + 'OK to replace it with this route, or Cancel to add alongside it.');
+    if (replace){
+      PLANNED = PLANNED.filter(function(w){ return existing.indexOf(w) < 0; });
+      savePlanLocal(); queuePush();
+    }
+  }
+
   openComposer(TODAY, null);
   cmp.type = 'Run';
   cmp.distance_mi = Math.round(routeMiles()*10)/10;
@@ -7590,7 +8198,7 @@ function initHeatmap(){
     const pts = decodePolyline(poly);
     if (pts.length < 2) return;
     allPts = allPts.concat(pts);
-    L.polyline(pts, { renderer: heatCanvasRenderer, color:'#8f9ae8', weight:2.4,
+    L.polyline(pts, { renderer: heatCanvasRenderer, color:'#0f9b7e', weight:2.4,
       opacity:.14, lineCap:'round', lineJoin:'round' }).addTo(heatMapInstance);
   });
   if (allPts.length) heatMapInstance.fitBounds(L.latLngBounds(allPts), { padding:[24,24] });
@@ -7608,6 +8216,414 @@ document.getElementById('rtClear').addEventListener('click', rtClear);
 document.getElementById('rtElev').addEventListener('click', fetchElevation);
 document.getElementById('rtSave').addEventListener('click', saveRoute);
 document.getElementById('rtPlan').addEventListener('click', routeToPlan);
+
+/* fullscreen map controls */
+/* Snapping on or off. Off is the one that makes unmapped trails drawable, so
+   it needs to be one tap from wherever you are, not buried in settings. */
+/* ══ YOUR OWN TRACKS ══
+   OpenStreetMap only contains trails a volunteer drew in, which leaves social
+   trails and unofficial lines missing — Mount Morrison's summit route among
+   them. But every run you have recorded is proof a route exists, surveyed by
+   you, at the fidelity of your watch.
+
+   So the GPS history becomes a trail layer. Where you have been before, you can
+   trace your own line exactly; the map does not need to know the trail exists.
+   Drawn beneath the route you are working on, dim enough to trace over. */
+let rtTracksLayer = null, rtTracksOn = false;
+
+/* ══ THE TRAIL NETWORK ══
+   Four hundred runs over the same ground is not a map, it is four hundred
+   nearly-identical lines stacked on each other. Ten passes up one trail should
+   read as one trail you use often, not ten trails.
+
+   Points are snapped to a coarse grid and merged: every pass through a cell
+   collapses to one node, and each link carries how many times you have
+   travelled it. What comes out is a trail network built only from ground you
+   have actually covered — a better map of your own area than OSM holds,
+   because every line in it definitely exists. */
+const NET_CELL_M = 18;     /* fine enough to keep switchbacks apart, coarse
+                              enough to merge GPS wander between passes */
+let _net = null, _netSig = '';
+
+function buildTrackNetwork(){
+  const sig = ACTS.length + ':' + Object.keys(ROUTECACHE).length;
+  if (_net && _netSig === sig) return _net;
+  _netSig = sig;
+
+  const tracks = trackIndex();
+  if (!tracks.length){ _net = { links: [], nodes: new Map() }; return _net; }
+
+  const lat0 = tracks[0].pts[0][0];
+  const mPerLat = 111320, mPerLng = 111320 * Math.cos(lat0 * Math.PI/180);
+  const key = function(p){
+    return Math.round(p[0]*mPerLat/NET_CELL_M) + ',' + Math.round(p[1]*mPerLng/NET_CELL_M);
+  };
+
+  const nodes = new Map(), links = new Map();
+  tracks.forEach(function(t){
+    let prev = null;
+    for (let i = 0; i < t.pts.length; i++){
+      const p = t.pts[i], k = key(p);
+      if (!nodes.has(k)) nodes.set(k, p);
+      if (prev && prev !== k){
+        /* undirected: an out-and-back is one trail twice, not two trails */
+        const id = prev < k ? prev + '|' + k : k + '|' + prev;
+        const ex = links.get(id);
+        if (ex) ex.n++; else links.set(id, { a: prev, b: k, n: 1 });
+      }
+      prev = k;
+    }
+  });
+  _net = { links: Array.from(links.values()), nodes: nodes };
+  return _net;
+}
+
+/* Shown when the route browser is OFF — which is when you are drawing. Faint,
+   dotted, and deliberately not clickable: a click here should place a point,
+   not select an old run. Weight follows how often you have used a stretch, so
+   the trails you know best read as the spine of the map. */
+let rtNetLayer = null;
+function drawNetwork(){
+  if (!rtMap) return;
+  if (rtNetLayer){ rtMap.removeLayer(rtNetLayer); rtNetLayer = null; }
+  if (rtTracksOn) return;
+
+  const net = buildTrackNetwork();
+  if (!net.links.length) return;
+
+  const bounds = rtMap.getBounds();
+  const group = L.layerGroup();
+  let drawn = 0;
+  net.links.forEach(function(l){
+    if (drawn > 5000) return;
+    const a = net.nodes.get(l.a), b = net.nodes.get(l.b);
+    if (!a || !b) return;
+    if (!bounds.contains(a) && !bounds.contains(b)) return;
+    drawn++;
+    const c = ink();
+    /* A dark casing under a white dotted line is the whole trick: it keeps the
+       dots readable over snow and pale rock, where plain white would vanish. */
+    L.polyline([a, b], { color:c.netCase, weight:3, opacity:.5,
+      interactive:false, lineCap:'round' }).addTo(group);
+    L.polyline([a, b], {
+      color:c.net, weight: l.n > 3 ? 1.8 : 1.4,
+      opacity: l.n > 3 ? .95 : .7, dashArray:'1 4',
+      interactive:false, lineCap:'round',
+    }).addTo(group);
+  });
+  rtNetLayer = group.addTo(rtMap);
+  if (rtNetLayer.bringToBack) rtNetLayer.bringToBack();
+}
+
+function setTracks(on){
+  if (!rtMap) return;
+  rtTracksOn = on;
+  lsSet('rh_map_tracks', on);
+
+  if (rtTracksLayer){ rtMap.removeLayer(rtTracksLayer); rtTracksLayer = null; }
+  syncFullPill();
+  /* Mutually exclusive views: browse individual routes, or draw on the merged
+     network. Both at once is unreadable. */
+  drawNetwork();
+  if (!on) return;
+
+  const bounds = rtMap.getBounds();
+  const group = L.layerGroup();
+  let shown = 0;
+
+  /* Only what is on screen. Drawing several hundred full tracks at once makes
+     panning stutter badly, and tracks outside the view are not helping anyone. */
+  const outdoor = ACTS.filter(function(a){
+    return RUNLIKE.has(a.type) || /hike|ski|ride|bike|walk/i.test(a.type||'');
+  });
+  const candidates = outdoor.filter(function(a){
+    return ROUTECACHE[String(a.id)] || a.poly_summary;
+  }).sort(function(x,y){ return y._ts - x._ts; }).slice(0, 800);
+  /* Anything without a stored polyline cannot be drawn. That is not the same
+     as "you did not run there", and the difference matters when the layer
+     looks sparse \u2014 so count it and say so rather than silently omitting it. */
+  const missing = outdoor.length - candidates.length;
+
+  candidates.forEach(function(a){
+    let pts;
+    try { pts = decodePolyline(ROUTECACHE[String(a.id)] || a.poly_summary); } catch(e){ return; }
+    if (!pts || pts.length < 2) return;
+    /* Sampling every fourth point missed tracks that cross the view without
+       landing a sampled point inside it \u2014 a long run passing through the
+       corner of the screen would vanish. Compare bounding boxes instead:
+       cheap, and it cannot miss an overlap. */
+    let n=90, s=-90, e=-180, w=180;
+    for (let i = 0; i < pts.length; i++){
+      const la = pts[i][0], ln = pts[i][1];
+      if (la < n) n = la; if (la > s) s = la;
+      if (ln < w) w = ln; if (ln > e) e = ln;
+    }
+    if (!bounds.intersects(L.latLngBounds([n, w], [s, e]))) return;
+    shown++;
+    /* wide translucent casing under a thin bright line: readable against both
+       satellite and paper without competing with the route being drawn */
+    const c = ink();
+    L.polyline(pts, { color:c.trackCase, weight:5, opacity:1, interactive:false }).addTo(group);
+    const line = L.polyline(pts, { color:c.track, weight:2.2, opacity:.85 }).addTo(group);
+
+    /* A track you have run is a route that definitely exists, at the fidelity
+       of your watch. Redrawing it by hand would be worse in every way, so make
+       it adoptable in one tap. */
+    /* Routes overlap constantly \u2014 a single lap and a double lap share most of
+       their line, and binding a popup per track means whichever happens to be
+       on top wins and the others are unreachable. Collect everything near the
+       click instead and let him pick. */
+    line.on('mouseover', function(){ line.setStyle({ weight:4, opacity:1 }); });
+    line.on('mouseout',  function(){ line.setStyle({ weight:2.2, opacity:.85 }); });
+    line.on('click', function(ev){
+      L.DomEvent.stopPropagation(ev);
+      showTracksNear(ev.latlng);
+    });
+  });
+
+  rtTracksLayer = group.addTo(rtMap);
+  if (rtTracksLayer.bringToBack) rtTracksLayer.bringToBack();
+
+  /* "No tracks here" is ambiguous: it could mean you have never run here, or
+     that no track data exists at all. Those need different responses, so say
+     which it is \u2014 and offer to go where the tracks actually are. */
+  if (shown){
+    toast(shown + ' route' + (shown===1?'':'s') + ' here \u2014 tap one to use it'
+      + (missing > 0 ? ' \u00b7 ' + missing + ' activities have no route data yet' : ''));
+    return;
+  }
+  if (!candidates.length){
+    toast(outdoor.length
+      ? 'None of your ' + outdoor.length + ' activities have route data \u2014 run "Backfill older routes" in Profile'
+      : 'No outdoor activities recorded yet');
+    return;
+  }
+  const newest = candidates[0];
+  try {
+    const pts = decodePolyline(ROUTECACHE[String(newest.id)] || newest.poly_summary);
+    if (pts.length){
+      toast('No tracks in view \u2014 jumping to your last run');
+      rtMap.setView(pts[0], 13);
+      return;
+    }
+  } catch(e){}
+  toast('No tracks recorded around here');
+}
+
+/* Load a recorded track in as the working route. The points become editable
+   like any drawn route, so you can trim an out-and-back or extend it, and the
+   elevation profile recomputes from real terrain rather than the watch. */
+/* ══ YOUR TRACKS AS A TRAIL NETWORK ══
+   The tracks layer only draws. This makes it navigable: an index of every
+   point you have recorded, so a click can find the nearest one and a route can
+   follow the line you actually ran. Your GPS history becomes the trail data
+   OpenStreetMap is missing \u2014 which for social trails is the only data there is.
+
+   Rebuilt when activities change, not per click: decoding hundreds of
+   polylines on every tap would make drawing unusable. */
+let _trackIdx = null, _trackIdxSig = '';
+
+function trackIndex(){
+  const sig = ACTS.length + ':' + Object.keys(ROUTECACHE).length;
+  if (_trackIdx && _trackIdxSig === sig) return _trackIdx;
+  _trackIdxSig = sig;
+  _trackIdx = [];
+  ACTS.forEach(function(a){
+    if (!(RUNLIKE.has(a.type) || /hike|ski|ride|bike|walk/i.test(a.type||''))) return;
+    const poly = ROUTECACHE[String(a.id)] || a.poly_summary;
+    if (!poly) return;
+    let pts;
+    try { pts = decodePolyline(poly); } catch(e){ return; }
+    if (!pts || pts.length < 2) return;
+    _trackIdx.push({ act:a, pts:pts });
+  });
+  return _trackIdx;
+}
+
+/* metres between two lat/lngs, good enough at these distances */
+function metresBetween(a, b){
+  const R = 6371000, toR = Math.PI/180;
+  const dLat = (b[0]-a[0])*toR, dLng = (b[1]-a[1])*toR;
+  const la = a[0]*toR, lb = b[0]*toR;
+  const h = Math.sin(dLat/2)**2 + Math.cos(la)*Math.cos(lb)*Math.sin(dLng/2)**2;
+  return 2*R*Math.asin(Math.sqrt(h));
+}
+
+/* nearest recorded point to a click, across every track */
+function nearestTrackPoint(latlng, maxMetres){
+  const target = [latlng.lat, latlng.lng];
+  let best = null;
+  trackIndex().forEach(function(t){
+    for (let i = 0; i < t.pts.length; i++){
+      const d = metresBetween(target, t.pts[i]);
+      if (!best || d < best.d) best = { d:d, track:t, i:i, pt:t.pts[i] };
+    }
+  });
+  return (best && best.d <= (maxMetres || 60)) ? best : null;
+}
+
+/* Every distinct activity whose line passes near a point. This is what makes
+   a double lap selectable when it shares its whole shape with a single lap. */
+function tracksNear(latlng, metres){
+  const target = [latlng.lat, latlng.lng];
+  const hits = [];
+  trackIndex().forEach(function(t){
+    let closest = Infinity;
+    for (let i = 0; i < t.pts.length; i += 2){
+      const d = metresBetween(target, t.pts[i]);
+      if (d < closest) closest = d;
+    }
+    if (closest <= (metres || 70)) hits.push({ act:t.act, d:closest });
+  });
+  /* longest first: on shared ground the bigger effort is usually the one being
+     looked for, and it is the harder one to reach by accident */
+  return hits.sort(function(x,y){ return (y.act.distance_mi||0) - (x.act.distance_mi||0); });
+}
+
+function showTracksNear(latlng){
+  const hits = tracksNear(latlng, 70);
+  if (!hits.length) return;
+  const rows = hits.slice(0, 12).map(function(h){
+    const a = h.act;
+    const when = a._date ? a._date.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'2-digit'}) : '';
+    const bits = [];
+    if (a.distance_mi) bits.push(f1mi(a.distance_mi) + ' mi');
+    if ((a.elevation_ft||0) > 100) bits.push(Math.round(a.elevation_ft) + ' ft');
+    return '<button class="tk-item" data-use="' + a.id + '">'
+      + '<span class="tk-n">' + (a.name || a.type) + '</span>'
+      + '<span class="tk-m">' + when + (bits.length ? ' \u00b7 ' + bits.join(' \u00b7 ') : '') + '</span>'
+      + '</button>';
+  }).join('');
+  L.popup({ maxWidth: 300, className:'tk-popup' })
+    .setLatLng(latlng)
+    .setContent('<div class="tk-pop">'
+      + '<div class="tk-h">' + hits.length + ' route' + (hits.length===1?'':'s') + ' here</div>'
+      + '<div class="tk-list">' + rows + '</div></div>')
+    .openOn(rtMap);
+}
+
+function useTrackAsRoute(actId){
+  const a = ACTS.find(function(x){ return String(x.id) === String(actId); });
+  if (!a) return;
+  let pts;
+  try { pts = decodePolyline(ROUTECACHE[String(a.id)] || a.poly_summary); } catch(e){ return; }
+  if (!pts || pts.length < 2){ toast('No usable line on that one'); return; }
+
+  if (rtPts.length && !confirm('Replace the route you are drawing with "' + (a.name||a.type) + '"?')) return;
+
+  rtClear();
+  /* A recorded track has hundreds of points; keeping them all makes editing
+     unusable. Thin to a workable number while keeping the shape \u2014 every nth
+     point, plus the ends, which preserves switchbacks well enough. */
+  const MAX = 60;
+  const step = Math.max(1, Math.floor(pts.length / MAX));
+  const kept = [];
+  for (let i = 0; i < pts.length; i += step) kept.push(pts[i]);
+  if (kept[kept.length-1] !== pts[pts.length-1]) kept.push(pts[pts.length-1]);
+
+  kept.forEach(function(p, i){
+    rtPts.push(p);
+    rtSegs.push(i === 0
+      ? { to:p, path:[p], miles:0, routed:true }
+      : { to:p, path:[kept[i-1], p], miles: haversine(kept[i-1], p), routed:false });
+    markPt(p, i === 0);
+  });
+  redrawLine(); rtElev = null; hideProfile(); scheduleElev();
+  rtMap.fitBounds(L.latLngBounds(kept), { padding:[40,40] });
+  toast('Loaded \u2014 edit the points, then save or add to plan');
+}
+
+/* popups are rebuilt constantly, so listen on the container rather than binding
+   to each button as it appears */
+document.addEventListener('click', function(e){
+  const b = e.target && e.target.closest && e.target.closest('[data-use]');
+  if (!b) return;
+  e.preventDefault();
+  if (rtMap && rtMap.closePopup) rtMap.closePopup();
+  useTrackAsRoute(b.dataset.use);
+});
+
+const SNAP_MODES = ['free','foot'];
+const SNAP_LABEL = { free:'Free', foot:'Follow paths' };
+const SNAP_NOTE  = {
+  free: 'Free draw \u2014 straight lines between your points',
+  foot: 'Following trails \u2014 yours first, then the map',
+};
+function setSnap(mode){
+  rtSnap = SNAP_MODES.indexOf(mode) >= 0 ? mode : 'free';
+  lsSet('rh_map_snap', rtSnap);
+  syncFullPill();
+  toast(SNAP_NOTE[rtSnap]);
+}
+function cycleSnap(){
+  setSnap(SNAP_MODES[(SNAP_MODES.indexOf(rtSnap) + 1) % SNAP_MODES.length]);
+}
+
+(function(){
+  const ex = document.getElementById('rtExpand');
+  if (ex) ex.addEventListener('click', function(){ toggleMapFull(true); });
+  const mn = document.getElementById('mfMin');
+  if (mn) mn.addEventListener('click', function(){ toggleMapFull(false); });
+  const zi = document.getElementById('mfZoomIn'), zo = document.getElementById('mfZoomOut');
+  if (zi) zi.addEventListener('click', function(){ rtMap && rtMap.zoomIn(); });
+  if (zo) zo.addEventListener('click', function(){ rtMap && rtMap.zoomOut(); });
+
+  const snapBtn = document.getElementById('rtSnapBtn');
+  if (snapBtn) snapBtn.addEventListener('click', cycleSnap);
+  ['rtTracks','mfTracks'].forEach(function(id){
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('click', function(){ setTracks(!rtTracksOn); });
+  });
+
+  /* Direct selection. Cycling saved width and cost discoverability, which is a
+     bad trade for something you reach for while concentrating on a map. */
+  const bs = document.getElementById('mfBaseSel');
+  if (bs) bs.addEventListener('change', function(){ setBase(bs.value); syncFullPill(); });
+  const ss = document.getElementById('mfSnapSel');
+  if (ss) ss.addEventListener('change', function(){ setSnap(ss.value); });
+  document.querySelectorAll('#mapFull [data-mt]').forEach(function(b){
+    b.addEventListener('click', function(){ setTrails(!rtTrailsOn); syncFullPill(); });
+  });
+
+  const on = function(id, fn){ const el = document.getElementById(id); if (el) el.addEventListener('click', fn); };
+  on('mfUndo',  function(){ rtUndo(); });
+  on('mfClear', function(){ rtClear(); });
+  /* Save and plan work from fullscreen too. Leaving fullscreen to save the
+     thing you just drew is exactly the friction fullscreen was meant to remove. */
+  on('mfSave',  function(){ saveRoute(); });
+  on('mfPlan',  function(){ toggleMapFull(false); setTimeout(routeToPlan, 120); });
+  on('mfElev',  function(){ scheduleElev(); });
+
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape' && rtFull){ e.stopPropagation(); toggleMapFull(false); }
+  }, true);
+})();
+
+/* Both control sets read the same state, so whichever you touch, the other
+   agrees when you next see it. */
+function syncFullPill(){
+  /* every control shows which option is live; nothing is hidden behind a tap */
+  const bs = document.getElementById('mfBaseSel');
+  if (bs && bs.value !== rtBaseKey) bs.value = rtBaseKey;
+  const ss = document.getElementById('mfSnapSel');
+  if (ss && ss.value !== rtSnap) ss.value = rtSnap;
+  const tr = document.querySelector('#mapFull [data-mt="trails"]');
+  if (tr) tr.classList.toggle('on', rtTrailsOn);
+  const mtk = document.getElementById('mfTracks');
+  if (mtk) mtk.classList.toggle('on', rtTracksOn);
+
+  /* the small map keeps its compact toggles */
+  const rt = document.getElementById('rtTrails');
+  if (rt) rt.classList.toggle('on', rtTrailsOn);
+  const rtk = document.getElementById('rtTracks');
+  if (rtk) rtk.classList.toggle('on', rtTracksOn);
+  const rts = document.getElementById('rtSnapBtn');
+  if (rts){ rts.textContent = SNAP_LABEL[rtSnap] || 'Free'; rts.classList.toggle('on', rtSnap !== 'free'); }
+  document.querySelectorAll('#rtBase [data-b]').forEach(function(b){
+    b.classList.toggle('on', b.dataset.b === rtBaseKey);
+  });
+}
+
 
 
 /* ═══════════ GOAL PLANNER ═══════════
@@ -9292,6 +10308,19 @@ function closeJarvis(){
   document.getElementById('jvBd').classList.remove('on');
   document.getElementById('jvSheet').classList.remove('on');
 }
+(function(){
+  const pc = document.getElementById('ptClose'), pb = document.getElementById('ptBd'),
+        pg = document.getElementById('ptGo'), tp = document.getElementById('tellPlanBtn');
+  if (pc) pc.addEventListener('click', closePlanTell);
+  if (pb) pb.addEventListener('click', closePlanTell);
+  if (pg) pg.addEventListener('click', runPlanTell);
+  if (tp) tp.addEventListener('click', openPlanTell);
+  const cl = document.getElementById('ftClose'), bd = document.getElementById('ftBd'),
+        go = document.getElementById('ftGo');
+  if (cl) cl.addEventListener('click', closeFoodTell);
+  if (bd) bd.addEventListener('click', closeFoodTell);
+  if (go) go.addEventListener('click', runFoodTell);
+})();
 document.getElementById('jvClose').addEventListener('click', closeJarvis);
 document.getElementById('jvBd').addEventListener('click', closeJarvis);
 document.getElementById('jarvisBtn').addEventListener('click', openJarvis);
@@ -10607,12 +11636,14 @@ function renderActMap(points){
     scrollWheelZoom:false, tap:true });
   L.tileLayer(BASE_LAYERS.terrain.url, BASE_LAYERS.terrain.opts).addTo(adMapInstance).bringToBack();
 
-  L.polyline(points, { color:'#ffffff', weight:7, opacity:.9, lineCap:'round', lineJoin:'round' }).addTo(adMapInstance);
-  const line = L.polyline(points, { color:'#f08a99', weight:3.5, opacity:1, lineCap:'round', lineJoin:'round' }).addTo(adMapInstance);
+  /* Same ink as the planner. A run looked at afterwards and a route drawn
+     beforehand are the same object; they should not be different colours. */
+  L.polyline(points, { color:'rgba(255,255,255,.85)', weight:8, opacity:1, lineCap:'round', lineJoin:'round' }).addTo(adMapInstance);
+  const line = L.polyline(points, { color:'#e8620c', weight:3.8, opacity:1, lineCap:'round', lineJoin:'round' }).addTo(adMapInstance);
 
   /* start (green) and finish (rust) — white-ringed so they sit on any terrain */
-  L.circleMarker(points[0], { radius:5.5, color:'#ffffff', weight:2.5, fillColor:'#7fd9bd', fillOpacity:1 }).addTo(adMapInstance);
-  L.circleMarker(points[points.length-1], { radius:5.5, color:'#ffffff', weight:2.5, fillColor:'#f08a99', fillOpacity:1 }).addTo(adMapInstance);
+  L.circleMarker(points[0], { radius:5.5, color:'#ffffff', weight:2.5, fillColor:'#0f9b7e', fillOpacity:1 }).addTo(adMapInstance);
+  L.circleMarker(points[points.length-1], { radius:5.5, color:'#ffffff', weight:2.5, fillColor:'#e8620c', fillOpacity:1 }).addTo(adMapInstance);
 
   adMapInstance.fitBounds(line.getBounds(), { padding:[20,20] });
 }
@@ -10918,6 +11949,453 @@ function recentFoods(limit){
 }
 
 /* ── the Fuel view ── */
+/* ══ TELL JARVIS WHAT YOU ATE ══
+   The food search was the reason this tab went unused. Logging a meal meant
+   finding each component in a database, guessing portions, and repeating that
+   four times — a minute of fiddling per meal, several times a day, which is
+   more effort than the information is worth to anyone not already committed
+   to tracking.
+
+   Describing a meal in a sentence takes five seconds. The estimation is the
+   part a model is genuinely good at, and an estimate logged beats a precise
+   figure never entered. */
+/* ══ LEARNED FOODS ══
+   The model estimates from what it knows about a dish in general. You know
+   what YOUR usual version is. Once you have corrected something, re-estimating
+   it every time is both wasteful and worse — so a corrected item is remembered
+   and reused verbatim, and the model is shown the list so it stops guessing at
+   things you have already settled.
+
+   Matching is on a normalised name: "Chick-fil-A Sandwich" and "chick fil a
+   sandwich" are the same food to a person, and should be to this. */
+const FOODMEM_KEY = 'rh_food_memory_v1';
+
+function foodKey(name){
+  return String(name || '').toLowerCase()
+    .replace(/[^a-z0-9 ]+/g, ' ')      /* punctuation varies, meaning does not */
+    .replace(/\s+/g, ' ').trim();
+}
+function loadFoodMem(){
+  const m = lsGet(FOODMEM_KEY, {});
+  return (m && typeof m === 'object') ? m : {};
+}
+function rememberFood(item){
+  const k = foodKey(item.name);
+  if (!k) return;
+  const mem = loadFoodMem();
+  mem[k] = { name: item.name, kcal: item.kcal, p: item.p, c: item.c, f: item.f,
+             at: Date.now(), n: ((mem[k] && mem[k].n) || 0) + 1 };
+  lsSet(FOODMEM_KEY, mem);
+  try { queuePush(); } catch(e){}
+}
+function forgetFood(name){
+  const mem = loadFoodMem();
+  delete mem[foodKey(name)];
+  lsSet(FOODMEM_KEY, mem);
+  try { queuePush(); } catch(e){}
+}
+/* Applied after the model replies: a remembered food overrides the estimate
+   entirely rather than being averaged with it. You corrected it for a reason. */
+function applyFoodMemory(items){
+  const mem = loadFoodMem();
+  return items.map(function(it){
+    const hit = mem[foodKey(it.name)];
+    if (!hit) return it;
+    return Object.assign({}, it, {
+      name: hit.name, kcal: hit.kcal, p: hit.p, c: hit.c, f: hit.f,
+      _known: true,
+    });
+  });
+}
+
+async function logFoodFromText(text, dayISO){
+  const c = syncCfg();
+  if (!c) throw new Error('no_proxy');
+
+  const system = [
+    'You convert a plain-English description of food into structured nutrition data.',
+    '',
+    'Return ONLY a JSON array. No prose, no markdown, no code fences.',
+    'Each element: {"name": string, "time": "HH:MM" or null, "kcal": number,',
+    '"protein_g": number, "carbs_g": number, "fat_g": number}',
+    '',
+    'Split what he describes into separate items where that is how he would think',
+    'of them — a sandwich and a coffee are two entries, a sandwich is one entry and',
+    'not five ingredients. Keep names short and recognisable.',
+    '',
+    'Estimate realistic restaurant or home portions when no quantity is given. He is',
+    'a 165lb endurance runner, so default to an athlete-sized serving rather than a',
+    'diet one. If he names a brand or chain, use that product\u2019s actual figures.',
+    '',
+    'Infer time of day from wording where you can \u2014 "breakfast" is 07:30, "lunch"',
+    '12:30, "dinner" 19:00, "after my run" you may leave null. Otherwise null.',
+    '',
+    'Never return zero for kcal on real food. Never invent items he did not mention.',
+  ].join('\n');
+
+  /* Foods he has already corrected. Sent so the model names them the same way
+     rather than inventing a variant spelling that would miss the lookup. */
+  const mem = loadFoodMem();
+  const known = Object.values(mem).sort(function(a,b){ return (b.n||0)-(a.n||0); }).slice(0,40);
+  const knownBlock = known.length
+    ? '\n\nFoods he logs often, with the figures he has already confirmed. If he'
+      + ' mentions one of these, use EXACTLY this name so it matches:\n'
+      + known.map(function(k){ return '- ' + k.name + ' (' + k.kcal + ' kcal)'; }).join('\n')
+    : '';
+
+  const res = await fetch(c.url.replace(/\/$/,'') + '/functions/v1/' + AI_FN, {
+    method:'POST',
+    headers:{ apikey:c.key, Authorization:'Bearer '+c.key, 'Content-Type':'application/json' },
+    body: JSON.stringify({ system: system + knownBlock, prompt: 'Date: ' + dayISO + '\n\n' + text })
+  });
+  if (res.status === 404) throw new Error('no_proxy');
+  const d = await res.json();
+  if (!res.ok) throw new Error((d && d.error) ? d.error : ('HTTP ' + res.status));
+  if (!d.text) throw new Error('empty response');
+
+  /* models occasionally wrap JSON in a fence despite being told not to */
+  let raw = String(d.text).trim()
+    .replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
+  const start = raw.indexOf('['), end = raw.lastIndexOf(']');
+  if (start >= 0 && end > start) raw = raw.slice(start, end+1);
+
+  let items;
+  try { items = JSON.parse(raw); } catch(e){ throw new Error('could not read the reply'); }
+  if (!Array.isArray(items) || !items.length) throw new Error('nothing recognised as food');
+
+  const num = function(v){ const n = parseFloat(v); return Number.isFinite(n) && n >= 0 ? Math.round(n) : 0; };
+  return items.filter(function(it){ return it && it.name; }).map(function(it){
+    return {
+      id: 'm' + Date.now() + Math.floor(Math.random()*10000),
+      name: String(it.name).slice(0,60),
+      t: /^\d{2}:\d{2}$/.test(it.time || '') ? it.time : '',
+      kcal: num(it.kcal),
+      p: num(it.protein_g), c: num(it.carbs_g), f: num(it.fat_g),
+      _ai: true,
+    };
+  });
+}
+
+/* ══ TELL JARVIS WHAT YOU ARE PLANNING ══
+   The composer is fine for editing but slow for entry: pick a day, pick a type,
+   type a title, enter distance, enter vert, set a time. "20 miles on trail
+   Saturday with 5k of vert, 7am start" is the same information in one line.
+
+   The useful half is the name lookup. "Double Morrison" is not a distance, it
+   is a route he has run before \u2014 so the past activity is found and its real
+   figures used, rather than a model guessing at what that might involve. */
+function findPastRoute(query){
+  const q = String(query||'').toLowerCase()
+    .replace(/[^a-z0-9 ]+/g,' ').replace(/\s+/g,' ').trim();
+  if (q.length < 3) return null;
+
+  /* Naming drifts \u2014 "double morrison", "2x morrison", "mt morrison x2" all mean
+     the same run. Normalise the multiplier out and match on the words that
+     carry the meaning. */
+  const mult = /(\bdouble\b|\b2x\b|\bx2\b|\btwice\b)/.test(q) ? 2
+             : /(\btriple\b|\b3x\b|\bx3\b)/.test(q) ? 3 : 1;
+  const STOP = /\b(double|triple|twice|2x|3x|x2|x3|mt|mount|the|a|on|run|loop|lap|laps|trail|miles|mile)\b/g;
+  const core = q.replace(STOP,' ').replace(/\s+/g,' ').trim();
+  if (!core) return null;
+  const words = core.split(' ').filter(function(w){ return w.length > 2; });
+  if (!words.length) return null;
+
+  const scored = ACTS.filter(function(a){
+    return (a.distance_mi||0) > 0.5 && (RUNLIKE.has(a.type) || /hike/i.test(a.type||''));
+  }).map(function(a){
+    const name = String(a.name||'').toLowerCase();
+    let hit = 0;
+    words.forEach(function(w){ if (name.indexOf(w) >= 0) hit++; });
+    if (!hit) return null;
+    /* every word matching beats a partial match; among equals prefer the one
+       whose own name carries the same multiplier, then the most recent */
+    const nameMult = /(double|2x|x2|twice)/.test(name) ? 2 : /(triple|3x|x3)/.test(name) ? 3 : 1;
+    return { a:a, score: hit / words.length + (nameMult === mult ? 0.5 : 0) };
+  }).filter(Boolean).sort(function(x,y){
+    return (y.score - x.score) || (y.a._ts - x.a._ts);
+  });
+
+  if (!scored.length || scored[0].score < 0.5) return null;
+  const best = scored[0].a;
+  const bestMult = /(double|2x|x2|twice)/.test(String(best.name||'').toLowerCase()) ? 2
+                 : /(triple|3x|x3)/.test(String(best.name||'').toLowerCase()) ? 3 : 1;
+  /* if he asked for a double and only a single lap is on record, scale it \u2014
+     and say so, because a scaled figure is a guess and a logged one is not */
+  const factor = mult / bestMult;
+  return {
+    act: best,
+    distance_mi: Math.round((best.distance_mi||0) * factor * 10)/10,
+    elevation_ft: Math.round((best.elevation_ft||0) * factor),
+    scaled: factor !== 1,
+    from: best.name,
+    when: best._iso,
+  };
+}
+
+async function planFromText(text){
+  const c = syncCfg();
+  if (!c) throw new Error('no_proxy');
+
+  const system = [
+    'You turn a plain-English training plan into structured entries.',
+    '',
+    'Return ONLY a JSON array, no prose or code fences. Each element:',
+    '{"date":"YYYY-MM-DD","type":"Run|Weights|Yoga|Mobility|Portal|Hike|Ride|Other",',
+    ' "title":string,"time":"HH:MM" or null,"distance_mi":number or null,',
+    ' "elevation_ft":number or null,"route_lookup":string or null}',
+    '',
+    'ROUTE_LOOKUP is the important field. If he names a route rather than giving',
+    'numbers \u2014 "double Morrison", "the Breck loop", "Green Mountain" \u2014 put that',
+    'name in route_lookup and leave distance_mi and elevation_ft null. The app',
+    'will find what he actually ran and use those figures. Only fill in distance',
+    'or elevation when he states them explicitly.',
+    '',
+    'Dates: today is ' + TODAY + ', a ' + todayD.toLocaleDateString(undefined,{weekday:'long'}) + '.',
+    'A bare weekday means the NEXT one. "Tomorrow" is the day after today.',
+    'Times: "7am" is 07:00. Default to null rather than inventing one.',
+    'Split multiple sessions into multiple entries.',
+  ].join('\n');
+
+  const res = await fetch(c.url.replace(/\/$/,'') + '/functions/v1/' + AI_FN, {
+    method:'POST',
+    headers:{ apikey:c.key, Authorization:'Bearer '+c.key, 'Content-Type':'application/json' },
+    body: JSON.stringify({ system: system, prompt: text })
+  });
+  if (res.status === 404) throw new Error('no_proxy');
+  const d = await res.json();
+  if (!res.ok) throw new Error((d && d.error) ? d.error : ('HTTP ' + res.status));
+  if (!d.text) throw new Error('empty response');
+
+  let raw = String(d.text).trim().replace(/^```(?:json)?\s*/i,'').replace(/```\s*$/,'').trim();
+  const s = raw.indexOf('['), e = raw.lastIndexOf(']');
+  if (s >= 0 && e > s) raw = raw.slice(s, e+1);
+  let items;
+  try { items = JSON.parse(raw); } catch(err){ throw new Error('could not read the reply'); }
+  if (!Array.isArray(items) || !items.length) throw new Error('nothing recognised as a session');
+
+  return items.filter(function(it){ return it && it.date; }).map(function(it){
+    const out = {
+      id: 'p' + Date.now() + Math.floor(Math.random()*10000),
+      date: it.date,
+      type: it.type || 'Run',
+      title: it.title || '',
+      time: /^\d{2}:\d{2}$/.test(it.time||'') ? it.time : '',
+      distance_mi: it.distance_mi > 0 ? +it.distance_mi : null,
+      elevation_ft: it.elevation_ft > 0 ? Math.round(it.elevation_ft) : null,
+      notes: '',
+    };
+    if (it.route_lookup){
+      const found = findPastRoute(it.route_lookup);
+      if (found){
+        out.distance_mi = out.distance_mi || found.distance_mi;
+        out.elevation_ft = out.elevation_ft || found.elevation_ft;
+        out._matched = found.from;
+        out._scaled = found.scaled;
+        out._when = found.when;
+        if (!out.title) out.title = it.route_lookup;
+      } else {
+        out._noMatch = it.route_lookup;
+      }
+    }
+    return out;
+  });
+}
+
+function openPlanTell(){
+  document.getElementById('ptInput').value = '';
+  document.getElementById('ptResult').innerHTML = '';
+  const go = document.getElementById('ptGo');
+  go.disabled = false; go.textContent = 'Work it out';
+  document.getElementById('ptBd').classList.add('on');
+  document.getElementById('ptSheet').classList.add('on');
+  setTimeout(function(){ document.getElementById('ptInput').focus(); }, 260);
+}
+function closePlanTell(){
+  document.getElementById('ptBd').classList.remove('on');
+  document.getElementById('ptSheet').classList.remove('on');
+}
+
+async function runPlanTell(){
+  const text = document.getElementById('ptInput').value.trim();
+  const out = document.getElementById('ptResult');
+  const btn = document.getElementById('ptGo');
+  if (!text){ out.innerHTML = '<div class="ft-err">Tell me what you are planning first.</div>'; return; }
+
+  btn.disabled = true; btn.textContent = 'Working it out\u2026';
+  out.innerHTML = '<div class="ft-wait">Reading that\u2026</div>';
+
+  let items;
+  try { items = await planFromText(text); }
+  catch(e){
+    const why = String(e.message || e);
+    out.innerHTML = '<div class="ft-err">'
+      + (why === 'no_proxy' ? 'Jarvis isn\u2019t configured, so this can\u2019t run.'
+                            : 'Couldn\u2019t work that out (' + why + ').') + '</div>';
+    btn.disabled = false; btn.textContent = 'Work it out';
+    return;
+  }
+
+  /* Show it before writing. A matched route is stated explicitly \u2014 borrowing
+     figures from a past run is a judgement, and one worth being able to reject. */
+  out.innerHTML = '<div class="ft-list">' + items.map(function(w, i){
+    const d = new Date(w.date+'T00:00:00');
+    const bits = [];
+    if (w.distance_mi) bits.push(f1mi(w.distance_mi) + ' mi');
+    if (w.elevation_ft) bits.push(fmtK(w.elevation_ft) + ' ft');
+    if (w.time) bits.push(fmtTime(w.time));
+    let note = '';
+    if (w._matched) note = '<div class="pt-note">from \u201c' + w._matched + '\u201d, '
+      + w._when + (w._scaled ? ' \u00b7 scaled for the repeat' : '') + '</div>';
+    else if (w._noMatch) note = '<div class="pt-warn">no past run matching \u201c'
+      + w._noMatch + '\u201d \u2014 add the numbers yourself</div>';
+    return '<div class="ft-item">'
+      + '<div class="pt-day">' + d.toLocaleDateString(undefined,{weekday:'long', month:'short', day:'numeric'}) + '</div>'
+      + '<input class="ft-name" data-i="'+i+'" value="'+String(w.title||w.type).replace(/"/g,'&quot;')+'">'
+      + '<div class="ft-macros">'
+      + '<label>Miles<input type="number" step="0.1" class="pt-n" data-i="'+i+'" data-k="distance_mi" value="'+(w.distance_mi||'')+'"></label>'
+      + '<label>Vert ft<input type="number" class="pt-n" data-i="'+i+'" data-k="elevation_ft" value="'+(w.elevation_ft||'')+'"></label>'
+      + '<label>Time<input type="time" class="pt-t" data-i="'+i+'" value="'+(w.time||'')+'"></label>'
+      + '</div>' + note + '</div>';
+  }).join('') + '</div>'
+  + '<button class="btn pri" id="ptSave" style="width:100%;margin-top:12px">Add to planner</button>';
+
+  btn.disabled = false; btn.textContent = 'Work it out again';
+
+  document.getElementById('ptSave').onclick = function(){
+    out.querySelectorAll('.ft-name').forEach(function(el){ items[+el.dataset.i].title = el.value.trim(); });
+    out.querySelectorAll('.pt-n').forEach(function(el){
+      const v = parseFloat(el.value);
+      items[+el.dataset.i][el.dataset.k] = Number.isFinite(v) && v > 0 ? v : null;
+    });
+    out.querySelectorAll('.pt-t').forEach(function(el){ items[+el.dataset.i].time = el.value || ''; });
+
+    items.forEach(function(w){
+      delete w._matched; delete w._scaled; delete w._when; delete w._noMatch;
+      PLANNED.push(w);
+    });
+    savePlanLocal(); queuePush();
+    closePlanTell();
+    renderCal(); setPlanView(planView || 'today'); renderGreeting();
+    invalidateTab('plan');
+    toast(items.length + (items.length===1 ? ' session added' : ' sessions added'));
+  };
+}
+
+function openFoodTell(dayISO){
+  const sheet = document.getElementById('ftSheet');
+  if (!sheet) return;
+  document.getElementById('ftDate').textContent =
+    new Date(dayISO+'T00:00:00').toLocaleDateString(undefined,{weekday:'long', month:'long', day:'numeric'});
+  document.getElementById('ftInput').value = '';
+  document.getElementById('ftResult').innerHTML = '';
+  document.getElementById('ftGo').disabled = false;
+  document.getElementById('ftGo').textContent = 'Work it out';
+  sheet.dataset.day = dayISO;
+  document.getElementById('ftBd').classList.add('on');
+  sheet.classList.add('on');
+  setTimeout(function(){ document.getElementById('ftInput').focus(); }, 260);
+}
+function closeFoodTell(){
+  document.getElementById('ftBd').classList.remove('on');
+  document.getElementById('ftSheet').classList.remove('on');
+}
+
+async function runFoodTell(){
+  const sheet = document.getElementById('ftSheet');
+  const day = sheet.dataset.day || TODAY;
+  const text = document.getElementById('ftInput').value.trim();
+  const out = document.getElementById('ftResult');
+  const btn = document.getElementById('ftGo');
+  if (!text){ out.innerHTML = '<div class="ft-err">Tell me what you ate first.</div>'; return; }
+
+  btn.disabled = true; btn.textContent = 'Working it out\u2026';
+  out.innerHTML = '<div class="ft-wait">Looking that up\u2026</div>';
+
+  let items;
+  try { items = applyFoodMemory(await logFoodFromText(text, day)); }
+  catch(e){
+    const why = String(e.message || e);
+    out.innerHTML = '<div class="ft-err">'
+      + (why === 'no_proxy'
+          ? 'Jarvis isn\u2019t configured, so this can\u2019t estimate anything.'
+          : 'Couldn\u2019t work that out (' + why + ').')
+      + '</div>';
+    btn.disabled = false; btn.textContent = 'Work it out';
+    return;
+  }
+
+  /* Show the estimate before writing it. These are guesses, and a guess he has
+     seen and accepted is worth far more than one that appeared in his log
+     without asking \u2014 and he can correct portions before it lands. */
+  const tot = items.reduce(function(a,m){ return a + m.kcal; }, 0);
+  out.innerHTML = '<div class="ft-list">' + items.map(function(m, i){
+    return '<div class="ft-item"><div class="ft-row">'
+      + '<input class="ft-name" data-i="'+i+'" value="'+m.name.replace(/"/g,'&quot;')+'">'
+      + (m._known ? '<span class="ft-known" data-forget="'+i+'" title="Your saved figures \u2014 tap to forget">saved</span>' : '')
+      + '</div>'
+      + '<div class="ft-macros">'
+      + '<label>kcal<input type="number" class="ft-n" data-i="'+i+'" data-k="kcal" value="'+m.kcal+'"></label>'
+      + '<label>P<input type="number" class="ft-n" data-i="'+i+'" data-k="p" value="'+m.p+'"></label>'
+      + '<label>C<input type="number" class="ft-n" data-i="'+i+'" data-k="c" value="'+m.c+'"></label>'
+      + '<label>F<input type="number" class="ft-n" data-i="'+i+'" data-k="f" value="'+m.f+'"></label>'
+      + '</div></div>';
+  }).join('') + '</div>'
+  + '<div class="ft-tot">' + items.length + (items.length===1?' item':' items') + ' \u00b7 ' + tot.toLocaleString() + ' kcal</div>'
+  + '<button class="btn pri" id="ftSave" style="width:100%;margin-top:12px">Add to today</button>'
+  + '<button class="lnk" id="ftRetry" style="display:block;margin:10px auto 0">try describing it differently</button>';
+
+  btn.disabled = false; btn.textContent = 'Work it out again';
+
+  /* tapping the "saved" badge drops a remembered food so it can be re-estimated */
+  out.querySelectorAll('[data-forget]').forEach(function(el){
+    el.onclick = function(){
+      forgetFood(items[+el.dataset.forget].name);
+      toast('Forgotten \u2014 it will be estimated again next time');
+      el.remove();
+    };
+  });
+
+  document.getElementById('ftSave').onclick = function(){
+    /* snapshot what the model proposed, so an edit can be detected */
+    const before = items.map(function(m){ return { kcal:m.kcal, p:m.p, c:m.c, f:m.f, name:m.name }; });
+
+    out.querySelectorAll('.ft-name').forEach(function(el){ items[+el.dataset.i].name = el.value.trim() || 'Food'; });
+    out.querySelectorAll('.ft-n').forEach(function(el){
+      const v = parseFloat(el.value); items[+el.dataset.i][el.dataset.k] = Number.isFinite(v) ? Math.round(v) : 0;
+    });
+
+    /* Anything he changed is a correction worth keeping \u2014 the model guessed and
+       he knew better. Ask once rather than saving silently: a food remembered
+       without consent would keep reappearing with numbers he did not choose. */
+    const edited = items.filter(function(m, i){
+      const b = before[i];
+      return !m._known && (m.kcal !== b.kcal || m.p !== b.p || m.c !== b.c || m.f !== b.f);
+    });
+
+    const finish = function(){
+      NUTRI[day] = (NUTRI[day] || []).concat(items);
+      saveNutri();
+      closeFoodTell();
+      renderFuel();
+      toast(items.length + (items.length===1 ? ' item added' : ' items added'));
+    };
+
+    if (edited.length){
+      const names = edited.map(function(m){ return m.name; }).join(', ');
+      if (confirm('Remember your numbers for ' + names + '?\n\n'
+                + 'Next time you log ' + (edited.length === 1 ? 'it' : 'them')
+                + ', these figures will be used instead of an estimate.')){
+        edited.forEach(rememberFood);
+      }
+    }
+    finish();
+  };
+  document.getElementById('ftRetry').onclick = function(){
+    document.getElementById('ftInput').focus();
+    document.getElementById('ftInput').select();
+  };
+}
+
 function renderFuel(){
   const host = document.getElementById('fuelBody');
   if (!host) return;
@@ -11021,7 +12499,10 @@ function renderFuel(){
   /* the log — everything above this is the energy picture; this is what you
      actually log against it */
   h += '<div class="hsec" style="margin-top:16px"><span>Meals</span><i></i></div>'
-    + '<button class="btn pri" id="addFoodBtn" style="width:100%;margin-bottom:12px">+ Add food</button>';
+    /* Telling it leads; the database search stays for when you know exactly
+       what you want and would rather not have anything estimated. */
+    + '<button class="btn pri" id="tellFoodBtn" style="width:100%;margin-bottom:9px">Tell Jarvis what you ate</button>'
+    + '<button class="btn sec" id="addFoodBtn" style="width:100%;margin-bottom:12px">Search foods instead</button>';
   if (!ms.length){
     h += '<div class="survey"><div class="empty">Nothing logged for this day yet.<br>Tap \u201cAdd food\u201d above to get started.</div></div>';
   } else {
@@ -11098,6 +12579,8 @@ function renderFuel(){
 
   const addFoodBtn = document.getElementById('addFoodBtn');
   if (addFoodBtn) addFoodBtn.addEventListener('click', function(){ openMeal(null); });
+  const tellBtn = document.getElementById('tellFoodBtn');
+  if (tellBtn) tellBtn.addEventListener('click', function(){ openFoodTell(fuelDate || TODAY); });
   host.querySelectorAll('[data-fd]').forEach(function(el){
     el.addEventListener('click', function(){
       const x = new Date((fuelDate||TODAY)+'T00:00:00');
@@ -11618,6 +13101,68 @@ let _routeRunning = false;
    months ago will never pick up a field added to the app today just by
    pressing Sync again — this reaches back across the whole history instead,
    and grabs full resolution directly rather than the summary trace */
+/* Strava's activity LIST returns map.summary_polyline for free \u2014 100 activities
+   per request, no per-activity cost. The existing backfill fetches full
+   resolution one activity at a time, which is right for a route you are about
+   to study and absurd for filling in years of history.
+   This is the bulk pass: lower fidelity, but enough to see where you have been,
+   which is all the tracks layer needs. */
+async function backfillSummaryRoutes(){
+  if (_routeRunning) return;
+  _routeRunning = true;
+  const btn = document.getElementById('routeQuick');
+  const note = document.getElementById('routeNote');
+  const say = function(m){ if (note) note.textContent = m; };
+  if (btn){ btn.disabled = true; btn.textContent = 'Fetching\u2026'; }
+
+  try {
+    const token = await stravaToken();
+    const store = lsGet(STRAVA_ACTS_KEY, []) || [];
+    const byId = new Map(store.map(function(a){ return [String(a.id), a]; }));
+    let page = 1, added = 0, seen = 0;
+
+    while (page <= 12){                     /* 1200 activities is plenty */
+      say('Reading page ' + page + '\u2026 (' + added + ' routes so far)');
+      const res = await fetch(STRAVA_API + '/athlete/activities?per_page=100&page=' + page,
+        { headers:{ Authorization:'Bearer ' + token } });
+      if (res.status === 429){ say('Strava rate limit \u2014 got ' + added + '. Try again in 15 minutes.'); break; }
+      if (!res.ok) throw new Error('Strava API ' + res.status);
+      const batch = await res.json();
+      if (!Array.isArray(batch) || !batch.length) break;
+
+      batch.forEach(function(a){
+        seen++;
+        const poly = a.map && a.map.summary_polyline;
+        if (!poly) return;
+        const prev = byId.get(String(a.id));
+        if (prev){
+          if (!prev.poly_summary){ prev.poly_summary = poly; added++; }
+        } else {
+          const rec = stravaRecord(a);
+          byId.set(String(a.id), rec);
+          if (rec.poly_summary) added++;
+        }
+      });
+
+      if (batch.length < 100) break;
+      page++;
+      await new Promise(function(r){ setTimeout(r, 300); });
+    }
+
+    lsSet(STRAVA_ACTS_KEY, Array.from(byId.values()));
+    ACTS = buildActs();
+    queuePush();
+    say('Added route shapes for ' + added + ' activities (scanned ' + seen + ').');
+    toast(added + ' routes now on the map');
+    if (rtTracksOn) setTracks(true); else drawNetwork();
+  } catch(e){
+    say(String(e.message || e));
+  } finally {
+    _routeRunning = false;
+    if (btn){ btn.disabled = false; btn.textContent = 'Get all route shapes'; }
+  }
+}
+
 async function backfillRoutes(limit){
   if (_routeRunning) return;
   _routeRunning = true;
@@ -12513,6 +14058,10 @@ function wants(f){ return (sessionDef().fields || []).indexOf(f) >= 0; }
 
 /* ── open / close ── */
 function openComposer(dateISO, existingId){
+  /* Falling back to today rather than whatever the caller happened to pass.
+     Adding a session with no date in mind almost always means today, and an
+     empty or malformed date left the picker blank. */
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateISO || '')) dateISO = TODAY;
   cmp = existingId
     ? Object.assign(blankWorkout(dateISO), PLANNED.find(function(w){ return String(w.id)===String(existingId); }))
     : blankWorkout(dateISO);
@@ -12538,8 +14087,33 @@ function renderComposer(){
   const d = new Date(cmp.date+'T00:00:00');
   let h = '';
 
-  h += '<div class="cmp-date">' + d.toLocaleDateString(undefined,{weekday:'long', month:'long', day:'numeric'})
-    + '<button class="cmp-datebtn" id="cmpChangeDate">change</button></div>';
+  /* A prompt() asking for YYYY-MM-DD was the worst possible way to pick a day:
+     a browser dialog, typed by hand, in a format nobody thinks in, with no
+     calendar and no way to see what day of the week you were choosing.
+     A native date input gives the platform calendar \u2014 and on a phone that is
+     the wheel picker, which is about as fast as this gets. The input sits
+     invisibly over the label so the whole row is the target. */
+  h += '<div class="cmp-date">'
+    +   '<span class="cmp-dtxt">' + d.toLocaleDateString(undefined,{weekday:'long', month:'long', day:'numeric'}) + '</span>'
+    +   '<span class="cmp-datebtn">change</span>'
+    +   '<input type="date" id="cmpDateInput" class="cmp-dinput" value="' + cmp.date + '">'
+    + '</div>';
+
+  /* Quick hops for the days you actually reach for. Most planning is today,
+     tomorrow, or the coming weekend, and none of those should need a calendar. */
+  const jump = function(label, iso){
+    return '<button class="cmp-jump' + (iso === cmp.date ? ' on' : '') + '" data-jump="' + iso + '">' + label + '</button>';
+  };
+  const dayAfter = function(n){ return iso(new Date(todayD.getTime() + n*86400000)); };
+  const nextDow = function(target){
+    let n = (target - todayD.getDay() + 7) % 7;
+    if (n === 0) n = 7;
+    return dayAfter(n);
+  };
+  h += '<div class="cmp-jumps">'
+    + jump('Today', TODAY) + jump('Tomorrow', dayAfter(1))
+    + jump('Sat', nextDow(6)) + jump('Sun', nextDow(0))
+    + '</div>';
 
   /* discipline */
   h += '<div class="cmp-row"><label class="fl">Discipline</label><div class="chipset">'
@@ -12700,10 +14274,12 @@ function bindComposer(){
   host.querySelectorAll('[data-exrm]').forEach(function(el){
     el.addEventListener('click', function(){ cmp.exercises.splice(+el.dataset.exrm,1); renderComposer(); });
   });
-  const dateBtn = document.getElementById('cmpChangeDate');
-  if (dateBtn) dateBtn.addEventListener('click', function(){
-    const v = prompt('Date (YYYY-MM-DD)', cmp.date);
-    if (v && /^\d{4}-\d{2}-\d{2}$/.test(v)){ cmp.date = v; renderComposer(); }
+  const dateIn = document.getElementById('cmpDateInput');
+  if (dateIn) dateIn.addEventListener('change', function(){
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateIn.value)){ cmp.date = dateIn.value; renderComposer(); }
+  });
+  host.querySelectorAll('[data-jump]').forEach(function(el){
+    el.addEventListener('click', function(){ cmp.date = el.dataset.jump; renderComposer(); });
   });
 
   const segAdd = document.getElementById('segAdd');
@@ -13305,7 +14881,7 @@ window.closeLoadDetail = closeLoadDetail;
     ['adSheet','closeActDetail'], ['mlSheet','closeMeal'], ['bdSheet','closeBody'],
     ['bldSheet','closeBuilder'], ['cfSheet','closeCustom'], ['rdSheet','closeReadiness'],
     ['glSheet','closeGoal'], ['gpSheet','closeGoalPlanner'], ['acSheet','closeActivities'],
-    ['jvSheet','closeJarvis'], ['rcSheet','closeRecordsPage'],
+    ['jvSheet','closeJarvis'], ['ftSheet','closeFoodTell'], ['ptSheet','closePlanTell'], ['rcSheet','closeRecordsPage'],
     ['goSheet','closeGoalsPage'], ['rzSheet','closeRaceEditor'], ['hcSheet','closeHealthDetail'], ['ldSheet','closeLoadDetail'],
   ];
   SHEETS.forEach(function(pair){
