@@ -9,7 +9,7 @@
    up a fresh shell right away instead of waiting for the natural
    network-first refresh below.
    ═══════════════════════════════════════════════════════════════ */
-const CACHE_VERSION = 'v66';
+const CACHE_VERSION = 'v69';
 const SHELL_CACHE = 'rabbithole-shell-' + CACHE_VERSION;
 const RUNTIME_CACHE = 'rabbithole-runtime-' + CACHE_VERSION;
 
@@ -47,22 +47,31 @@ self.addEventListener('fetch', function(event){
   if (req.method !== 'GET') return;               // never intercept writes
   if (isNeverCache(req.url)) return;                // let live data pass straight through
 
-  /* The page itself: network-first, so an edit you push shows up the next
-     time you open the app while online. Cache is only the fallback for
-     when there's genuinely no connection. */
+  /* The page itself: CACHE-FIRST, then refresh in the background.
+   *
+   * This was network-first, which meant every single launch waited on a 1.3 MB
+   * download before painting anything — on a phone, on mobile data, that is the
+   * whole of the cold-start delay. And it waited to fetch a file that is
+   * byte-identical to the cached one on all but the handful of launches
+   * following a deploy.
+   *
+   * Serving the cached shell immediately makes the app open at local-storage
+   * speed. The new version still downloads, just underneath, and is picked up
+   * on the next launch — which is exactly how native apps behave: you never
+   * wait for an update, you get it next time.
+   */
   if (req.mode === 'navigate'){
     event.respondWith(
-      fetch(req)
-        .then(function(res){
-          const copy = res.clone();
-          caches.open(SHELL_CACHE).then(function(c){ c.put(req, copy); });
+      caches.match(req).then(function(cached){
+        const fresh = fetch(req).then(function(res){
+          if (res && res.ok){
+            const copy = res.clone();
+            caches.open(SHELL_CACHE).then(function(c){ c.put(req, copy); });
+          }
           return res;
-        })
-        .catch(function(){
-          return caches.match(req).then(function(cached){
-            return cached || caches.match('./');
-          });
-        })
+        }).catch(function(){ return cached || caches.match('./'); });
+        return cached || fresh;
+      })
     );
     return;
   }
