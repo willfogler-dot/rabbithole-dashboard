@@ -4058,7 +4058,18 @@ function readinessGap(R){
 
 function computeReadiness(){
   if (!HEALTH.length) return null;
-  const latest = HEALTH[HEALTH.length-1];
+
+  /* Not simply the newest row. Steps and active energy come from the iPhone and
+     land within minutes; HRV, sleep and resting heart rate come from the watch
+     hours later. So for most of the morning today's row exists but holds
+     nothing overnight \u2014 and treating that as "last night" made the app report
+     no health data at all while the sync was working perfectly.
+     Score the most recent night that actually has overnight metrics. */
+  const overnight = HEALTH.filter(function(r){
+    return READINESS_REQUIRED.some(function(k){ return r[k] > 0; });
+  });
+  if (!overnight.length) return null;
+  const latest = overnight[overnight.length-1];
 
   /* The newest row was used regardless of its date, so when a sync broke, a
      night from three days ago kept being scored as though it were last night \u2014
@@ -4075,7 +4086,9 @@ function computeReadiness(){
   const missing = READINESS_REQUIRED.filter(function(k){ return !(latest[k] > 0); });
   if (missing.length) return { incomplete: true, date: latest.date, missing: missing };
 
-  const hist = HEALTH.slice(0, -1);          // all-time baseline, not a trailing window
+  /* Baseline from the same set: a row with no overnight metrics contributes
+     nothing but would still be counted in any length check. */
+  const hist = overnight.slice(0, -1);
   if (hist.length < 5) return null;
   let wsum = 0, acc = 0; const mets = [];
   const usable = activeMetrics();
