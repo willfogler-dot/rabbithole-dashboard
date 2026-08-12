@@ -9,7 +9,7 @@
    up a fresh shell right away instead of waiting for the natural
    network-first refresh below.
    ═══════════════════════════════════════════════════════════════ */
-const CACHE_VERSION = 'v70';
+const CACHE_VERSION = 'v71';
 const SHELL_CACHE = 'rabbithole-shell-' + CACHE_VERSION;
 const RUNTIME_CACHE = 'rabbithole-runtime-' + CACHE_VERSION;
 
