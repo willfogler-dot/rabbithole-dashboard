@@ -22,10 +22,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 180
     steps:
-      - name: Toolchain (osmium + build deps)
+      - name: Toolchain + writable scratch on the big disk
         run: |
           sudo apt-get update
           sudo apt-get install -y osmium-tool build-essential libsqlite3-dev zlib1g-dev git
+          # /mnt is the runner's ~65 GB scratch disk but is owned by root — carve
+          # out a dir we can actually write to, plus a tmp dir for tippecanoe.
+          sudo mkdir -p /mnt/work/tmp
+          sudo chown -R "$(whoami)" /mnt/work
           df -h /mnt
 
       - name: Build tippecanoe
@@ -34,16 +38,15 @@ jobs:
           cd tippecanoe && make -j"$(nproc)" && sudo make install
           tippecanoe --version
 
-      # /mnt is the runner's big scratch disk (~65 GB). Everything heavy goes there.
       - name: Download OSM extracts (US + Canada)
-        working-directory: /mnt
+        working-directory: /mnt/work
         run: |
           curl -L --fail -o us.osm.pbf     https://download.geofabrik.de/north-america/us-latest.osm.pbf
           curl -L --fail -o canada.osm.pbf https://download.geofabrik.de/north-america/canada-latest.osm.pbf
           ls -lh *.pbf
 
       - name: Filter to trails, merge
-        working-directory: /mnt
+        working-directory: /mnt/work
         run: |
           osmium tags-filter us.osm.pbf     w/highway=path,track,bridleway,cycleway,steps -o us-trails.pbf
           osmium tags-filter canada.osm.pbf w/highway=path,track,bridleway,cycleway,steps -o canada-trails.pbf
@@ -52,14 +55,16 @@ jobs:
           ls -lh na-trails.pbf
 
       - name: Export to GeoJSON lines
-        working-directory: /mnt
+        working-directory: /mnt/work
         run: |
           osmium export na-trails.pbf -f geojsonseq --geometry-types=linestring \
             -o na-trails.geojsonld
           ls -lh na-trails.geojsonld
 
       - name: Tile to pmtiles
-        working-directory: /mnt
+        working-directory: /mnt/work
+        env:
+          TMPDIR: /mnt/work/tmp        # keep tippecanoe's scratch on the big disk
         run: |
           # -Z7..-z14: trails appear from zoom 7 (thinned) up to full detail at 14.
           # drop-densest keeps low-zoom tiles legible and small; layer name "trails".
@@ -69,7 +74,7 @@ jobs:
           ls -lh na-trails.pmtiles
 
       - name: Upload to R2
-        working-directory: /mnt
+        working-directory: /mnt/work
         env:
           AWS_ACCESS_KEY_ID:                 ${{ secrets.R2_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY:             ${{ secrets.R2_SECRET_ACCESS_KEY }}
