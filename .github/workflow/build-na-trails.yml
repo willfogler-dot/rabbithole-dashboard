@@ -1,0 +1,84 @@
+# .github/workflows/build-na-trails.yml
+#
+# Builds a USA + Canada OSM-trails vector tileset (paths / tracks / bridleways /
+# cycleways / steps) as a single .pmtiles file and uploads it to your Cloudflare
+# R2 bucket. Runs only when you click "Run workflow" (workflow_dispatch).
+#
+# One-time setup before the first run — add these 4 repo secrets under
+#   Settings -> Secrets and variables -> Actions -> New repository secret:
+#     R2_ACCOUNT_ID        Cloudflare account id (hex string in the R2 endpoint)
+#     R2_ACCESS_KEY_ID     R2 API token access key id
+#     R2_SECRET_ACCESS_KEY R2 API token secret
+#     R2_BUCKET            bucket name, e.g. rabbit-hole-trails
+#
+# See TRAILS-TILESET-SETUP.md for the full walkthrough.
+name: Build NA trail tiles
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - name: Toolchain (osmium + build deps)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y osmium-tool build-essential libsqlite3-dev zlib1g-dev git
+          df -h /mnt
+
+      - name: Build tippecanoe
+        run: |
+          git clone --depth 1 https://github.com/felt/tippecanoe.git
+          cd tippecanoe && make -j"$(nproc)" && sudo make install
+          tippecanoe --version
+
+      # /mnt is the runner's big scratch disk (~65 GB). Everything heavy goes there.
+      - name: Download OSM extracts (US + Canada)
+        working-directory: /mnt
+        run: |
+          curl -L --fail -o us.osm.pbf     https://download.geofabrik.de/north-america/us-latest.osm.pbf
+          curl -L --fail -o canada.osm.pbf https://download.geofabrik.de/north-america/canada-latest.osm.pbf
+          ls -lh *.pbf
+
+      - name: Filter to trails, merge
+        working-directory: /mnt
+        run: |
+          osmium tags-filter us.osm.pbf     w/highway=path,track,bridleway,cycleway,steps -o us-trails.pbf
+          osmium tags-filter canada.osm.pbf w/highway=path,track,bridleway,cycleway,steps -o canada-trails.pbf
+          osmium merge us-trails.pbf canada-trails.pbf -o na-trails.pbf
+          rm -f us.osm.pbf canada.osm.pbf         # reclaim disk before tiling
+          ls -lh na-trails.pbf
+
+      - name: Export to GeoJSON lines
+        working-directory: /mnt
+        run: |
+          osmium export na-trails.pbf -f geojsonseq --geometry-types=linestring \
+            -o na-trails.geojsonld
+          ls -lh na-trails.geojsonld
+
+      - name: Tile to pmtiles
+        working-directory: /mnt
+        run: |
+          # -Z7..-z14: trails appear from zoom 7 (thinned) up to full detail at 14.
+          # drop-densest keeps low-zoom tiles legible and small; layer name "trails".
+          tippecanoe -o na-trails.pmtiles -Z7 -z14 -l trails \
+            --drop-densest-as-needed --extend-zooms-if-still-dropping \
+            --no-tile-size-limit --force na-trails.geojsonld
+          ls -lh na-trails.pmtiles
+
+      - name: Upload to R2
+        working-directory: /mnt
+        env:
+          AWS_ACCESS_KEY_ID:                 ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY:             ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION:                auto
+          # R2 rejects the checksums newer aws-cli sends by default; disable them.
+          AWS_REQUEST_CHECKSUM_CALCULATION:  WHEN_REQUIRED
+          AWS_RESPONSE_CHECKSUM_VALIDATION:  WHEN_REQUIRED
+        run: |
+          aws s3 cp na-trails.pmtiles "s3://${{ secrets.R2_BUCKET }}/na-trails.pmtiles" \
+            --endpoint-url "https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com" \
+            --content-type application/octet-stream
+          echo "Uploaded na-trails.pmtiles"
