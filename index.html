@@ -6674,7 +6674,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v128';
+const RH_BUILD = 'v129';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -8203,7 +8203,8 @@ async function stravaToken(){
   return d.access_token;
 }
 
-async function syncStrava(){
+async function syncStrava(quiet){
+  quiet = quiet === true;            /* the button passes a click event here, which is not "quiet" */
   const btn = document.getElementById('stvSync'), prog = document.getElementById('stvProgress');
   const show = m => { prog.style.display=''; prog.textContent = m; };
   try {
@@ -8212,6 +8213,7 @@ async function syncStrava(){
     try { token = await stravaToken(); }
     catch(err){
       if (err.code === 'not_connected'){
+        if (quiet) return;
         show('Not connected yet — press Connect Strava below.');
         document.getElementById('stvAuth').style.display = '';
         return;
@@ -8260,7 +8262,7 @@ async function syncStrava(){
       if (batch.length < 100) break;
       page++;
     }
-    if (!added && !updated){ show('Already up to date.'); toast('Up to date'); return; }
+    if (!added && !updated){ show('Already up to date.'); if (!quiet) toast('Up to date'); return; }
 
     /* Strava puts calories on the per-activity endpoint and never on the list,
        so a plain sync can only ever produce estimates. The activities that just
@@ -8293,9 +8295,9 @@ async function syncStrava(){
     if (updated) bits.push(updated + ' updated');
     show(bits.join(', ') + ' \u2014 reloading\u2026');
     toast('Synced ' + bits.join(', '));
-    setTimeout(()=>location.reload(), 900);
+    if (quiet) autoSyncReload(); else setTimeout(()=>location.reload(), 900);
   } catch(e){
-    console.error('[strava]', e); show(String(e.message||e)); toast(String(e.message||e));
+    console.error('[strava]', e); show(String(e.message||e)); if (!quiet) toast(String(e.message||e));
   } finally { btn.disabled = false; btn.textContent = 'Sync'; refreshConnStatus(); }
 }
 
@@ -8382,6 +8384,45 @@ document.getElementById('stvHide').addEventListener('click', ()=>{ document.getE
     b.addEventListener('click', function(){ applyTheme(b.dataset.th); }); });
 })();
 document.getElementById('stvSync').addEventListener('click', syncStrava);
+
+/* ═══ AUTOMATIC STRAVA SYNC ═══
+   Until now the only thing that ever fetched new activities was the Sync button
+   on the Profile tab. Nothing ran on its own, so a workout recorded that
+   morning was simply not in the app until that button was pressed — and the
+   plan showed it as not done, the week's miles were short, readiness used
+   stale load. It looked like a matching bug and was a missing fetch.
+
+   Now the app checks when it opens and when it comes back to the foreground,
+   at most once every ten minutes (one request; Strava allows 100 per 15 min).
+   It says nothing when there is nothing new. When activities do arrive the page
+   has to be rebuilt from them, which is a reload: straight away if he has not
+   touched anything yet, otherwise the next time the app goes to the background,
+   so it never yanks the screen out from under a tap. */
+const AUTOSYNC_KEY = 'rh_strava_autocheck_v1', AUTOSYNC_EVERY = 10*60*1000;
+let _touched = false, _reloadWhenHidden = false, _autoBusy = false;
+window.addEventListener('pointerdown', function(){ _touched = true; }, { capture:true, passive:true });
+window.addEventListener('keydown', function(){ _touched = true; }, { capture:true, passive:true });
+function autoSyncReload(){
+  if (!_touched){ setTimeout(function(){ location.reload(); }, 900); return; }
+  _reloadWhenHidden = true;
+  toast('New activities synced \u2014 they appear next time you open the app');
+}
+async function autoSyncStrava(){
+  if (_autoBusy || document.hidden || navigator.onLine === false) return;
+  if (Date.now() - (lsGet(AUTOSYNC_KEY, 0) || 0) < AUTOSYNC_EVERY) return;
+  _autoBusy = true;
+  lsSet(AUTOSYNC_KEY, Date.now());           /* stamped first, so a failing call cannot retry in a loop */
+  try { await syncStrava(true); } catch(e){ console.error('[strava] auto', e); }
+  _autoBusy = false;
+}
+document.addEventListener('visibilitychange', function(){
+  if (document.hidden){ if (_reloadWhenHidden){ _reloadWhenHidden = false; location.reload(); } }
+  else autoSyncStrava();
+});
+/* after first paint and the cloud reconcile, not in the way of either */
+setTimeout(autoSyncStrava, 2500);
+/* console: when it last checked, and a way to force a check now */
+window.rhSync = function(){ const t = lsGet(AUTOSYNC_KEY, 0); console.log('[strava] last automatic check: ' + (t ? new Date(t).toLocaleString() : 'never') + ' \u2014 checking now'); lsSet(AUTOSYNC_KEY, 0); return autoSyncStrava(); };
 document.getElementById('routeBackfill').addEventListener('click', function(){ backfillRoutes(80); });
 document.getElementById('routeQuick').addEventListener('click', backfillSummaryRoutes);
 (function(){
