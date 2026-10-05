@@ -6674,7 +6674,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v132';
+const RH_BUILD = 'v133';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -8393,12 +8393,12 @@ document.getElementById('stvSync').addEventListener('click', syncStrava);
    stale load. It looked like a matching bug and was a missing fetch.
 
    Now the app checks when it opens and when it comes back to the foreground,
-   at most once every ten minutes (one request; Strava allows 100 per 15 min).
+   at most once every five minutes (one request to our own database).
    It says nothing when there is nothing new. When activities do arrive the page
    has to be rebuilt from them, which is a reload: straight away if he has not
    touched anything yet, otherwise the next time the app goes to the background,
    so it never yanks the screen out from under a tap. */
-const AUTOSYNC_KEY = 'rh_strava_autocheck_v1', AUTOSYNC_EVERY = 10*60*1000;
+const AUTOSYNC_KEY = 'rh_strava_autocheck_v1', AUTOSYNC_EVERY = 5*60*1000;
 let _touched = false, _reloadWhenHidden = false, _autoBusy = false;
 window.addEventListener('pointerdown', function(){ _touched = true; }, { capture:true, passive:true });
 window.addEventListener('keydown', function(){ _touched = true; }, { capture:true, passive:true });
@@ -8407,12 +8407,50 @@ function autoSyncReload(){
   _reloadWhenHidden = true;
   toast('New activities synced \u2014 they appear next time you open the app');
 }
+/* WHERE NEW ACTIVITIES COME FROM NOW
+   A scheduled function on the server (strava-sync, every 15 minutes) pulls
+   Strava into the `activities` table whether or not this app is open. So the
+   app no longer has to talk to Strava itself to stay current: it reads that
+   table, which is one cheap request and cannot hit Strava's rate limit. The
+   Sync button still goes straight to Strava, for the minutes in between.
+
+   The first version of this (v129) had each device call Strava directly. That
+   fixed the app but not the database: nothing reached Supabase unless a device
+   happened to be opened, so the morning brief could still read stale training. */
+async function pullCloudActivities(){
+  const c = syncCfg();
+  if (!c) return false;
+  const since = iso(new Date(Date.now() - 45*86400000));
+  const res = await fetch(c.url.replace(/\/$/,'') + '/rest/v1/activities?select=rec&start_local=gte.' + since + '&order=start_local.desc&limit=600',
+    { headers:{ apikey:c.key, Authorization:'Bearer '+c.key } });
+  if (!res.ok) throw new Error('activities table ' + res.status);
+  const rows = await res.json();
+  if (!Array.isArray(rows) || !rows.length) return false;
+  const existing = lsGet(STRAVA_ACTS_KEY, []) || [];
+  const byId = new Map(existing.map(function(a){ return [String(a.id), a]; }));
+  let added = 0, updated = 0;
+  rows.forEach(function(r){
+    const rec = r && r.rec;
+    if (!rec || rec.id == null) return;
+    const key = String(rec.id), prev = byId.get(key);
+    if (!prev){ byId.set(key, rec); added++; return; }
+    /* name and type are what gets edited on Strava after the fact */
+    if (prev.name !== rec.name || prev.type !== rec.type){ byId.set(key, Object.assign({}, prev, { name:rec.name, type:rec.type })); updated++; }
+  });
+  if (!added && !updated) return false;
+  lsSet(STRAVA_ACTS_KEY, Array.from(byId.values()));
+  lsSet(STRAVA_SYNCED, Date.now());
+  console.log('[strava] from the server: ' + added + ' new, ' + updated + ' updated');
+  toast((added ? added + ' new activit' + (added === 1 ? 'y' : 'ies') : updated + ' updated'));
+  autoSyncReload();
+  return true;
+}
 async function autoSyncStrava(){
   if (_autoBusy || document.hidden || navigator.onLine === false) return;
   if (Date.now() - (lsGet(AUTOSYNC_KEY, 0) || 0) < AUTOSYNC_EVERY) return;
   _autoBusy = true;
   lsSet(AUTOSYNC_KEY, Date.now());           /* stamped first, so a failing call cannot retry in a loop */
-  try { await syncStrava(true); } catch(e){ console.error('[strava] auto', e); }
+  try { await pullCloudActivities(); } catch(e){ console.error('[strava] auto', e); }
   _autoBusy = false;
 }
 document.addEventListener('visibilitychange', function(){
