@@ -6665,7 +6665,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v118';
+const RH_BUILD = 'v119';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -17488,6 +17488,8 @@ if ('serviceWorker' in navigator){
              radial-gradient(29% 36% at 70% 38%,rgba(179,154,232,.16),transparent),
              radial-gradient(26% 32% at 50% 34%,rgba(143,154,232,.12),transparent);}
 #plx > :not(.plx-pop){position:relative;z-index:1;}
+/* the tools menu hangs out of the year block over the calendar below it */
+#plx > #plxYear{z-index:6;}
 #plx input,#plx textarea,#plx select{-webkit-user-select:text;user-select:text;font-family:var(--fb);}
 #plx button{font-family:var(--fb);cursor:pointer;}
 
@@ -17515,6 +17517,21 @@ if ('serviceWorker' in navigator){
   box-shadow:inset 0 1px 0 rgba(230,236,255,.08),0 2px 6px rgba(3,5,10,.35);transition:background .15s,color .15s,border-color .15s;}
 .plx-tog:hover{color:var(--n1);}
 .plx-tog.on{background:linear-gradient(180deg,rgba(143,154,232,.24),rgba(143,154,232,.10));border-color:rgba(170,180,255,.42);color:var(--a-hi);}
+.plx-gearwrap{position:relative;}
+.plx-gear svg{width:17px;height:17px;}
+.plx-gear.on{color:var(--a-hi);border-color:rgba(170,180,255,.42);}
+.plx-menu{position:absolute;right:0;top:42px;z-index:45;width:330px;padding:8px;border-radius:16px;border:1px solid var(--el2-line);
+  background:color-mix(in srgb,var(--bg-lift) 94%,transparent);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);box-shadow:0 24px 60px -12px rgba(0,0,0,.7),inset 0 1px 0 rgba(230,236,255,.08);}
+.plx-menu h5{font-family:var(--fd);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--n3);font-weight:600;margin:10px 10px 4px;}
+.plx-menu h5:first-child{margin-top:6px;}
+.plx-menu p{font-size:12px;color:var(--n3);margin:0 10px 6px;line-height:1.45;}
+.plx-menu p.ft{margin:8px 10px 6px;padding-top:9px;border-top:1px solid var(--line);}
+.plx-menu button{display:block;width:100%;text-align:left;border:none;background:none;padding:9px 10px;border-radius:10px;transition:background .12s;}
+.plx-menu button:hover{background:var(--n6);}
+.plx-menu button[disabled]{opacity:.38;pointer-events:none;}
+.plx-menu button b{display:block;font-size:13px;font-weight:600;color:var(--n1);}
+.plx-menu button span{display:block;font-size:12px;color:var(--n3);line-height:1.45;margin-top:2px;}
+.plx-menu button.dg b{color:var(--warn);}
 .plx-tog svg{width:13px;height:13px;transition:transform .2s;} .plx-tog.on svg{transform:rotate(180deg);}
 
 /* ── glass panels: strip, year card, week hero ── */
@@ -17855,7 +17872,7 @@ const st = { year: todayD.getFullYear(), month: todayD.getMonth(), metric:'dista
              yearOpen: lsGet(YEAR_OPEN_KEY, false) === true,
              /* Always opens on the week: that is the view he plans in. Month is
                 one tap away and lasts until the app is reloaded. */
-             view: 'week',
+             view: 'week', menu: false,
              week: iso(weekStart(todayD)) };
 
 const E = function(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
@@ -18050,6 +18067,36 @@ function daysLabel(days){
   return 'every ' + d.map(function(i){ return DOW[i]; }).join(', ');
 }
 
+/* ═══ TOOLS MENU ═══
+   Everything that acts on a whole week, month or year in one click lives here,
+   behind the gear, each with a line saying exactly what it will do. They used
+   to sit on the page as bare buttons, where a stray tap could rewrite twelve
+   monthly targets or empty a week. All of them can be undone with Undo. */
+function menuHTML(ix){
+  const y = st.year, T = yearTarget(y), curY = todayD.getFullYear();
+  let lastTotal = 0, sum = 0, anyT = false;
+  for (let i=0;i<12;i++){ lastTotal += monthActual(ix, y-1, i); const t = monthTarget(y, i); if (t != null){ sum += t; anyT = true; } }
+  const it = function(act, label, desc, ok, danger){
+    return '<button data-act="' + act + '"' + (ok ? '' : ' disabled') + (danger ? ' class="dg"' : '') + '><b>' + label + '</b><span>' + desc + '</span></button>';
+  };
+  let h = '<div class="plx-menu" role="menu">';
+  if (st.view === 'week'){
+    const mon = dOf(st.week), lb = MON[mon.getMonth()] + ' ' + mon.getDate();
+    h += '<h5>Week of ' + lb + '</h5>'
+      + it('m-wkcopy', 'Copy to next week', 'Adds a copy of every session in this week to the week after.', true)
+      + it('m-wkclear', 'Clear this week', 'Removes every planned session in this week. Logged activities are not touched.', true, true);
+  } else {
+    h += '<h5>' + MON_FULL[st.month] + '</h5>'
+      + it('tsv', 'Copy month for Excel', 'Puts this month on the clipboard as a table you can paste into a spreadsheet. Changes nothing.', true);
+  }
+  h += '<h5>' + y + ' monthly targets</h5><p>Each of these rewrites all twelve monthly targets at once.</p>'
+    + it('like', 'Shape like ' + (y-1), 'Splits the ' + y + ' target across the months in the same proportions you ran in ' + (y-1) + '.', lastTotal > 0 && T != null, true)
+    + it('scale', 'Scale to the annual target', 'Keeps the shape you have set and scales every month so they add up to the annual target.', anyT && T != null && Math.round(sum) !== Math.round(T), true)
+    + (y === curY ? it('rebal', 'Rebalance the months left', 'Sets past months to what you actually ran, then spreads what is left of the target over the remaining months.', T != null, true) : '')
+    + '<p class="ft">Anything here can be reversed with Undo.</p></div>';
+  return h;
+}
+
 /* ═══ YEAR ═══ */
 function renderYear(ix){
   const y = st.year, m = METRIC[st.metric], curY = todayD.getFullYear();
@@ -18076,6 +18123,9 @@ function renderYear(ix){
     +   '<div class="plx-sp"></div>'
     +   '<button class="plx-txt" data-act="undo"' + (st.undo.length ? '' : ' disabled') + ' title="Undo the last change (Ctrl/Cmd+Z)">Undo</button>'
     +   '<button class="plx-tog' + (st.yearOpen ? ' on' : '') + '" data-act="toggle" aria-expanded="' + st.yearOpen + '">Year plan<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>'
+    +   '<div class="plx-gearwrap"><button class="plx-nav plx-gear' + (st.menu ? ' on' : '') + '" data-act="gear" aria-label="Planner tools" aria-expanded="' + st.menu + '" title="Planner tools">'
+    +     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.9 2.9l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.9-2.9l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.9-2.9l.1.1a1.7 1.7 0 0 0 1.8.3h0a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.9 2.9l-.1.1a1.7 1.7 0 0 0-.3 1.8v0a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>'
+    +     (st.menu ? menuHTML(ix) : '') + '</div>'
     + '</div>';
 
   if (!st.yearOpen){
@@ -18160,11 +18210,6 @@ function renderYear(ix){
     +     '<div class="plx-k"><label>Done</label>' + k3 + '</div>'
     +     '<div class="plx-k"><label>Months add up to</label>' + k4 + '</div>'
     +     '<div class="plx-k"><label>Needed from here</label>' + k5 + '</div>'
-    +   '</div>'
-    +   '<div class="plx-tools"><i>Fill months</i>'
-    +     '<button class="plx-txt" data-act="like"' + (lastTotal > 0 && target != null ? '' : ' disabled') + ' title="Shape the months like ' + (y-1) + ', scaled to the target">Shaped like ' + (y-1) + '</button>'
-    +     '<button class="plx-txt" data-act="scale"' + (anyT && target != null && Math.round(sum) !== Math.round(target) ? '' : ' disabled') + ' title="Scale every month so they add up to the target">Scale to target</button>'
-    +     (y === curY ? '<button class="plx-txt" data-act="rebal"' + (target != null ? '' : ' disabled') + ' title="Set past months to what was run and spread the rest of the target over the months left">Rebalance what’s left</button>' : '')
     +   '</div>'
     +   '<div class="plx-months">' + months + '</div>'
     +   '<div class="plx-legend"><span><u class="b"></u>target</span><span><u class="a"></u>run</span><span><u class="c"></u>' + (y-1) + '</span></div>'
@@ -18421,13 +18466,10 @@ function renderMonth(ix){
       +   (wT != null ? '<em style="left:' + pc(wT) + '%" title="Week’s share of the monthly target: ' + fmt1(wT) + ' ' + m.unit + '"></em>' : '') + '</div>'
       + '<div class="sub">' + (wT != null ? 'target ' + fmt1(wT) + ' · ' : '') + oTxt + '</div>'
       + (mixTxt ? '<div class="mix">' + E(mixTxt) + '</div>' : '')
-      + '<div class="wa"><button data-wkcopy title="Copy every session in this week onto the next one">Copy to next</button>'
-      +   '<button data-wkclear title="Remove every planned session in this week">Clear</button></div>'
       + '</div>';
   });
 
-  $month.innerHTML = headHTML(MON_FULL[mo] + ' ' + y, stat,
-      '<button class="plx-txt" data-act="tsv" title="Copy this month as a table you can paste into Excel">Copy for Excel</button>')
+  $month.innerHTML = headHTML(MON_FULL[mo] + ' ' + y, stat, '')
     + '<div class="plx-grid">' + grid + '</div>';
 }
 
@@ -18530,9 +18572,7 @@ function renderWeekView(ix){
   }).join('');
 
   const title = MON[mon.getMonth()] + ' ' + mon.getDate() + ' – ' + (sun.getMonth() !== mon.getMonth() ? MON[sun.getMonth()] + ' ' : '') + sun.getDate() + ', ' + sun.getFullYear();
-  $month.innerHTML = headHTML(title, '',
-      '<button class="plx-txt" data-wkcopy data-week="' + st.week + '" title="Copy every session in this week onto the next one">Copy to next week</button>'
-    + '<button class="plx-txt" data-wkclear data-week="' + st.week + '" title="Remove every planned session in this week">Clear week</button>')
+  $month.innerHTML = headHTML(title, '', '')
     + hero + '<div class="plx-week">' + board + '</div>';
 }
 function gotoWeek(monISO){
@@ -18923,6 +18963,14 @@ function render(){
   if (st.pop) placePop();
 }
 window.plxRender = render;
+/* A click anywhere else puts the tools menu away — and does nothing more.
+   Caught on the way down so the click that dismisses the menu does not also
+   open a day or follow a link underneath it. */
+document.addEventListener('click', function(e){
+  if (!st.menu || (e.target.closest && e.target.closest('.plx-gearwrap'))) return;
+  e.stopPropagation(); e.preventDefault();
+  st.menu = false; render();
+}, true);
 
 /* ═══ EVENTS ═══ */
 $year.addEventListener('click', function(e){
@@ -18937,9 +18985,15 @@ $year.addEventListener('click', function(e){
     }
     else if (a === 'toggle'){ st.yearOpen = !st.yearOpen; lsSet(YEAR_OPEN_KEY, st.yearOpen); closePop(); render(); }
     else if (a === 'undo') undo();
+    else if (a === 'gear'){ st.menu = !st.menu; closePop(); render(); return; }
+    else if (a === 'tsv') copyTSV();
+    else if (a === 'm-wkcopy') copyWeek(st.week);
+    else if (a === 'm-wkclear') clearWeek(st.week);
     else if (a === 'like') fillLike();
     else if (a === 'scale') fillScale();
     else if (a === 'rebal') fillRebalance();
+    /* any choice closes the menu; the functions above redraw only if they changed something */
+    if (st.menu){ st.menu = false; render(); }
     return;
   }
   if (e.target.tagName === 'INPUT') return;
