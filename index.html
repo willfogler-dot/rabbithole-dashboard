@@ -6686,7 +6686,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v137';
+const RH_BUILD = 'v138';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -19783,6 +19783,7 @@ render();
 .hm-nt .sp{margin-top:auto;padding-top:10px;}
 .hm-nt .sp svg{width:100%;height:34px;}
 .hm-recent{margin-top:6px;}
+.hm-wkbtn{display:none;}
 /* right column: two cards stacked, the second taking whatever height is left so the column ends level with the chart */
 .hm-side{display:flex;flex-direction:column;gap:14px;min-width:0;}
 .hm-side > .dk-card:last-child{flex:1;}
@@ -19849,7 +19850,24 @@ render();
   .dk-scroll .dk-heat,.dk-scroll .dk-heatx{width:700px;}
   #fuelPane{max-width:none;}
   #dskHome .dk-card{padding:15px 15px 14px;border-radius:16px;}
-  .hm-head{margin:2px 2px 12px;}
+  /* THE PHONE OVERVIEW IS A SUBSET, IN HIS ORDER.
+     Desktop is the detailed version; the phone is the glance. He chose what
+     stays and in what order: readiness, volume, last night, insights, recent.
+     The week strip and the target tiles are left to the Plan and Progress tabs,
+     and the Week button brings back the this-week / last-week sheet.
+     The wrappers that pair cards side by side at width are dissolved
+     (display:contents) so the cards can be reordered as one flat list. */
+  #dskHome{display:flex;flex-direction:column;gap:12px;}
+  #dskHome .hm-row,#dskHome .hm-side{display:contents;}
+  #dskHome .hm-weekcard,#dskHome .hm-tiles{display:none;}
+  #dskHome .hm-head{order:0;margin:2px 2px 0;}
+  #dskHome .hm-ready{order:1;}
+  #dskHome #hmVolSlot{order:2;}
+  #dskHome .hm-r1 > .dk-card:not(.hm-ready){order:3;}
+  #dskHome .hm-side > .dk-card:first-child{order:4;}
+  #dskHome .hm-side > .dk-card:last-child{order:5;flex:none;}
+  .hm-wkbtn{display:inline-block;}
+  .hm-head .dk-txt + .dk-txt{margin-left:-2px;}
   .hm-head h2{font-size:22px;}
   .hm-row{gap:12px;margin-bottom:12px;}
   .hm-r1,.hm-r3{grid-template-columns:minmax(0,1fr);}
@@ -20806,10 +20824,10 @@ function renderHome(){
 
   borrowed.forEach(function(b){ if (b.node.parentNode) b.node.parentNode.removeChild(b.node); });
   $home.innerHTML = '<div class="hm-head"><h2>' + todayD.toLocaleDateString(undefined, { weekday:'long' }) + ' <span>' + MON[todayD.getMonth()] + ' ' + todayD.getDate() + '</span></h2><span class="dk-sp"></span>'
-    + '<button class="dk-txt" data-go="jarvis">Ask Jarvis</button></div>'
+    + '<button class="dk-txt hm-wkbtn" data-go="week">Week</button><button class="dk-txt" data-go="jarvis">Ask Jarvis</button></div>'
     + '<div class="hm-row hm-r1"><div class="dk-card hm-ready">' + ring + '<div class="hm-rtxt">' + rt + '</div></div>'
     + '<div class="dk-card"><div class="dk-h" style="margin-bottom:14px"><h3>Last night</h3><span>' + (nDate ? nDate.toLocaleDateString(undefined, { weekday:'short', month:'short', day:'numeric' }) + ' · against your last 4 weeks' : '') + '</span></div>' + nightCard + '</div></div>'
-    + '<div class="dk-card"><div class="dk-h"><h3>This week</h3><span>' + MON[mon.getMonth()] + ' ' + mon.getDate() + ' – ' + (sun.getMonth() !== mon.getMonth() ? MON[sun.getMonth()] + ' ' : '') + sun.getDate() + '</span>'
+    + '<div class="dk-card hm-weekcard"><div class="dk-h"><h3>This week</h3><span>' + MON[mon.getMonth()] + ' ' + mon.getDate() + ' – ' + (sun.getMonth() !== mon.getMonth() ? MON[sun.getMonth()] + ' ' : '') + sun.getDate() + '</span>'
     + '<span class="dk-sp"></span><button class="dk-txt" data-go="plan">Open planner</button></div><div class="hm-days">' + days + '</div></div>'
     + '<div class="hm-tiles">' + tiles + '</div>'
     + '<div class="hm-row hm-r3"><div id="hmVolSlot"></div>'
@@ -20824,6 +20842,7 @@ if ($home){
     const k = g.dataset.go;
     if (k === 'ready') openReadiness();
     else if (k === 'jarvis') openJarvis();
+    else if (k === 'week') openWeek();
     else if (k === 'acts') openActivities();
     else showTab(k);
   });
