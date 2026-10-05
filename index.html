@@ -6665,7 +6665,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v120';
+const RH_BUILD = 'v121';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -17605,7 +17605,11 @@ if ('serviceWorker' in navigator){
 /* One quiet row: where you are, how to move, and the Week/Month switch. The
    month's numbers sit under the title as a sentence instead of competing with
    the controls beside it. */
-.plx-mh{display:flex;align-items:center;gap:10px;margin:26px 2px 16px;}
+.plx-top.plx-mh{display:flex;align-items:center;gap:10px;margin:0 2px 16px;}
+#plxMonth{margin-top:16px;}
+.plx-k label.yst{display:flex;align-items:center;gap:6px;overflow:visible;}
+.plx-k label.yst button{border:none;background:none;color:var(--n3);font-size:15px;line-height:1;padding:0 3px;border-radius:5px;}
+.plx-k label.yst button:hover{color:var(--n1);background:var(--n6);}
 .plx-mh .ttl{min-width:0;display:flex;align-items:baseline;gap:6px 22px;flex-wrap:wrap;}
 .plx-mh h2{font-family:var(--fd);font-size:26px;font-weight:600;color:var(--n1);letter-spacing:-.02em;margin:0;line-height:1.15;white-space:nowrap;}
 .plx-step{display:flex;border:1px solid var(--el2-line);border-radius:11px;overflow:hidden;background:var(--glass);flex:0 0 auto;margin-right:8px;}
@@ -17821,7 +17825,12 @@ if ('serviceWorker' in navigator){
   /* the narrow week column wraps its lines rather than cutting them off */
   .plx-wk .sub{white-space:normal;}
   .plx-chip{font-size:11.5px;padding:0 5px 0 6px;gap:4px;}
-  .plx-mh h2{min-width:150px;font-size:19px;}
+  .plx-mh h2{font-size:20px;}
+  .plx-top.plx-mh{flex-wrap:wrap;row-gap:10px;}
+  .plx-top.plx-mh .ttl{flex:1 1 60%;}
+  .plx-top.plx-mh .plx-sp{display:none;}
+  /* keeps the gear at the right edge so its menu opens on screen */
+  .plx-top.plx-mh .plx-gearwrap{margin-left:auto;}
   .plx-sum{display:none;}
   /* seven columns of cards do not fit; each day becomes a row instead */
   .plx-hero{grid-template-columns:1fr 1.25fr;}
@@ -18072,6 +18081,8 @@ function daysLabel(days){
   return 'every ' + d.map(function(i){ return DOW[i]; }).join(', ');
 }
 
+const GEAR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.9 2.9l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.9-2.9l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.9-2.9l.1.1a1.7 1.7 0 0 0 1.8.3h0a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.9 2.9l-.1.1a1.7 1.7 0 0 0-.3 1.8v0a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>';
+
 /* ═══ TOOLS MENU ═══
    Everything that acts on a whole week, month or year in one click lives here,
    behind the gear, each with a line saying exactly what it will do. They used
@@ -18113,23 +18124,30 @@ function renderYear(ix){
   const tg = []; let sum = 0, anyT = false;
   for (let i=0;i<12;i++){ tg[i] = monthTarget(y, i); if (tg[i] != null){ sum += tg[i]; anyT = true; } }
 
-  let summary = '';
-  if (target != null) summary = fmt(target) + ' ' + m.unit + ' target'
-    + (y <= curY ? ' · ' + fmt(done) + ' done' + (target ? ' · ' + Math.round(done/target*100) + '%' : '') : '');
-  else summary = 'no ' + y + ' target yet';
-
+  /* One bar for the whole planner. It used to be two — a year stepper on top
+     and a week/month stepper under the year strip — which was two sets of
+     arrows doing nearly the same job. Now the arrows move whatever Week/Month
+     is showing, and the year simply follows. Stepping a whole year lives
+     inside Year plan, the only place that needs it. */
+  const here = st.view === 'week' ? st.week === iso(weekStart(todayD)) : (y === curY && st.month === todayD.getMonth());
+  let title;
+  if (st.view === 'week'){
+    const mon = dOf(st.week), sun = addDays(mon, 6);
+    title = MON[mon.getMonth()] + ' ' + mon.getDate() + ' – ' + (sun.getMonth() !== mon.getMonth() ? MON[sun.getMonth()] + ' ' : '') + sun.getDate() + ', ' + sun.getFullYear();
+  } else title = MON_FULL[st.month] + ' ' + y;
   const top =
-      '<div class="plx-top">'
-    +   '<div class="plx-yr"><button class="plx-nav" data-act="yr-" aria-label="Previous year">‹</button><b>' + y + '</b>'
-    +     '<button class="plx-nav" data-act="yr+" aria-label="Next year">›</button></div>'
+      '<div class="plx-top plx-mh">'
+    +   '<div class="plx-step"><button data-act="mo-" aria-label="Previous">‹</button><button data-act="mo+" aria-label="Next">›</button></div>'
+    +   '<div class="ttl"><h2>' + title + '</h2>' + (st.view === 'month' ? '<div class="plx-mstat">' + monthStatHTML(ix) + '</div>' : '') + '</div>'
+    +   '<div class="plx-sp"></div>'
+    +   (here ? '' : '<button class="plx-txt" data-act="today">Today</button>')
+    +   '<div class="plx-seg view"><button data-view="week"' + (st.view === 'week' ? ' class="on"' : '') + '>Week</button>'
+    +     '<button data-view="month"' + (st.view === 'month' ? ' class="on"' : '') + '>Month</button></div>'
     +   '<div class="plx-seg"><button data-metric="distance"' + (st.metric === 'distance' ? ' class="on"' : '') + '>Miles</button>'
     +     '<button data-metric="elevation"' + (st.metric === 'elevation' ? ' class="on"' : '') + '>Vert</button></div>'
-    +   (st.yearOpen ? '' : '<span class="plx-sum">' + summary + '</span>')
-    +   '<div class="plx-sp"></div>'
     +   '<button class="plx-txt" data-act="undo"' + (st.undo.length ? '' : ' disabled') + ' title="Undo the last change (Ctrl/Cmd+Z)">Undo</button>'
     +   '<button class="plx-tog' + (st.yearOpen ? ' on' : '') + '" data-act="toggle" aria-expanded="' + st.yearOpen + '">Year plan<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>'
-    +   '<div class="plx-gearwrap"><button class="plx-nav plx-gear' + (st.menu ? ' on' : '') + '" data-act="gear" aria-label="Planner tools" aria-expanded="' + st.menu + '" title="Planner tools">'
-    +     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.9 2.9l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.9-2.9l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.9-2.9l.1.1a1.7 1.7 0 0 0 1.8.3h0a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.9 2.9l-.1.1a1.7 1.7 0 0 0-.3 1.8v0a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>'
+    +   '<div class="plx-gearwrap"><button class="plx-nav plx-gear' + (st.menu ? ' on' : '') + '" data-act="gear" aria-label="Planner tools" aria-expanded="' + st.menu + '" title="Planner tools">' + GEAR + '</button>'
     +     (st.menu ? menuHTML(ix) : '') + '</div>'
     + '</div>';
 
@@ -18208,7 +18226,7 @@ function renderYear(ix){
   $year.innerHTML = top
     + '<div class="plx-card">'
     +   '<div class="plx-kpis">'
-    +     '<div class="plx-k"><label>' + y + ' target</label><div class="v"><input data-fk="yt" data-yt inputmode="decimal" autocomplete="off" placeholder="set" value="' + (target != null ? fmt(target) : '') + '" title="Takes arithmetic, e.g. =' + Math.round(lastTotal) + '*1.12"><span>' + m.unit + '</span></div>'
+    +     '<div class="plx-k"><label class="yst"><button data-act="yr-" aria-label="Previous year">‹</button>' + y + ' target<button data-act="yr+" aria-label="Next year">›</button></label><div class="v"><input data-fk="yt" data-yt inputmode="decimal" autocomplete="off" placeholder="set" value="' + (target != null ? fmt(target) : '') + '" title="Takes arithmetic, e.g. =' + Math.round(lastTotal) + '*1.12"><span>' + m.unit + '</span></div>'
     +       '<small>&nbsp;</small></div>'
     +     '<div class="plx-k"><label>vs ' + (y-1) + '</label><div class="v"><input data-fk="yy" data-yy inputmode="decimal" autocomplete="off" placeholder="—" value="' + (yoy != null ? (yoy >= 0 ? '+' : '') + (Math.round(yoy*10)/10) : '') + '"' + (lastTotal > 0 ? '' : ' disabled') + ' title="Type a percentage to set the target from last year"><span>%</span></div>'
     +       '<small>' + (lastTotal > 0 ? fmt(lastTotal) + ' ' + m.unit + ' in ' + (y-1) : 'no ' + (y-1) + ' data') + '</small></div>'
@@ -18392,36 +18410,18 @@ function dayParts(ix, key){
   const races = RACES.filter(function(rc){ return rc && rc.date === key; });
   return { plans:plans, extra:extra, races:races };
 }
-function headHTML(title, stat, right){
-  /* Today only appears once you have moved away from it */
-  const here = st.view === 'week' ? st.week === iso(weekStart(todayD)) : (st.year === todayD.getFullYear() && st.month === todayD.getMonth());
-  return '<div class="plx-mh">'
-    + '<div class="plx-step"><button data-act="mo-" aria-label="Previous">‹</button><button data-act="mo+" aria-label="Next">›</button></div>'
-    + '<div class="ttl"><h2>' + title + '</h2>' + (stat ? '<div class="plx-mstat">' + stat + '</div>' : '') + '</div>'
-    + '<div class="plx-sp"></div>'
-    + (here ? '' : '<button class="plx-txt" data-act="today">Today</button>') + right
-    + '<div class="plx-seg view"><button data-view="week"' + (st.view === 'week' ? ' class="on"' : '') + '>Week</button>'
-    +   '<button data-view="month"' + (st.view === 'month' ? ' class="on"' : '') + '>Month</button></div>'
-    + '</div>';
-}
 
-/* ═══ MONTH ═══ */
-function renderMonth(ix){
+/* the month's numbers as one sentence, shown beside the title in Month view */
+function monthStatHTML(ix){
   const y = st.year, mo = st.month, m = METRIC[st.metric];
-  const other = st.metric === 'distance' ? 'elevation' : 'distance';
-  const weeks = weeksOf(y, mo);
   const mKey = y + '-' + String(mo+1).padStart(2,'0');
-  const thisMon = iso(weekStart(todayD));
-
   let mDone = 0, mTogo = 0;
   const dim = new Date(y, mo+1, 0).getDate();
   for (let d=1; d<=dim; d++){
     const r = dayRun(ix, mKey + '-' + String(d).padStart(2,'0'));
     mDone += r.done; mTogo += r.togo;
   }
-  const mT = monthTarget(y, mo);
-  const proj = mDone + mTogo;
-  const isPastMonth = new Date(y, mo+1, 0) < todayD;
+  const mT = monthTarget(y, mo), proj = mDone + mTogo, isPastMonth = new Date(y, mo+1, 0) < todayD;
   const D = '<span class="dot">·</span>';
   let stat = '<span class="tgt">Target<input data-fk="mh" data-mth inputmode="decimal" autocomplete="off" placeholder="set" value="' + (mT != null ? fmt(mT) : '') + '" title="Target for ' + MON_FULL[mo] + ' — takes arithmetic">' + m.unit + '</span>' + D;
   if (isPastMonth) stat += '<span><b>' + fmt1(mDone) + '</b> run</span>';
@@ -18431,6 +18431,16 @@ function renderMonth(ix){
     stat += D + (Math.round(gap) > 0 ? '<span class="gap">' + fmt1(gap) + ' still to place</span>'
           : '<span class="gap ok">' + (Math.round(gap) === 0 ? 'target covered' : fmt1(-gap) + ' over target') + '</span>');
   }
+  return stat;
+}
+
+/* ═══ MONTH ═══ */
+function renderMonth(ix){
+  const y = st.year, mo = st.month, m = METRIC[st.metric];
+  const other = st.metric === 'distance' ? 'elevation' : 'distance';
+  const weeks = weeksOf(y, mo);
+  const mKey = y + '-' + String(mo+1).padStart(2,'0');
+  const thisMon = iso(weekStart(todayD));
 
   let grid = DOW.map(function(d, i){ return '<div class="plx-gh' + (i > 4 ? ' we' : '') + '">' + d + '</div>'; }).join('') + '<div class="plx-gh">Week</div>';
 
@@ -18474,8 +18484,7 @@ function renderMonth(ix){
       + '</div>';
   });
 
-  $month.innerHTML = headHTML(MON_FULL[mo] + ' ' + y, stat, '')
-    + '<div class="plx-grid">' + grid + '</div>';
+  $month.innerHTML = '<div class="plx-grid">' + grid + '</div>';
 }
 
 /* ═══ WEEK ═══
@@ -18576,9 +18585,7 @@ function renderWeekView(ix){
       + '</div>';
   }).join('');
 
-  const title = MON[mon.getMonth()] + ' ' + mon.getDate() + ' – ' + (sun.getMonth() !== mon.getMonth() ? MON[sun.getMonth()] + ' ' : '') + sun.getDate() + ', ' + sun.getFullYear();
-  $month.innerHTML = headHTML(title, '', '')
-    + hero + '<div class="plx-week">' + board + '</div>';
+  $month.innerHTML = hero + '<div class="plx-week">' + board + '</div>';
 }
 function gotoWeek(monISO){
   st.week = monISO;
@@ -18979,10 +18986,34 @@ document.addEventListener('click', function(e){
 
 /* ═══ EVENTS ═══ */
 $year.addEventListener('click', function(e){
+  const vw = e.target.closest('[data-view]');
+  if (vw){
+    if (vw.dataset.view === st.view) return;
+    st.view = vw.dataset.view; lsSet(VIEW_KEY, st.view);
+    if (st.view === 'week'){
+      /* land on the week he was most likely looking at: this one, when it is on screen */
+      const cur = st.year === todayD.getFullYear() && st.month === todayD.getMonth();
+      st.week = iso(weekStart(cur ? todayD : new Date(st.year, st.month, 1)));
+    }
+    closePop(); render(); return;
+  }
   const b = e.target.closest('[data-act],[data-metric]');
   if (b){
     if (b.dataset.metric){ st.metric = b.dataset.metric; closePop(); render(); return; }
     const a = b.dataset.act;
+    if (a === 'mo-' || a === 'mo+'){
+      const dir = a === 'mo+' ? 1 : -1;
+      if (st.view === 'week') gotoWeek(iso(addDays(dOf(st.week), dir*7)));
+      else {
+        st.month += dir;
+        if (st.month < 0){ st.month = 11; st.year--; } else if (st.month > 11){ st.month = 0; st.year++; }
+      }
+      closePop(); render(); return;
+    }
+    if (a === 'today'){
+      st.year = todayD.getFullYear(); st.month = todayD.getMonth(); st.week = iso(weekStart(todayD));
+      closePop(); render(); return;
+    }
     if (a === 'yr-' || a === 'yr+'){
       st.year += (a === 'yr+' ? 1 : -1);
       if (st.view === 'week') st.week = iso(weekStart(new Date(st.year, st.month, 1)));
@@ -19046,6 +19077,7 @@ $year.addEventListener('change', function(e){
     snap(); setYearTarget(y, Math.round(last * (1 + pct/100)));
   }
   else if (t.dataset.mt != null){ snap(); setMonthTarget(y, +t.dataset.mt, v == null ? null : Math.round(v)); }
+  else if (t.hasAttribute('data-mth')){ snap(); setMonthTarget(y, st.month, v == null ? null : Math.round(v)); }
   else return;
   saveGoals();
   /* after the browser has moved focus, so render() can see where it went */
