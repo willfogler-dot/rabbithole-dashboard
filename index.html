@@ -6665,7 +6665,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v119';
+const RH_BUILD = 'v120';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -17550,7 +17550,7 @@ if ('serviceWorker' in navigator){
 .plx-mc.cur i,.plx-mc.sel i{color:var(--a-hi);}
 .plx-mc b{display:block;font-family:var(--fd);font-size:15px;font-weight:600;color:var(--n1);font-variant-numeric:tabular-nums;margin:3px 0 7px;}
 .plx-mc u{display:block;text-decoration:none;height:3px;border-radius:2px;background:rgba(0,0,0,.4);box-shadow:var(--el0-sh);overflow:hidden;margin:0 14%;}
-.plx-mc s{display:block;text-decoration:none;height:100%;border-radius:2px;background:var(--grad);box-shadow:0 0 8px rgba(143,154,232,.6);}
+.plx-mc s{display:block;text-decoration:none;height:100%;border-radius:2px;background:var(--g2);}
 
 .plx-kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border-bottom:1px solid var(--line);}
 .plx-k{padding:17px 20px 16px;border-left:1px solid var(--line);min-width:0;}
@@ -17573,13 +17573,17 @@ if ('serviceWorker' in navigator){
 .plx-m .nm{display:flex;align-items:center;justify-content:center;gap:5px;font-family:var(--fd);font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--n3);font-weight:600;}
 .plx-m.cur .nm{color:var(--a-hi);}
 .plx-m .nm em{width:5px;height:5px;border-radius:50%;background:#c026a0;box-shadow:0 0 6px #c026a0;flex:0 0 auto;}
-.plx-bar{position:relative;height:74px;margin:9px auto 8px;width:62%;max-width:54px;}
-.plx-bar .tg{position:absolute;left:0;right:0;bottom:0;border:1px solid rgba(170,180,255,.3);border-bottom:none;border-radius:6px 6px 0 0;
-  background:linear-gradient(180deg,rgba(143,154,232,.16),rgba(143,154,232,.04));box-shadow:inset 0 1px 0 rgba(230,236,255,.1);}
-.plx-bar .dn{position:absolute;left:3px;right:3px;bottom:0;border-radius:4px 4px 0 0;
-  background:linear-gradient(180deg,var(--a-hi),var(--g2) 55%,var(--g1));box-shadow:0 0 14px rgba(143,154,232,.5),inset 0 1px 0 rgba(255,255,255,.4);}
+.plx-bar{position:relative;height:96px;margin:9px auto 8px;width:62%;max-width:54px;}
+/* What was run is a plain bar. The target is a line across the column at its
+   height, with the faintest wash under it so future months still show the shape
+   of the plan. An earlier version boxed the bar inside an outlined target and
+   lit it with a glow; in use that read as a bubble around every month. */
+.plx-bar .tg{position:absolute;left:-7px;right:-7px;bottom:0;border-top:2px solid var(--n1);}
+.plx-m.fut .plx-bar .tg{background:linear-gradient(180deg,rgba(143,154,232,.13),rgba(143,154,232,.02));}
+.plx-bar .dn{position:absolute;left:2px;right:2px;bottom:0;border-radius:5px 5px 0 0;background:linear-gradient(180deg,var(--g2),color-mix(in srgb,var(--g2) 72%,var(--g1)));opacity:.78;}
+.plx-m.cur .plx-bar .dn,.plx-m.sel .plx-bar .dn{opacity:1;}
 .plx-m.fut .plx-bar .dn{display:none;}
-.plx-bar .ly{position:absolute;left:-5px;right:-5px;height:0;border-top:1.5px dotted var(--n3);}
+.plx-bar .ly{position:absolute;left:-7px;right:-7px;height:0;border-top:1.5px dotted var(--n3);}
 .plx-m input.tg-in{display:block;width:100%;text-align:center;background:none;border:none;border-bottom:1px dashed transparent;outline:none;font-family:var(--fd);font-size:15px;font-weight:600;color:var(--n1);font-variant-numeric:tabular-nums;padding:1px 0;}
 .plx-m:hover input.tg-in,.plx-m.sel input.tg-in{border-bottom-color:var(--a-edge);}
 .plx-m input.tg-in:focus{border-bottom:1px solid var(--a);color:var(--a-hi);}
@@ -17593,8 +17597,8 @@ if ('serviceWorker' in navigator){
 .plx-legend{display:flex;gap:16px;padding:0 20px 14px;font-size:11.5px;color:var(--n4);}
 .plx-legend span{display:flex;align-items:center;gap:6px;}
 .plx-legend u{display:inline-block;text-decoration:none;width:12px;height:9px;border-radius:2px;}
-.plx-legend u.a{background:linear-gradient(180deg,var(--a-hi),var(--g1));}
-.plx-legend u.b{border:1px solid rgba(170,180,255,.3);background:rgba(143,154,232,.1);}
+.plx-legend u.a{background:var(--g2);}
+.plx-legend u.b{height:0;border-top:2px solid var(--n1);border-radius:0;}
 .plx-legend u.c{height:0;border-top:1.5px dotted var(--n3);border-radius:0;}
 
 /* ── month / week header ── */
@@ -17602,7 +17606,7 @@ if ('serviceWorker' in navigator){
    month's numbers sit under the title as a sentence instead of competing with
    the controls beside it. */
 .plx-mh{display:flex;align-items:center;gap:10px;margin:26px 2px 16px;}
-.plx-mh .ttl{min-width:0;}
+.plx-mh .ttl{min-width:0;display:flex;align-items:baseline;gap:6px 22px;flex-wrap:wrap;}
 .plx-mh h2{font-family:var(--fd);font-size:26px;font-weight:600;color:var(--n1);letter-spacing:-.02em;margin:0;line-height:1.15;white-space:nowrap;}
 .plx-step{display:flex;border:1px solid var(--el2-line);border-radius:11px;overflow:hidden;background:var(--glass);flex:0 0 auto;margin-right:8px;}
 .plx-step button{width:34px;height:34px;border:none;background:none;color:var(--n2);font-size:18px;line-height:1;display:flex;align-items:center;justify-content:center;transition:background .15s,color .15s;}
@@ -17610,7 +17614,7 @@ if ('serviceWorker' in navigator){
 .plx-step button:hover{color:var(--n1);background:rgba(143,154,232,.16);}
 .plx-mh .plx-txt{color:var(--n2);font-size:12.5px;}
 .plx-mh .plx-seg{margin-left:8px;}
-.plx-mstat{display:flex;align-items:baseline;gap:7px;font-size:13px;color:var(--n2);font-variant-numeric:tabular-nums;margin-top:5px;flex-wrap:wrap;}
+.plx-mstat{display:flex;align-items:baseline;gap:7px;font-size:13.5px;color:var(--n2);font-variant-numeric:tabular-nums;white-space:nowrap;}
 .plx-mstat b{font-family:var(--fd);font-weight:600;color:var(--n1);}
 .plx-mstat .dot{color:var(--n4);}
 .plx-mstat .tgt input{width:48px;background:none;border:none;border-bottom:1px dashed var(--a-edge);outline:none;font-family:var(--fd);font-size:13.5px;font-weight:600;color:var(--a-hi);font-variant-numeric:tabular-nums;padding:0 0 1px;margin:0 3px 0 5px;text-align:center;}
@@ -17619,8 +17623,9 @@ if ('serviceWorker' in navigator){
 .plx-mstat .gap{color:var(--warn);font-weight:600;} .plx-mstat .gap.ok{color:var(--pos);}
 
 /* ── month grid: a recessed board the sessions sit on ── */
-/* the frame is the heaviest line on the page so the board reads as one object */
-.plx-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr)) 200px;border:2px solid color-mix(in srgb,var(--g2) 42%,var(--el2-line));border-radius:20px;overflow:hidden;background:var(--n5);gap:1px;
+/* same quiet line as every other panel, one pixel heavier because this is the
+   biggest object on the page (a lavender frame was tried and read as decoration) */
+.plx-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr)) 200px;border:2px solid var(--el2-line);border-radius:20px;overflow:hidden;background:var(--n5);gap:1px;
   box-shadow:inset 0 1px 0 rgba(230,236,255,.07),0 2px 3px rgba(3,5,10,.4),0 34px 60px -30px rgba(3,5,10,.85);}
 .plx-gh{background:color-mix(in srgb,var(--bg-lift) 70%,var(--bg-mid));padding:12px 12px 11px;font-family:var(--fd);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--n1);font-weight:600;
   box-shadow:inset 0 1px 0 rgba(230,236,255,.06);}
@@ -18174,7 +18179,7 @@ function renderYear(ix){
   /* one scale for all twelve bars, so the shape of the year is readable */
   let max = 1;
   for (let i=0;i<12;i++) max = Math.max(max, tg[i] || 0, act[i] || 0, last[i] || 0);
-  const h = function(v){ return Math.max(0, Math.round((v || 0)/max*74)); };
+  const h = function(v){ return Math.max(0, Math.round((v || 0)/max*96)); };
 
   const months = MON.map(function(nm, i){
     const isCur = (y === curY && i === todayD.getMonth());
@@ -18190,8 +18195,8 @@ function renderYear(ix){
     return '<div class="plx-m' + (i === st.month ? ' sel' : '') + (isCur ? ' cur' : '') + (fut ? ' fut' : '') + '" data-m="' + i + '">'
       + '<div class="nm">' + nm + (race ? '<em title="Race this month"></em>' : '') + '</div>'
       + '<div class="plx-bar">'
-      +   (tg[i] != null ? '<div class="tg" style="height:' + h(tg[i]) + 'px"></div>' : '')
       +   '<div class="dn" style="height:' + h(act[i]) + 'px"></div>'
+      +   (tg[i] != null ? '<div class="tg" style="height:' + h(tg[i]) + 'px" title="Target: ' + fmt(tg[i]) + ' ' + m.unit + '"></div>' : '')
       +   (last[i] ? '<div class="ly" style="bottom:' + h(last[i]) + 'px" title="' + (y-1) + ': ' + fmt(last[i]) + ' ' + m.unit + '"></div>' : '')
       + '</div>'
       + '<input class="tg-in" data-fk="mt' + i + '" data-mt="' + i + '" inputmode="decimal" autocomplete="off" placeholder="—" value="' + (tg[i] != null ? fmt(tg[i]) : '') + '" title="Target for ' + MON_FULL[i] + ' — takes arithmetic, e.g. =1500/12">'
