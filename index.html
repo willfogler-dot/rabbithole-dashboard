@@ -6665,7 +6665,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v114';
+const RH_BUILD = 'v115';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -19201,8 +19201,13 @@ render();
    width. Below that these containers do not exist as far as layout goes. */
 .dsk{display:none;}
 @media (min-width:760px){
-  .app:has(#s-progress.on){max-width:1380px;padding-left:28px;padding-right:28px;}
+  .app:has(#s-progress.on),.app:has(#s-health.on){max-width:1380px;padding-left:28px;padding-right:28px;}
   #s-progress > *:not(.dsk){display:none !important;}
+  /* Health keeps its two panes; only the phone's header and the Recovery pane's
+     phone content step aside. Fuel stays as it is, held to a readable column. */
+  #s-health > *:not(.dsk):not(#recoveryPane):not(#fuelPane){display:none !important;}
+  #recoveryPane > *:not(.dsk){display:none !important;}
+  #fuelPane{max-width:560px;margin:0 auto;}
   .dsk{display:block;position:relative;padding-top:20px;}
 }
 .dsk{--g1:#7fd9bd;--g2:#8f9ae8;--g3:#b39ae8;
@@ -19215,6 +19220,7 @@ render();
              radial-gradient(29% 36% at 70% 38%,rgba(179,154,232,.16),transparent),
              radial-gradient(26% 32% at 50% 34%,rgba(143,154,232,.12),transparent);}
 .dsk > *{position:relative;z-index:1;}
+.dsk.nolight::before{display:none;}
 .dsk button{font-family:var(--fb);cursor:pointer;}
 
 .dk-top{display:flex;align-items:center;gap:14px;margin-bottom:16px;flex-wrap:wrap;}
@@ -19227,6 +19233,7 @@ render();
 .dk-seg button{border:none;background:none;color:var(--n3);font-size:12px;font-weight:600;padding:7px 14px;border-radius:9px;transition:background .15s,color .15s;}
 .dk-seg button:hover{color:var(--n1);}
 .dk-seg button.on{background:var(--grad);color:var(--dk-ink);box-shadow:0 2px 12px rgba(143,154,232,.34),inset 0 1px 0 rgba(255,255,255,.28);}
+.dk-seg.plain button.on{background:var(--card2);color:var(--n1);box-shadow:var(--el1-sh);}
 .dk-sp{flex:1;}
 .dk-txt{border:1px solid var(--el2-line);background:var(--glass);color:var(--n2);font-size:12px;font-weight:600;padding:8px 13px;border-radius:11px;
   box-shadow:inset 0 1px 0 rgba(230,236,255,.08),0 2px 6px rgba(3,5,10,.25);transition:color .15s;}
@@ -19234,6 +19241,9 @@ render();
 
 .dk-grid{display:grid;gap:14px;margin-bottom:14px;}
 .dk-g4{grid-template-columns:repeat(4,minmax(0,1fr));}
+.dk-g5{grid-template-columns:repeat(5,minmax(0,1fr));}
+.dk-g5 .dk-stat .v b{font-size:34px;}
+.dk-g5 .dk-card{padding:16px 18px 14px;}
 .dk-g21{grid-template-columns:minmax(0,2fr) minmax(0,1fr);}
 .dk-g32{grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);}
 .dk-g11{grid-template-columns:minmax(0,1fr) minmax(0,1fr);}
@@ -19329,10 +19339,13 @@ render();
 .dk-two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:34px;margin-top:8px;}
 .dk-two h4{font-size:11.5px;font-weight:600;color:var(--n2);margin:0 0 2px;}
 .dk-two h4 span{font-weight:400;color:var(--n4);margin-left:6px;}
+.dk-axis{text-align:center;font-family:var(--fd);font-size:10px;color:var(--n4);margin-top:2px;}
+.dk-spark{display:block;}
 .dk-empty{padding:28px 10px;text-align:center;font-size:12.5px;color:var(--n3);line-height:1.6;}
 
 @media (min-width:760px) and (max-width:1023px){
   .dk-g4{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .dk-g5{grid-template-columns:repeat(3,minmax(0,1fr));}
   .dk-g21,.dk-g32,.dk-g11{grid-template-columns:minmax(0,1fr);}
   .dk-stat .v b{font-size:32px;}
 }
@@ -19458,6 +19471,7 @@ function chartCols(el, c){
       s += '<path class="col' + (c.hi === i ? ' hi' : '') + '" data-i="' + i + '" d="M' + x + ',' + (y + hgt) + ' V' + (y + r) + ' Q' + x + ',' + y + ' ' + (x + r) + ',' + y
          + ' H' + (x + bw - r) + ' Q' + (x + bw) + ',' + y + ' ' + (x + bw) + ',' + (y + r) + ' V' + (y + hgt) + ' Z"/>';
     }
+    if (c.cap && v > 0) s += '<text x="' + (f.L + band*i + band/2) + '" y="' + (y - 6) + '" text-anchor="middle" style="fill:var(--n1);font-size:11px;font-weight:600">' + E(c.cap(v)) + '</text>';
     const lb = c.tick ? c.tick(i) : null;
     if (lb != null) s += '<text x="' + (f.L + band*i + band/2) + '" y="' + (c.h - 5) + '" text-anchor="middle">' + E(lb) + '</text>';
   }
@@ -19804,9 +19818,292 @@ if ($train){
   });
 }
 
+/* stacked panels on one time axis: each keeps its own scale (they are separate
+   small charts, not one chart with several axes) and one crosshair runs through
+   all of them, so a bad night can be read against the days around it */
+function chartStack(el, c){
+  const n = c.n, W = Math.max(160, el.clientWidth), L = 40, R = 10, T = 6, B = 20, GAP = 16;
+  const pw = W - L - R, X = function(i){ return L + (n <= 1 ? pw/2 : pw*i/(n - 1)); };
+  let y0 = T, s = '';
+  const geo = [];
+  c.panels.forEach(function(p){
+    let lo = Infinity, hi = -Infinity;
+    const scan = function(a){ if (a) a.forEach(function(v){ if (v != null){ if (v < lo) lo = v; if (v > hi) hi = v; } }); };
+    scan(p.vals); scan(p.avg);
+    if (!isFinite(lo)){ lo = 0; hi = 1; }
+    let yMin, yMax;
+    let clip = null;
+    if (p.kind === 'cols'){
+      /* one enormous day — a hundred-miler — would flatten every other day to a
+         smear. When the top value dwarfs the rest, scale to the rest and print
+         the big one's number on its bar instead. */
+      const srt = p.vals.filter(function(v){ return v > 0; }).sort(function(a,b){ return b - a; });
+      if (srt.length > 3 && srt[0] > srt[1]*1.8){ clip = srt[1]*1.25; }
+      yMin = 0; yMax = clip ? niceMax(clip).max : niceMax(hi).max;
+    }
+    else { const pad = (hi - lo)*0.12 || 1; yMin = lo - pad; yMax = hi + pad; }
+    const Y = function(v){ return y0 + p.h - (v - yMin)/(yMax - yMin || 1)*p.h; }, top = y0;
+    geo.push({ Y:Y, top:top });
+    /* frame: baseline, a mid rule, min and max labelled; the name sits in the corner */
+    const mid = (yMin + yMax)/2;
+    [yMin, mid, yMax].forEach(function(v, k){
+      const yy = Math.round(Y(v)) + .5;
+      s += '<line class="' + (k === 0 ? 'bl' : 'gl') + '" x1="' + L + '" x2="' + (W - R) + '" y1="' + yy + '" y2="' + yy + '"/>';
+      if (k !== 1) s += '<text x="' + (L - 7) + '" y="' + (yy + (k === 0 ? 0 : 8)) + '" text-anchor="end">' + E(p.yf(v)) + '</text>';
+    });
+    s += '<text x="' + (L + 6) + '" y="' + (top + 11) + '" style="fill:var(--n2);font-size:11px;font-weight:600">' + E(p.name) + '</text>';
+    if (p.band){
+      const a = Y(Math.min(yMax, p.band[1])), b = Y(Math.max(yMin, p.band[0]));
+      if (b > a) s += '<rect x="' + L + '" y="' + a + '" width="' + pw + '" height="' + (b - a) + '" fill="var(--a)" opacity=".07"/>';
+    }
+    if (p.kind === 'cols'){
+      const bw = Math.max(1, Math.min(10, pw/n - 1));
+      p.vals.forEach(function(v, i){
+        if (!(v > 0)) return;
+        const over = v > yMax, yy = over ? y0 : Y(v), hgt = y0 + p.h - yy;
+        if (over) s += '<text x="' + (X(i) + bw/2 + 4).toFixed(1) + '" y="' + (y0 + 9) + '" style="fill:var(--n1);font-size:10.5px;font-weight:600">' + E(p.tf(v)) + '</text>';
+        s += '<rect x="' + (X(i) - bw/2).toFixed(1) + '" y="' + yy.toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + hgt.toFixed(1) + '" rx="' + Math.min(2, bw/2) + '" fill="var(--a)" opacity=".7"/>';
+      });
+    } else {
+      const path = function(a){ let d = '', pen = false; a.forEach(function(v, i){ if (v == null){ pen = false; return; } d += (pen ? 'L' : 'M') + X(i).toFixed(1) + ',' + Y(v).toFixed(1); pen = true; }); return d; };
+      s += '<path d="' + path(p.vals) + '" fill="none" stroke="var(--n4)" stroke-width="1.25" stroke-linejoin="round" opacity=".8"/>';
+      if (p.avg) s += '<path d="' + path(p.avg) + '" fill="none" stroke="var(--a)" stroke-width="2.25" stroke-linejoin="round" stroke-linecap="round"/>';
+    }
+    y0 += p.h + GAP;
+  });
+  const H = y0 - GAP + B;
+  for (let i=0;i<n;i++){
+    const lb = c.tick(i);
+    if (lb != null) s += '<text x="' + X(i) + '" y="' + (H - 5) + '" text-anchor="' + (i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle') + '">' + E(lb) + '</text>';
+  }
+  s += '<line class="xh" data-xh x1="0" x2="0" y1="' + T + '" y2="' + (H - B) + '" visibility="hidden"/>'
+     + c.panels.map(function(p, k){ return '<circle data-dot="' + k + '" r="4.5" fill="var(--a)" stroke="var(--bg-mid)" stroke-width="2" visibility="hidden"/>'; }).join('');
+  el.innerHTML = '<svg height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '">' + s + '</svg>';
+  const xh = el.querySelector('[data-xh]'), dots = el.querySelectorAll('[data-dot]');
+  bindHover(el, function(e){
+    if (!e){ xh.setAttribute('visibility','hidden'); dots.forEach(function(d){ d.setAttribute('visibility','hidden'); }); tipHide(); return; }
+    const r = el.getBoundingClientRect();
+    const i = Math.max(0, Math.min(n - 1, Math.round((e.clientX - r.left - L)/(pw/Math.max(1, n - 1)))));
+    xh.setAttribute('x1', X(i)); xh.setAttribute('x2', X(i)); xh.setAttribute('visibility','visible');
+    const rows = [];
+    c.panels.forEach(function(p, k){
+      const v = p.vals[i], a = p.avg ? p.avg[i] : null, at = (p.kind === 'cols') ? v : (a != null ? a : v);
+      if (at == null || (p.kind === 'cols' && !(v > 0))) dots[k].setAttribute('visibility','hidden');
+      else { dots[k].setAttribute('cx', X(i)); dots[k].setAttribute('cy', geo[k].Y(at)); dots[k].setAttribute('visibility','visible'); }
+      rows.push({ color: p.kind === 'cols' ? null : 'var(--a)', val: v != null ? p.tf(v) : '—', label: p.name + (a != null && p.kind !== 'cols' ? ' · 7-night ' + p.tf(a) : '') });
+    });
+    tipShow(e.clientX, e.clientY, c.tipTitle(i), rows);
+  });
+}
+
+/* a cloud of nights; the pointer only has to be nearest, not on top of one */
+function chartDots(el, c){
+  if (!c.pts.length){ el.innerHTML = '<div class="dk-empty">Not enough nights yet.</div>'; return; }
+  let xMax = 0, lo = Infinity, hi = -Infinity;
+  c.pts.forEach(function(p){ if (p.x > xMax) xMax = p.x; if (p.y < lo) lo = p.y; if (p.y > hi) hi = p.y; });
+  const xn = niceMax(xMax), pad = (hi - lo)*0.12 || 1, st = niceMax(hi + pad - (lo - pad)).step;
+  const yMin = Math.floor((lo - pad)/st)*st, yMax = Math.ceil((hi + pad)/st)*st;
+  const f = frame(el, c.h, yMax, yMin, c.yf, 34);
+  const ticks = []; for (let v = yMin; v <= yMax + 1e-9; v += st) ticks.push(v);
+  const X = function(v){ return f.L + v/xn.max*f.pw; };
+  let s = '<svg height="' + c.h + '" viewBox="0 0 ' + f.W + ' ' + c.h + '">' + gridSVG(f, ticks);
+  for (let v = 0; v <= xn.max + 1e-9; v += xn.step) s += '<text x="' + X(v) + '" y="' + (c.h - 5) + '" text-anchor="middle">' + E(c.xf(v)) + '</text>';
+  if (c.fit){ s += '<line x1="' + X(0) + '" y1="' + f.Y(c.fit.b) + '" x2="' + X(xn.max) + '" y2="' + f.Y(c.fit.b + c.fit.m*xn.max) + '" stroke="var(--n2)" stroke-width="1.5"/>'; }
+  c.pts.forEach(function(p, i){ s += '<circle data-p="' + i + '" cx="' + X(p.x).toFixed(1) + '" cy="' + f.Y(p.y).toFixed(1) + '" r="4" fill="var(--a)" opacity=".55" stroke="var(--bg-mid)" stroke-width="1.5"/>'; });
+  el.innerHTML = s + '</svg>';
+  const nodes = el.querySelectorAll('[data-p]'); let last = -1;
+  bindHover(el, function(e){
+    if (last >= 0 && nodes[last]){ nodes[last].setAttribute('r', 4); nodes[last].setAttribute('opacity', '.55'); }
+    if (!e){ last = -1; tipHide(); return; }
+    const r = el.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top;
+    let bi = -1, bd = 1e9;
+    c.pts.forEach(function(p, i){ const dx = X(p.x) - mx, dy = f.Y(p.y) - my, d = dx*dx + dy*dy; if (d < bd){ bd = d; bi = i; } });
+    if (bi < 0 || bd > 60*60){ last = -1; tipHide(); return; }
+    last = bi; nodes[bi].setAttribute('r', 6); nodes[bi].setAttribute('opacity', '1');
+    tipShow(e.clientX, e.clientY, c.pts[bi].title, c.pts[bi].rows);
+  });
+}
+function spark(vals, w, h){
+  const pts = vals.map(function(v, i){ return v == null ? null : [i, v]; }).filter(Boolean);
+  if (pts.length < 2) return '';
+  let lo = Infinity, hi = -Infinity; pts.forEach(function(p){ if (p[1] < lo) lo = p[1]; if (p[1] > hi) hi = p[1]; });
+  const X = function(i){ return 3 + i/(vals.length - 1)*(w - 6); }, Y = function(v){ return h - 4 - (v - lo)/((hi - lo) || 1)*(h - 8); };
+  const d = pts.map(function(p, k){ return (k ? 'L' : 'M') + X(p[0]).toFixed(1) + ',' + Y(p[1]).toFixed(1); }).join('');
+  const e2 = pts[pts.length - 1];
+  return '<svg class="dk-spark" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '"><path d="' + d + '" fill="none" stroke="var(--a)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'
+    + '<circle cx="' + X(e2[0]).toFixed(1) + '" cy="' + Y(e2[1]).toFixed(1) + '" r="3.5" fill="var(--a-hi)" stroke="var(--bg-mid)" stroke-width="1.5"/></svg>';
+}
+
+/* ═══ RECOVERY (Health tab) ═══ */
+const hHost = document.getElementById('s-health'), $recPane = document.getElementById('recoveryPane');
+const hs = { range:90 };
+let $hTop = null, $rec = null;
+if (hHost && $recPane){
+  hHost.insertAdjacentHTML('afterbegin', '<div class="dsk" id="dskHealthTop" style="padding-bottom:0"></div>');
+  $recPane.insertAdjacentHTML('afterbegin', '<div class="dsk nolight" id="dskRec" style="padding-top:0"></div>');
+  $hTop = document.getElementById('dskHealthTop'); $rec = document.getElementById('dskRec');
+}
+const HM = [
+  { k:'hrv',   name:'HRV',         unit:'ms',  goodUp:true,  of:function(r){ return r.hrv_last_night_avg > 0 ? +r.hrv_last_night_avg : null; }, f:function(v){ return String(Math.round(v)); } },
+  { k:'rhr',   name:'Resting HR',  unit:'bpm', goodUp:false, of:function(r){ return r.resting_hr > 0 ? +r.resting_hr : null; },               f:function(v){ return String(Math.round(v)); } },
+  { k:'sleep', name:'Sleep',       unit:'',    goodUp:true,  of:function(r){ return r.sleep_seconds > 0 ? r.sleep_seconds/3600 : null; },    f:function(v){ const h = Math.floor(v), m = Math.round((v - h)*60); return (m === 60 ? (h + 1) + ':00' : h + ':' + String(m).padStart(2,'0')); } },
+  { k:'score', name:'Sleep score', unit:'',    goodUp:true,  of:function(r){ return r.sleep_score > 0 ? +r.sleep_score : null; },            f:function(v){ return String(Math.round(v)); } },
+];
+function med(a){ const b = a.slice().sort(function(x,y){ return x - y; }); return b.length ? b[Math.floor(b.length/2)] : null; }
+function mean(a){ return a.length ? a.reduce(function(s,v){ return s + v; }, 0)/a.length : null; }
+
+function renderRec(){
+  if (!$rec || !wide.matches || !hHost.classList.contains('on')) return;
+  const fuelOn = $recPane.style.display === 'none';
+  $hTop.innerHTML = '<div class="dk-top" style="margin-bottom:16px"><div class="dk-yr"><b style="min-width:0;text-align:left">' + (fuelOn ? 'Fuel' : 'Recovery') + '</b></div>'
+    + '<div class="dk-seg"><button data-pane="recovery"' + (fuelOn ? '' : ' class="on"') + '>Recovery</button><button data-pane="fuel"' + (fuelOn ? ' class="on"' : '') + '>Fuel</button></div>'
+    + (fuelOn ? '' : '<div class="dk-seg plain">' + [[30,'30 days'],[90,'90 days'],[180,'6 months'],[365,'1 year']].map(function(o){ return '<button data-range="' + o[0] + '"' + (hs.range === o[0] ? ' class="on"' : '') + '>' + o[1] + '</button>'; }).join('') + '</div>')
+    + '<div class="dk-sp"></div>' + (fuelOn ? '' : '<button class="dk-txt" data-go="ask">Ask Jarvis about recovery</button>') + '</div>';
+  if (fuelOn) return;
+
+  const rows = (HEALTH || []).filter(function(r){ return r && r.date; });
+  const nights = rows.filter(function(r){ return r.hrv_last_night_avg > 0 || r.sleep_seconds > 0 || r.resting_hr > 0; });
+  if (nights.length < 8){ $rec.innerHTML = '<div class="dk-card"><div class="dk-empty">Not enough overnight data yet.<br>It builds up as your watch syncs each morning.</div></div>'; return; }
+  const latest = nights[nights.length - 1], latestD = new Date(latest.date + 'T00:00:00');
+  const age = Math.round((todayD - latestD)/86400000);
+  const byDate = {}; rows.forEach(function(r){ byDate[r.date] = r; });
+
+  /* ── tiles: last night against the 60 nights before it ── */
+  const hist = nights.slice(0, -1).slice(-60);
+  let R = null; try { R = computeReadiness(); } catch(e){}
+  let tiles = '<button class="dk-card dk-stat lead" data-go="ready" style="text-align:left;cursor:pointer"><label>Readiness</label>'
+    + '<div class="v"><b>' + (R && typeof R.score === 'number' ? R.score : '—') + '</b></div>'
+    + '<div class="d">' + (R && R.label ? '<b>' + E(R.label) + '</b> · how the score is built' : (R && R.stale ? 'last night has not synced' : 'needs more nights')) + '</div></button>';
+  HM.forEach(function(m){
+    const cur = m.of(latest), base = hist.map(m.of).filter(function(v){ return v != null; }), usual = base.length >= 5 ? mean(base) : null;
+    let d = '&nbsp;';
+    if (cur != null && usual){
+      const p = (cur/usual - 1)*100, good = (p >= 0) === m.goodUp, flat = Math.abs(p) < 3;
+      d = (flat ? '<b>right on</b> ' : '<b class="' + (good ? 'up' : 'dn') + '">' + (p >= 0 ? '+' : '−') + Math.abs(Math.round(p)) + '%</b> vs ') + 'your usual ' + m.f(usual) + (m.unit ? ' ' + m.unit : '');
+    }
+    const sp = nights.slice(-21).map(m.of);
+    tiles += '<div class="dk-card dk-stat"><label>' + m.name + '</label><div class="v"><b>' + (cur != null ? m.f(cur) : '—') + '</b>' + (m.unit ? '<span>' + m.unit + '</span>' : '')
+      + '<span style="margin-left:auto">' + spark(sp, 84, 30) + '</span></div><div class="d">' + d + '</div></div>';
+  });
+
+  /* ── the window, one slot per calendar day so gaps stay gaps ── */
+  const n = hs.range, start = addDays(latestD, -(n - 1)), dates = [], recs = [];
+  for (let i=0;i<n;i++){ const d = addDays(start, i); dates.push(d); recs.push(byDate[iso(d)] || null); }
+  const series = function(m){ return recs.map(function(r){ return r ? m.of(r) : null; }); };
+  const roll = function(a){ return a.map(function(_, i){ const w = []; for (let k=Math.max(0, i - 6); k<=i; k++) if (a[k] != null) w.push(a[k]); return w.length >= 3 ? mean(w) : null; }); };
+  const runDay = {}; ACTS.forEach(function(a){ if (a && a._iso && RUNLIKE.has(a.type)) runDay[a._iso] = (runDay[a._iso] || 0) + (a.distance_mi || 0); });
+  const miles = dates.map(function(d){ return runDay[iso(d)] || 0; });
+  const vHrv = series(HM[0]), vRhr = series(HM[1]), vSl = series(HM[2]), vSc = series(HM[3]);
+  const hrvBase = hist.map(HM[0].of).filter(function(v){ return v != null; }).sort(function(a,b){ return a - b; });
+  const band = hrvBase.length >= 10 ? [hrvBase[Math.floor(hrvBase.length*.25)], hrvBase[Math.floor(hrvBase.length*.75)]] : null;
+
+  /* ── this window against the one before it ── */
+  const prevRecs = []; for (let i=0;i<n;i++) prevRecs.push(byDate[iso(addDays(start, i - n))] || null);
+  const cmp = HM.map(function(m){
+    const a = recs.map(function(r){ return r ? m.of(r) : null; }).filter(function(v){ return v != null; });
+    const b = prevRecs.map(function(r){ return r ? m.of(r) : null; }).filter(function(v){ return v != null; });
+    return { m:m, now: a.length ? mean(a) : null, then: b.length >= Math.min(10, n/4) ? mean(b) : null, n:a.length };
+  });
+  const cmpHTML = cmp.map(function(c){
+    let ch = '—', cls = '';
+    if (c.now != null && c.then){ const p = (c.now/c.then - 1)*100; cls = Math.abs(p) < 2 ? '' : ((p >= 0) === c.m.goodUp ? 'up' : 'dn'); ch = (p >= 0 ? '+' : '−') + Math.abs(p).toFixed(Math.abs(p) < 10 ? 1 : 0) + '%'; }
+    return '<div class="dk-fact"><span>' + c.m.name + '</span><b class="' + cls + '">' + (c.now != null ? c.m.f(c.now) + (c.m.unit ? ' ' + c.m.unit : '') : '—')
+      + '<small>' + (c.then ? ch + ' on the ' + n + ' days before (' + c.m.f(c.then) + ')' : 'no earlier window to compare') + '</small></b></div>';
+  }).join('');
+
+  /* ── does a big day show up overnight? yesterday's miles against last night's HRV ── */
+  const pts = [];
+  for (let i=1;i<n;i++){
+    const h = vHrv[i]; if (h == null) continue;
+    const mi = miles[i - 1];
+    pts.push({ x:mi, y:h, title:dates[i].toLocaleDateString(undefined, { weekday:'short', month:'short', day:'numeric' }),
+               rows:[{ val:Math.round(h) + ' ms', label:'HRV that night' }, { val:(Math.round(mi*10)/10) + ' mi', label:'run the day before' }] });
+  }
+  let rTxt = 'Not enough nights in this window to say.', fit = null;
+  if (pts.length >= 12){
+    const mx = mean(pts.map(function(p){ return p.x; })), my = mean(pts.map(function(p){ return p.y; }));
+    let sxy = 0, sxx = 0, syy = 0; pts.forEach(function(p){ sxy += (p.x - mx)*(p.y - my); sxx += (p.x - mx)*(p.x - mx); syy += (p.y - my)*(p.y - my); });
+    if (sxx > 0 && syy > 0){
+      const r = sxy/Math.sqrt(sxx*syy), m = sxy/sxx; fit = { m:m, b:my - m*mx };
+      const mag = Math.abs(r), word = mag < 0.15 ? 'no real link' : mag < 0.3 ? 'a weak link' : mag < 0.5 ? 'a moderate link' : 'a strong link';
+      rTxt = 'Across ' + pts.length + ' nights there is <b>' + word + '</b>' + (mag < 0.15 ? '' : ': HRV runs about <b>' + Math.abs(m*10).toFixed(1) + ' ms ' + (m < 0 ? 'lower' : 'higher') + '</b> for every 10 miles the day before')
+           + '. (r = ' + r.toFixed(2) + '. A link is not a cause — sleep, heat and stress move HRV too.)';
+    }
+  }
+
+  /* ── weekday pattern for HRV, and sleep nights ── */
+  const wd = [[],[],[],[],[],[],[]];
+  recs.forEach(function(r, i){ const v = r ? HM[0].of(r) : null; if (v != null) wd[(dates[i].getDay() + 6) % 7].push(v); });
+  const wdAvg = wd.map(function(a){ return a.length ? mean(a) : 0; });
+  const wdHave = wdAvg.filter(function(v){ return v > 0; });
+  const wdTop = wdAvg.indexOf(Math.max.apply(null, wdAvg)), wdLow = wdHave.length ? wdAvg.indexOf(Math.min.apply(null, wdHave)) : -1;
+  const sl30 = vSl.slice(-30), sl30d = dates.slice(-30), slUsual = med(hist.map(HM[2].of).filter(function(v){ return v != null; }));
+  const short = sl30.filter(function(v){ return v != null && v < 6; }).length;
+
+  $rec.innerHTML =
+      (age > 1 ? '<div class="dk-card" style="margin-bottom:14px;padding:12px 18px"><div class="dk-note" style="margin:0"><b>Nothing overnight since ' + latestD.toLocaleDateString(undefined, { month:'short', day:'numeric' })
+        + '.</b> Open Garmin Connect on your phone so the watch syncs. Everything below is as of that night.</div></div>' : '')
+    + '<div class="dk-grid dk-g5">' + tiles + '</div>'
+    + '<div class="dk-grid dk-g21">'
+    +   '<div class="dk-card lead"><div class="dk-h"><h3>Recovery against training</h3><span>' + n + ' days to ' + latestD.toLocaleDateString(undefined, { month:'short', day:'numeric' }) + '</span></div>'
+    +     '<div class="dk-leg"><span><i style="--k:var(--a)"></i>7-night average</span><span><i class="thin" style="--k:var(--n4)"></i>each night</span>'
+    +       (band ? '<span><i class="box" style="--k:color-mix(in srgb,var(--a) 22%,transparent)"></i>your usual HRV range</span>' : '') + '<span><i class="box" style="--k:var(--a)"></i>miles run</span></div>'
+    +     '<div class="dk-chart" id="dkStack"></div></div>'
+    +   '<div class="dk-card tall"><div class="dk-h"><h3>This stretch</h3><span>average over the ' + n + ' days</span></div><div class="dk-facts">' + cmpHTML + '</div></div>'
+    + '</div>'
+    + '<div class="dk-grid dk-g11">'
+    +   '<div class="dk-card"><div class="dk-h"><h3>Does a big day show up overnight?</h3><span>each dot is one night</span></div>'
+    +     '<div class="dk-chart" id="dkScat"></div><div class="dk-axis">miles run the day before →</div><div class="dk-note">' + rTxt + '</div></div>'
+    +   '<div class="dk-card"><div class="dk-h"><h3>Sleep, night by night</h3><span>the last 30 nights</span></div>'
+    +     '<div class="dk-chart" id="dkSleep"></div>'
+    +     '<div class="dk-note">' + (short ? '<b>' + short + ' night' + (short === 1 ? '' : 's') + '</b> under 6 hours in the last 30.' : 'No nights under 6 hours in the last 30.')
+    +       (slUsual ? ' Your usual is <b>' + HM[2].f(slUsual) + '</b>.' : '') + '</div></div>'
+    + '</div>'
+    + '<div class="dk-grid dk-g11">'
+    +   '<div class="dk-card"><div class="dk-h"><h3>HRV by morning of the week</h3><span>average, this window</span></div><div class="dk-chart" id="dkWd"></div>'
+    +     '<div class="dk-note">' + (wdLow >= 0 && wdTop !== wdLow ? 'Highest on <b>' + DOWS[wdTop] + '</b> mornings, lowest on <b>' + DOWS[wdLow] + '</b>. Each night counts toward the morning you woke up.' : '') + '</div></div>'
+    +   '<div class="dk-card"><div class="dk-h"><h3>Sleep score</h3><span>' + n + ' days</span></div><div class="dk-chart" id="dkScore"></div>'
+    +     '<div class="dk-note">Deep and REM minutes, Body Battery and calories are not shown: the Garmin link that feeds this app does not carry them.</div></div>'
+    + '</div>';
+
+  const step = n <= 30 ? 5 : n <= 90 ? 14 : n <= 180 ? 30 : 0;
+  const tick = function(i){
+    const d = dates[i];
+    if (step === 0) return d.getDate() === 1 ? MON[d.getMonth()] : null;
+    if (n > 90) return d.getDate() === 1 ? MON[d.getMonth()] : null;
+    return ((n - 1 - i) % step === 0) ? MON[d.getMonth()] + ' ' + d.getDate() : null;
+  };
+  const title = function(i){ return dates[i].toLocaleDateString(undefined, { weekday:'short', month:'short', day:'numeric', year:'numeric' }); };
+  chartStack(document.getElementById('dkStack'), { n:n, tick:tick, tipTitle:title, panels:[
+    { name:'HRV',        kind:'line', h:118, vals:vHrv, avg:roll(vHrv), band:band, yf:HM[0].f, tf:function(v){ return Math.round(v) + ' ms'; } },
+    { name:'Resting HR', kind:'line', h:84,  vals:vRhr, avg:roll(vRhr), yf:HM[1].f, tf:function(v){ return Math.round(v) + ' bpm'; } },
+    { name:'Sleep',      kind:'line', h:84,  vals:vSl,  avg:roll(vSl),  yf:HM[2].f, tf:HM[2].f },
+    { name:'Miles run',  kind:'cols', h:70,  vals:miles, yf:function(v){ return String(Math.round(v)); }, tf:function(v){ return (Math.round(v*10)/10) + ' mi'; } },
+  ] });
+  chartDots(document.getElementById('dkScat'), { h:230, pts:pts, fit:fit, yf:function(v){ return String(Math.round(v)); }, xf:function(v){ return String(Math.round(v)); } });
+  chartCols(document.getElementById('dkSleep'), { h:230, vals:sl30.map(function(v){ return v || 0; }), ref:slUsual, refLabel:'usual', barMax:14,
+    yf:function(v){ return v + 'h'; }, tick:function(i){ return (29 - i) % 7 === 0 ? MON[sl30d[i].getMonth()] + ' ' + sl30d[i].getDate() : null; },
+    tipTitle:function(i){ return sl30d[i].toLocaleDateString(undefined, { weekday:'short', month:'short', day:'numeric' }); },
+    tipRows:function(i){ return [{ color:'var(--a)', val: sl30[i] != null ? HM[2].f(sl30[i]) : 'No data', label: sl30[i] != null ? 'asleep' : '' }]; } });
+  chartCols(document.getElementById('dkWd'), { h:200, vals:wdAvg, hi:wdTop, barMax:24, cap:function(v){ return String(Math.round(v)); }, yf:function(v){ return String(Math.round(v)); },
+    tick:function(i){ return DOWS[i]; }, tipTitle:function(i){ return 'Woke up on a ' + DOWS[i]; },
+    tipRows:function(i){ return [{ color:'var(--a)', val:Math.round(wdAvg[i]) + ' ms', label:wd[i].length + ' nights' }]; } });
+  chartLine(document.getElementById('dkScore'), { h:200, n:n, zero:false, series:[{ name:'7-night average', color:'var(--a)', vals:roll(vSc), end:true }],
+    yf:function(v){ return String(Math.round(v)); }, tick:tick, tipTitle:title });
+}
+if ($hTop){
+  $hTop.addEventListener('click', function(e){
+    const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.pane){ const o = document.querySelector('#hlTabs [data-ht="' + b.dataset.pane + '"]'); if (o) o.click(); tipHide(); setTimeout(renderRec, 0); }
+    else if (b.dataset.range){ hs.range = +b.dataset.range; tipHide(); renderRec(); }
+    else if (b.dataset.go === 'ask') openRecoveryAsk();
+  });
+  $rec.addEventListener('click', function(e){ if (e.target.closest('[data-go="ready"]')) openReadiness(); });
+}
+
 /* ═══ WIRING ═══ */
 function safe(fn, label){ try { fn(); } catch(e){ console.error('[dsk] ' + label, e); } }
-function renderAll(){ safe(renderTrain, 'training'); }
+function renderAll(){ safe(renderTrain, 'training'); safe(renderRec, 'recovery'); }
 window.dskRender = renderAll;
 /* The app redraws the Progress tab through renderProgress whenever activities
    or goals change. Wrapping it means this dashboard hears about every one of
@@ -19815,6 +20112,13 @@ if (typeof renderProgress === 'function'){
   const _rp = renderProgress;
   renderProgress = function(){ const r = _rp.apply(this, arguments); safe(renderTrain, 'training'); return r; };
 }
+/* same for the Health tab, which the app redraws through renderHealth as nights sync */
+if (typeof renderHealth === 'function'){
+  const _rh = renderHealth;
+  renderHealth = function(){ const r = _rh.apply(this, arguments); safe(renderRec, 'recovery'); return r; };
+}
+if (hHost) new MutationObserver(function(){ if (hHost.classList.contains('on')) safe(renderRec, 'recovery'); else tipHide(); })
+  .observe(hHost, { attributes:true, attributeFilter:['class'] });
 if (host) new MutationObserver(function(){ if (host.classList.contains('on')) safe(renderTrain, 'training'); else tipHide(); })
   .observe(host, { attributes:true, attributeFilter:['class'] });
 /* charts are drawn at real pixel size, so they are redrawn when that changes */
