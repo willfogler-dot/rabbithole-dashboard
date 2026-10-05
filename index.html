@@ -6721,7 +6721,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v149';
+const RH_BUILD = 'v150';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -20088,6 +20088,7 @@ render();
 .hm-it.miss .t{text-decoration:line-through;font-weight:400;} .hm-it.miss .v{color:var(--n4);}
 .hm-none{font-size:11.5px;color:var(--n4);padding:4px 3px;}
 .hm-tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:14px 0;}
+.hm-weekcard{margin-bottom:14px;}
 /* a button centres its content by default, which left the shorter tile floating */
 .hm-tiles .dk-card{padding:15px 17px 14px;text-align:left;width:100%;color:inherit;font:inherit;display:flex;flex-direction:column;justify-content:flex-start;align-items:stretch;}
 .hm-tiles button.dk-card{transition:transform .12s,border-color .15s;}
@@ -21135,9 +21136,10 @@ function renderHome(){
     + '<button class="dk-txt hm-wkbtn" data-go="week">Week</button><button class="dk-txt" data-go="jarvis">Ask Jarvis</button></div>'
     + '<div class="hm-row hm-r1"><div class="dk-card hm-ready">' + ring + '<div class="hm-rtxt">' + rt + '</div></div>'
     + '<div class="dk-card"><div class="dk-h" style="margin-bottom:14px"><h3>Last night</h3><span>' + (nDate ? nDate.toLocaleDateString(undefined, { weekday:'short', month:'short', day:'numeric' }) + ' · against your last 4 weeks' : '') + '</span></div>' + nightCard + '</div></div>'
+    /* totals first, then the days that make them up (v150; the phone hides both) */
+    + '<div class="hm-tiles">' + tiles + '</div>'
     + '<div class="dk-card hm-weekcard"><div class="dk-h"><h3>This week</h3><span>' + MON[mon.getMonth()] + ' ' + mon.getDate() + ' – ' + (sun.getMonth() !== mon.getMonth() ? MON[sun.getMonth()] + ' ' : '') + sun.getDate() + '</span>'
     + '<span class="dk-sp"></span><button class="dk-txt" data-go="plan">Open planner</button></div><div class="hm-days">' + days + '</div></div>'
-    + '<div class="hm-tiles">' + tiles + '</div>'
     + '<div class="hm-row hm-r3"><div id="hmVolSlot"></div>'
     + '<div class="hm-side"><div class="dk-card"><div class="dk-h"><h3>Insights</h3></div><div class="dk-facts hm-ins">' + insights + '</div></div>'
     + '<div class="dk-card"><div class="dk-h"><h3>Recent</h3><span class="dk-sp"></span><button class="dk-txt" data-go="acts" style="margin:-6px -6px 0 0">All activities</button></div><div class="dk-list hm-recent">' + (recent || '<div class="dk-empty">No activities yet.<br>Connect Strava under Profile and they appear here on their own.</div>') + '</div></div></div></div>';
