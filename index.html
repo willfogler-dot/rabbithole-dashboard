@@ -6721,7 +6721,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v147';
+const RH_BUILD = 'v148';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -17740,15 +17740,17 @@ if ('serviceWorker' in navigator){
      style and script blocks, so a fault here cannot stop the main script from
      running, and it can be removed by deleting everything between the markers. -->
 <style id="plx-style">
-/* The planner only exists at tablet width and up. Planning is done on an iPad or
-   a laptop; the phone keeps the older Today/Week/Month views for review. */
-#plx{display:none;}
+/* One planner at every width. Until v148 the phone kept the older
+   Today/Week/Month views and this one only existed from tablet width up; the
+   phone now gets this planner restacked for a narrow screen (see the phone
+   block at the very end of this stylesheet). The old views are still in the
+   page, hidden, because other code still renders into them. */
+#s-plan > *:not(#plx){display:none !important;}
+#plx{display:block;position:relative;padding-top:20px;-webkit-user-select:none;user-select:none;}
 @media (min-width:760px){
   /* The whole app is a 520px column. Only the Plan tab breaks out of it, and
      only while it is the tab on screen. */
   .app:has(#s-plan.on){max-width:1380px;padding-left:28px;padding-right:28px;}
-  #s-plan > *:not(#plx){display:none !important;}
-  #plx{display:block;position:relative;padding-top:20px;-webkit-user-select:none;user-select:none;}
 }
 /* The brandmark's three hues, kept as one ramp. It marks exactly three things —
    where you are (today, this week), what is selected, and what is filling — so
@@ -18132,6 +18134,76 @@ if ('serviceWorker' in navigator){
   .plx-day.plx-wd .plx-wdh{flex:0 0 100%;padding-bottom:2px;}
   .plx-day.plx-wd .plx-chip.plx-card{flex:0 1 calc(33.333% - 5px);font-size:12px;padding:8px 9px;}
   .plx-day.plx-wd .plx-wadd{margin-top:0;flex:0 0 auto;padding:8px 14px;align-self:stretch;}
+}
+/* ═══ PHONE ═══
+   Kept LAST so it wins over the base rules above without !important wars.
+   The phone is for looking at the plan, with the odd edit, so it keeps the
+   week and the month and drops the planning tools: year plan, targets, the
+   tools menu and Miles/Vert all stay on the iPad and laptop. */
+@media (max-width:759px){
+  #plx{padding-top:4px;}
+  #plx::before{display:none;}
+  #plxYear > :not(.plx-top){display:none !important;}
+  .plx-top.plx-mh{flex-wrap:wrap;gap:10px 8px;margin-bottom:12px;}
+  .plx-mh .ttl{order:1;flex:1 1 0;min-width:0;}
+  .plx-mh h2{font-size:19px;overflow:hidden;text-overflow:ellipsis;}
+  .plx-mh .plx-mstat,.plx-mh .plx-tog,.plx-mh .plx-gearwrap,.plx-mh .plx-seg:not(.view),.plx-mh .plx-sp,.plx-mh [data-act="undo"][disabled]{display:none;}
+  .plx-mh .plx-txt{order:2;padding:10px 8px;}
+  .plx-mh .plx-step{order:3;margin:0;}
+  .plx-step button{width:42px;height:38px;}
+  .plx-mh .plx-seg.view{order:4;flex:1 1 100%;margin:0;}
+  .plx-mh .plx-seg.view button{flex:1;padding-top:9px;padding-bottom:9px;}
+  /* nothing hovers on a phone, and a stuck :hover after a tap looks like a selection */
+  .plx-day:hover,.plx-wk:hover{filter:none;}
+
+  /* week: the summary stacks, then one card per day */
+  .plx-hero{grid-template-columns:minmax(0,1fr);}
+  .plx-hero > div{padding:16px 16px;}
+  .plx-hero > div + div{border-left:none;border-top:1px solid var(--line);}
+  .plx-hx-n b{font-size:50px;}
+  .plx-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 16px;}
+  .plx-fact{flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:3px;}
+  .plx-fact b{text-align:left;}
+  .plx-week{grid-template-columns:minmax(0,1fr);gap:8px;}
+  .plx-day.plx-wd{min-height:0;padding:11px 11px 10px;}
+  .plx-wdh{padding-bottom:4px;}
+  .plx-wdh .dw{font-size:12px;}
+  .plx-chip.plx-card{font-size:14px;padding:11px 12px;}
+  .plx-card .c2,.plx-card .c3{font-size:12.5px;}
+  .plx-card.minor .c1 .nm{font-size:13.5px;} .plx-card.minor .c1 .val{font-size:13px;}
+  /* "+ Add" as a full-width button under every day made the week twice as
+     long. Here it is a + in the corner of the day; tapping the day does the same. */
+  .plx-wdh{padding-right:34px;min-height:26px;}
+  .plx-wadd{position:absolute;top:6px;right:6px;width:36px;height:36px;margin:0;padding:0;border:none;font-size:0;color:var(--n3);}
+  .plx-wadd::before{content:'+';font-size:21px;font-weight:400;line-height:36px;}
+  .plx-day.plx-wd.past .plx-wadd{display:none;}
+  .plx-day.plx-wd.past .plx-wdh{padding-right:2px;}
+  .plx-fact small{white-space:normal;}
+
+  /* month: seven columns of dots and run miles, each week's total on its own line under it */
+  .plx-grid{grid-template-columns:repeat(7,minmax(0,1fr));border-width:1px;border-radius:16px;}
+  .plx-gh{padding:9px 0 8px;text-align:center;font-size:10.5px;letter-spacing:.06em;}
+  .plx-gh:nth-child(8){display:none;}
+  .plx-grid .plx-day,.plx-grid .plx-day.old{min-height:58px;padding:6px 2px 7px;align-items:center;gap:4px;}
+  .plx-day .dh{flex-direction:column;height:auto;gap:3px;width:100%;}
+  .plx-day .add{display:none;}
+  .plx-day .rc{font-size:0;padding:0;height:4px;width:70%;border-radius:2px;}
+  .plx-grid .plx-chips{flex-direction:row;flex-wrap:wrap;justify-content:center;align-items:center;gap:3px;}
+  .plx-grid .plx-chip{width:7px;height:7px;min-width:0;padding:0;border:1.5px solid var(--c);border-radius:50%;background:none;box-shadow:none;font-size:0;gap:0;flex:0 0 auto;}
+  .plx-grid .plx-chip > *{display:none;}
+  .plx-grid .plx-chip.done,.plx-grid .plx-chip.act{background:var(--c);border-style:solid;}
+  .plx-grid .plx-chip.missed{border-color:var(--n4);}
+  .plx-wk{grid-column:1 / -1;flex-direction:row;flex-wrap:wrap;align-items:baseline;gap:2px 10px;padding:9px 13px 10px;box-shadow:none;}
+  .plx-wk .wl{flex:1 1 auto;}
+  .plx-wk .big{margin:0;} .plx-wk .big b{font-size:18px;}
+  .plx-wk .sub{margin:0;}
+  .plx-wk .sub ~ .sub,.plx-wk .mix,.plx-wk .wa{display:none;}
+  .plx-wk .plx-wbar{flex:1 1 100%;margin-top:6px;}
+
+  /* the add/edit form is pinned to the top of the screen by placePop(); the
+     wide shadow is the dimmed backdrop */
+  .plx-pop{z-index:70;max-height:calc(100vh - env(safe-area-inset-top,0px) - 150px);box-shadow:0 0 0 100vmax rgba(4,6,11,.6),0 18px 50px rgba(0,0,0,.6);}
+  .plx-pop input,.plx-pop textarea,.plx-pop select{font-size:16px;}
 }
 </style>
 
@@ -19045,6 +19117,15 @@ function describe(rec){
 }
 
 /* ═══ POPOVER ═══ */
+/* height of the notch / status bar strip, read once from CSS */
+let _safeTop = null;
+function safeTop(){
+  if (_safeTop == null){
+    const p = document.createElement('div'); p.style.cssText = 'position:absolute;visibility:hidden;padding-top:env(safe-area-inset-top,0px)';
+    document.body.appendChild(p); _safeTop = parseFloat(getComputedStyle(p).paddingTop) || 0; p.remove();
+  }
+  return _safeTop;
+}
 function placePop(){
   if (!st.pop) return;
   let a;
@@ -19054,6 +19135,22 @@ function placePop(){
     a = day ? (day.querySelector('.plx-wadd') || day) : null;        /* week view: sit under the Add button */
   }
   if (!a){ closePop(); return; }
+  if (!wide.matches){
+    /* Phone: pinned to the top of what is visible, full width, so the keyboard
+       (which rises from the bottom) cannot cover it. This would be
+       position:fixed, but every tab has contain:layout for scrolling speed,
+       and that makes fixed behave like absolute. So it is placed by hand and
+       re-placed when the page scrolls. visualViewport.offsetTop is how far iOS
+       has slid the page up under an open keyboard. */
+    const r0 = $root.getBoundingClientRect(), vv = window.visualViewport;
+    $pop.style.width = (window.innerWidth - 20) + 'px';
+    $pop.style.left = (10 - r0.left) + 'px';
+    /* under the app's own sticky title bar, which would otherwise sit on top of the form */
+    const hd = document.querySelector('.hdr'), hb = hd ? Math.max(0, hd.getBoundingClientRect().bottom) : 0;
+    $pop.style.top = ((vv ? vv.offsetTop : 0) + Math.max(safeTop(), hb) + 8 - r0.top) + 'px';
+    return;
+  }
+  $pop.style.width = '';
   const rr = $root.getBoundingClientRect(), ar = a.getBoundingClientRect();
   const pw = $pop.offsetWidth, ph = $pop.offsetHeight, vw = window.innerWidth, vh = window.innerHeight;
   /* Worked out in window coordinates, then converted. Below the anchor if it
@@ -19310,7 +19407,7 @@ function copyTSV(){
 }
 
 /* ═══ RENDER ═══ */
-function active(){ return wide.matches && host.classList.contains('on'); }
+function active(){ return host.classList.contains('on'); }   /* every width since v148 */
 function render(){
   if (!active()) return;
   /* a field that just lost focus to another field must not have that focus
@@ -19326,6 +19423,9 @@ function render(){
   if (st.pop) placePop();
 }
 window.plxRender = render;
+const _repop = function(){ if (st.pop && !wide.matches && !$pop.hidden) placePop(); };
+window.addEventListener('scroll', _repop, { passive:true });
+if (window.visualViewport){ window.visualViewport.addEventListener('scroll', _repop); window.visualViewport.addEventListener('resize', _repop); }
 /* digits are a full character wide; commas, points and signs about half */
 function fitField(el){ const t = String(el.value || el.placeholder || ''); const n = t.replace(/[^0-9]/g, '').length; el.style.width = Math.max(1.6, n + (t.length - n)*0.55 + 0.25) + 'ch'; }
 $year.addEventListener('input', function(e){ if (e.target.matches && e.target.matches('.plx-k .v input')) fitField(e.target); });
@@ -19481,6 +19581,12 @@ $month.addEventListener('click', function(e){
   /* the totals cell is the way into that week */
   const wkc = e.target.closest('.plx-wk');
   if (wkc){ st.view = 'week'; lsSet(VIEW_KEY, 'week'); gotoWeek(wkc.dataset.week); closePop(); render(); return; }
+  /* On the phone the month is a map, not a form: its cells are too small to
+     edit in, so a tap on any day opens that day's week, where there is room. */
+  if (!wide.matches && st.view === 'month'){
+    const d0 = e.target.closest('.plx-day');
+    if (d0){ st.view = 'week'; lsSet(VIEW_KEY, 'week'); gotoWeek(iso(weekStart(dOf(d0.dataset.date)))); closePop(); render(); window.scrollTo(0, 0); return; }
+  }
   const chip = e.target.closest('.plx-chip');
   if (chip){ if (chip.dataset.id) openEdit(chip.dataset.id); return; }
   if (e.target.tagName === 'INPUT') return;
