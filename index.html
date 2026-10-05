@@ -3979,7 +3979,7 @@ function paintAll(){
 async function loadHealth(){
   const c = syncCfg();
   const st = document.getElementById('setHealthStatus'), sub = document.getElementById('setHealthSub');
-  if (!c){ if(st){st.className='conn no';st.textContent='\u25cf Not configured';} if(sub) sub.textContent='no Supabase config found'; renderMetrics(); return; }
+  if (!c){ if(st){st.className='conn no';st.textContent='\u25cf Not configured';} if(sub) sub.textContent='no Supabase config found'; window.rhHealthLoaded = true; renderMetrics(); return; }
   try {
     /* PostgREST caps a response at 1,000 rows unless told otherwise, and does
        so silently. Ascending order meant the OLDEST thousand came back and
@@ -4031,6 +4031,7 @@ async function loadHealth(){
 
      Batched into one frame instead: the browser lays out once at the end rather
      than four times in the middle. */
+  window.rhHealthLoaded = true;   /* answered (or failed): placeholders give way to real content or a real empty state */
   paintAll();
   /* Only now is the overnight picture real. Guarded by the usual cache key, so
      this is still one call a day. */
@@ -6720,7 +6721,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v145';
+const RH_BUILD = 'v146';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -19852,6 +19853,14 @@ render();
 .dk-axis{text-align:center;font-family:var(--fd);font-size:11px;color:var(--n4);margin-top:2px;}
 .dk-spark{display:block;}
 .dk-empty{padding:28px 10px;text-align:center;font-size:12.5px;color:var(--n3);line-height:1.6;}
+/* Placeholders for the seconds before the first overnight sync has answered.
+   Without them the card said "No overnight data yet", which is a lie for the
+   first second of every fresh install, and then the layout jumped when the
+   real numbers arrived. These hold the same shape the content will have. */
+.dk-skel{display:block;border-radius:6px;background:linear-gradient(90deg,var(--el0-bg) 25%,rgba(128,140,180,.16) 50%,var(--el0-bg) 75%);background-size:200% 100%;animation:dkSkel 1.3s linear infinite;}
+@keyframes dkSkel{from{background-position:200% 0;}to{background-position:-200% 0;}}
+@media (prefers-reduced-motion:reduce){.dk-skel{animation:none;}}
+.hm-nt.skel{pointer-events:none;}
 
 @media (min-width:760px) and (max-width:1023px){
   .dk-g4{grid-template-columns:repeat(2,minmax(0,1fr));}
@@ -20686,6 +20695,9 @@ function renderRec(){
 
   const rows = (HEALTH || []).filter(function(r){ return r && r.date; });
   const nights = rows.filter(function(r){ return r.hrv_last_night_avg > 0 || r.sleep_seconds > 0 || r.resting_hr > 0; });
+  if (nights.length < 8 && !window.rhHealthLoaded){
+    const sk = '<div class="dk-card dk-stat"><i class="dk-skel" style="width:70px;height:11px"></i><i class="dk-skel" style="width:90px;height:30px;margin-top:14px"></i><i class="dk-skel" style="width:120px;height:11px;margin-top:12px"></i></div>';
+    $rec.innerHTML = '<div class="dk-grid dk-g5">' + sk + sk + sk + sk + sk + '</div><div class="dk-card"><i class="dk-skel" style="height:220px"></i></div>'; return; }
   if (nights.length < 8){ $rec.innerHTML = '<div class="dk-card"><div class="dk-empty">Not enough overnight data yet.<br>It builds up as your watch syncs each morning.</div></div>'; return; }
   const latest = nights[nights.length - 1], latestD = new Date(latest.date + 'T00:00:00');
   const age = Math.round((todayD - latestD)/86400000);
@@ -20992,7 +21004,8 @@ function renderHome(){
         .replace('width="160" height="34"', 'preserveAspectRatio="none"').replace(/<circle[^>]*\/>/, '') + '</div></button>';
   };
   const hm = function(sec){ const m = Math.round(sec/60); return Math.floor(m/60) + ':' + String(m % 60).padStart(2, '0'); };
-  const nightCard = nights.length
+  const skelNt = '<div class="hm-nt skel"><i class="dk-skel" style="width:52px;height:11px"></i><i class="dk-skel" style="width:74px;height:30px;margin-top:12px"></i><i class="dk-skel" style="width:110px;height:11px;margin-top:12px"></i><i class="dk-skel" style="height:34px;margin-top:12px"></i></div>';
+  const nightCard = (!nights.length && !window.rhHealthLoaded) ? '<div class="hm-night">' + skelNt + skelNt + skelNt + skelNt + '</div>' : nights.length
     ? '<div class="hm-night">' + nt('HRV', 'hrv_last_night_avg', function(x){ return String(Math.round(x)); }, 'ms') + nt('Resting HR', 'resting_hr', function(x){ return String(Math.round(x)); }, 'bpm')
       + nt('Sleep', 'sleep_seconds', hm, '') + nt('Sleep score', 'sleep_score', function(x){ return String(Math.round(x)); }, '') + '</div>'
     : '<div class="dk-empty">No overnight data yet. It arrives after your watch syncs in the morning.</div>';
@@ -21035,7 +21048,7 @@ function renderHome(){
     + '<div class="hm-tiles">' + tiles + '</div>'
     + '<div class="hm-row hm-r3"><div id="hmVolSlot"></div>'
     + '<div class="hm-side"><div class="dk-card"><div class="dk-h"><h3>Insights</h3></div><div class="dk-facts hm-ins">' + insights + '</div></div>'
-    + '<div class="dk-card"><div class="dk-h"><h3>Recent</h3><span class="dk-sp"></span><button class="dk-txt" data-go="acts" style="margin:-6px -6px 0 0">All activities</button></div><div class="dk-list hm-recent">' + (recent || '<div class="dk-empty">No activities yet.</div>') + '</div></div></div></div>';
+    + '<div class="dk-card"><div class="dk-h"><h3>Recent</h3><span class="dk-sp"></span><button class="dk-txt" data-go="acts" style="margin:-6px -6px 0 0">All activities</button></div><div class="dk-list hm-recent">' + (recent || '<div class="dk-empty">No activities yet.<br>Connect Strava under Profile and they appear here on their own.</div>') + '</div></div></div></div>';
   lend();
 }
 if ($home){
