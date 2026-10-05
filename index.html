@@ -6688,7 +6688,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v140';
+const RH_BUILD = 'v141';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -19823,6 +19823,23 @@ render();
 #hmVolSlot .ov-volume > .hsec{display:none;}
 @media (min-width:760px){ #hmVolSlot .vol-svg{height:260px;} }
 .hm-rtxt{min-width:0;flex:1;}
+.hm-verdict{font-family:var(--fd);font-size:19px;font-weight:600;letter-spacing:-.015em;color:var(--n1);margin-bottom:10px;}
+.hm-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;}
+.hm-chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--n2);padding:5px 10px 5px 8px;border-radius:999px;background:var(--n6);border:1px solid var(--n5);white-space:nowrap;}
+.hm-chip i{font-style:normal;font-size:9px;color:var(--n3);}
+.hm-chip b{font-family:var(--fd);font-weight:600;color:var(--n1);font-variant-numeric:tabular-nums;}
+/* direction is carried by the arrow as well as the colour */
+.hm-chip.t-up i{color:var(--pos);} .hm-chip.t-dn i{color:var(--neg);}
+.hm-chip.t-up{border-color:color-mix(in srgb,var(--pos) 34%,transparent);} .hm-chip.t-dn{border-color:color-mix(in srgb,var(--neg) 34%,transparent);}
+.hm-today label{display:block;font-size:12px;color:var(--n3);margin-bottom:6px;}
+.hm-td{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--n1);padding:7px 0;border-top:1px solid var(--line);}
+.hm-td i{flex:0 0 auto;width:16px;height:16px;border-radius:50%;border:1.5px solid var(--k,var(--a));position:relative;}
+.hm-td.done i{background:var(--k,var(--a));border-color:var(--k,var(--a));}
+.hm-td.done i::after{content:'';position:absolute;left:4.5px;top:2px;width:4px;height:7.5px;border:solid #080a12;border-width:0 2px 2px 0;transform:rotate(45deg);}
+.hm-td span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;}
+.hm-td b{font-family:var(--fd);font-size:12.5px;font-weight:500;color:var(--n2);font-variant-numeric:tabular-nums;}
+.hm-td.none span{font-weight:400;color:var(--n3);}
+.hm-rtxt .brief{margin-top:12px;}
 .hm-rtxt h3{font-family:var(--fd);font-size:15px;font-weight:600;color:var(--n1);margin:0 0 6px;}
 .hm-rtxt p{font-size:13px;line-height:1.55;color:var(--n2);margin:0 0 8px;}
 .hm-rtxt p b{color:var(--n1);font-weight:600;}
@@ -19931,8 +19948,13 @@ render();
   .hm-row{gap:12px;margin-bottom:12px;}
   .hm-r1,.hm-r3{grid-template-columns:minmax(0,1fr);}
   /* ring on top, words under it: side by side there is no room for either */
-  .hm-r1 > .dk-card.hm-ready{flex-direction:column;align-items:center;gap:6px;}
-  .hm-ringslot .portal{zoom:.86;}
+  /* first thing on the page: the ring gets room and a wash of light behind it
+     (one of the three places the accent is spent), and the words centre under it */
+  .hm-r1 > .dk-card.hm-ready{flex-direction:column;align-items:center;gap:4px;padding-top:6px;overflow:hidden;
+    background:radial-gradient(120% 62% at 50% 0%,rgba(143,154,232,.20),transparent 70%),var(--glass);}
+  .hm-ringslot .portal{zoom:.94;}
+  .hm-verdict{text-align:center;font-size:20px;margin:2px 0 12px;}
+  .hm-chips{justify-content:center;}
   .hm-rtxt{width:100%;}
   .hm-night{grid-template-columns:repeat(2,minmax(0,1fr));row-gap:16px;}
   .hm-nt{padding:2px 12px;}
@@ -20826,13 +20848,37 @@ function renderHome(){
   const gEl = document.getElementById('greet'), sEl = document.getElementById('healthStale');
   const brief = gEl ? gEl.innerHTML.trim() : '';
   const todays = plans.filter(function(w){ return w && w.date === tIso; }).sort(function(a,b){ return String(a.time || '99').localeCompare(String(b.time || '99')); });
-  let rt = '<h3>' + (hasScore ? 'Readiness' : 'Readiness is waiting on last night') + '</h3>';
+  /* The card under the ring says three things, in the order he would ask them:
+     how does today compare with a normal day, what is pushing the score, and
+     what is on today. It used to be a heading and two grey sentences, which is
+     a thin thing to put first on the page. */
+  const verdict = !hasScore ? 'Waiting on last night' : Rd.score >= 88 ? 'Well above your normal' : Rd.score >= 78 ? 'Right around your best' : Rd.score >= 66 ? 'A little under your normal' : Rd.score >= 52 ? 'Below your normal' : 'Well below your normal';
+  let rt = '<div class="hm-verdict">' + verdict + '</div>';
   if (sEl && sEl.textContent) rt += '<p class="warn">' + E(sEl.textContent) + '</p>';
+  /* what moved the score: each overnight measure against his own baseline, and training load */
+  let chips = '';
+  if (Rd && Rd.mets) Rd.mets.forEach(function(x){
+    if (!x || !x.m) return;
+    /* prefixed: the app already has .up, .dn and .fl classes that mean other things */
+    const tone = x.z >= 0.25 ? 't-up' : x.z <= -0.25 ? 't-dn' : 't-fl';
+    let dv = ''; try { dv = pctDev(x.cur, x.mean, true); } catch(e){}
+    chips += '<span class="hm-chip ' + tone + '" title="' + E(x.m.label) + ': ' + E(String(x.m.fmt(x.cur))) + E(x.m.unit || '') + ', usually ' + E(String(x.m.fmt(x.mean))) + '"><i>' + (tone === 't-up' ? '▲' : tone === 't-dn' ? '▼' : '•') + '</i>' + E(x.m.label) + ' <b>' + E(dv) + '</b></span>';
+  });
+  if (L) chips += '<span class="hm-chip ' + (L.adj > 0.5 ? 't-up' : L.adj < -0.5 ? 't-dn' : 't-fl') + '" title="Last 7 days of training against a usual week"><i>' + (L.adj > 0.5 ? '▲' : L.adj < -0.5 ? '▼' : '•') + '</i>Load <b>' + L.ratio.toFixed(1) + '×</b></span>';
+  if (chips) rt += '<div class="hm-chips">' + chips + '</div>';
+  /* today's sessions, ticked when a matching activity is in */
+  const tActs = ACTS.filter(function(a){ return a && a._iso === tIso; }), tUsed = new Set();
+  let tRows = todays.map(function(w){
+    const match = tActs.filter(function(a){ return typesMatch(a, w); }); match.forEach(function(a){ tUsed.add(a.id); });
+    const mi = match.reduce(function(s,a){ return s + (a.distance_mi || 0); }, 0), sec = match.reduce(function(s,a){ return s + (a.moving_time || 0); }, 0);
+    const v = match.length ? valOf(mi, sec) : valOf(parseFloat(w.distance_mi) || 0, w.duration_sec, w.duration_min);
+    const k = kOf(w.type);
+    return '<div class="hm-td ' + (match.length ? 'done' : 'next') + '"' + (k ? ' style="--k:' + k + '"' : '') + '><i></i><span>' + E(w.title || w.type) + '</span><b>' + E(v) + '</b></div>';
+  }).join('');
+  tActs.forEach(function(a){ if (tUsed.has(a.id)) return; const k = kOf(a.type);
+    tRows += '<div class="hm-td done"' + (k ? ' style="--k:' + k + '"' : '') + '><i></i><span>' + E(a.name || a.type) + '</span><b>' + E(valOf(a.distance_mi, a.moving_time)) + '</b></div>'; });
+  rt += '<div class="hm-today"><label>Today</label>' + (tRows || '<div class="hm-td none"><span>Nothing planned</span></div>') + '</div>';
   if (brief) rt += '<p class="brief">' + brief.replace(/<\/?p[^>]*>/g, ' ') + '</p>';
-  else {
-    rt += '<p>' + (todays.length ? '<b>Today:</b> ' + todays.map(function(w){ return E(w.title || w.type) + (w.distance_mi ? ' ' + fine(parseFloat(w.distance_mi)) + ' mi' : ''); }).join(' · ') : 'Nothing planned today.') + '</p>';
-    if (L) rt += '<p>Training load is <b>' + L.ratio.toFixed(1) + '×</b> a usual week (' + E(L.state) + ').</p>';
-  }
   const nights = (HEALTH || []).filter(function(r){ return r && r.date && (r.hrv_last_night_avg > 0 || r.sleep_seconds > 0 || r.resting_hr > 0); })
                                .sort(function(a,b){ return a.date < b.date ? -1 : 1; });
   const last = nights[nights.length - 1];
