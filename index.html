@@ -993,8 +993,10 @@ select.fi{appearance:none;background-image:linear-gradient(45deg,transparent 50%
 .plan-bar{display:flex;gap:9px;align-items:stretch;margin-bottom:12px;}
 .plan-bar .seg{flex:1;}
 .add-btn{flex:0 0 46px;display:flex;align-items:center;justify-content:center;
-  background:linear-gradient(135deg,#c2c9ff,#5a648f);border:none;border-radius:12px;color:#080a12;
-  box-shadow:0 3px 12px rgba(143,154,232,.35);transition:transform .16s;}
+  /* Quiet on purpose. These were lit lavender tiles with a glow, the loudest
+     things on a tab that is read far more than it is edited on the phone. */
+  background:var(--card);border:1px solid var(--line);border-radius:12px;color:var(--n1);
+  box-shadow:var(--shadow);transition:transform .16s;}
 .add-btn:active{transform:scale(.94);}
 .add-btn svg{width:20px;height:20px;}
 .add-opt{display:flex;align-items:center;gap:14px;width:100%;text-align:left;
@@ -2712,7 +2714,7 @@ body.sheet-open::after{z-index:19;}
     <div class="seg" id="hlTabs" style="margin-bottom:10px">
       <button class="on" data-ht="recovery">Recovery</button><button data-ht="fuel">Fuel</button>
     </div>
-    <button class="btn pri" id="hqAskBtn" style="width:100%;margin-bottom:16px">Ask about your recovery</button>
+    <button class="btn sec" id="hqAskBtn" style="width:100%;margin-bottom:16px">Ask about your recovery</button>
     <div id="recoveryPane">
       <div class="vol-controls">
         <select class="vol-sel" id="hlMetric"></select>
@@ -6507,9 +6509,14 @@ function renderMetrics(){
   R.mets.forEach(function(x){ shown[x.m.key] = true; });
   const missing = BRIEF_KEYS.filter(function(m){
     if (shown[m.key]) return false;
-    /* only flag metrics that genuinely have history \u2014 never-recorded ones are
-       not missing, they are simply not part of this setup */
-    return (HEALTH || []).some(function(r){ return r[m.key] > 0; });
+    /* Only flag a metric that has arrived recently. "Has it ever arrived" was the
+       old test, and it stopped being right when the Garmin source changed:
+       intervals.icu does not carry sleep stages or Body Battery, so those three
+       rows said "didn\u2019t come through last night" every single morning about
+       something that is never coming. Two weeks without it and it is not part
+       of this setup any more. */
+    const since = iso(new Date(todayD.getTime() - 14*86400000));
+    return (HEALTH || []).some(function(r){ return r.date >= since && r[m.key] > 0; });
   });
 
   const missingRows = missing.map(function(m){
@@ -6667,7 +6674,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v126';
+const RH_BUILD = 'v127';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -12438,7 +12445,7 @@ function renderRaceList(){
     }).join('');
   } else {
     /* the hero card already shows the goal race — an empty list under it is noise */
-    h += goal ? '' : '<div class="empty">No races on the calendar.<br>Add one and the whole app will point at it.</div>';
+    h += goal ? '' : '<div class="empty" style="padding:13px 12px">No races on the calendar.</div>';
   }
   host.innerHTML = h;
   host.style.display = h ? '' : 'none';
@@ -12803,7 +12810,10 @@ function renderHealth(){
   /* ── sleep architecture, when we have the stages ── */
   const stgAll = hlSleepSeries(hlRange);
   const stg = stgAll.slice(-14);   // the small inline card only has room for a recent glance
-  if (stgAll.length > 3){
+  /* shown only while stage data is still arriving: the current Garmin source
+     has no stages, and a chart of nights from weeks ago under a live trend reads as current */
+  const stgLive = HEALTH.slice(-14).some(function(r){ return r.deep_sleep_seconds > 0; });
+  if (stgAll.length > 3 && stgLive){
     h += '<div class="hsec"><span>Sleep Architecture</span><i></i></div><div class="card" data-hc="sleep" style="padding:15px 16px;cursor:pointer">';
     h += '<div class="hl-stack">' + stg.map(function(r){
       const tot = r.sleep_seconds||1;
