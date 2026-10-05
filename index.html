@@ -6721,7 +6721,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v146';
+const RH_BUILD = 'v147';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -7319,15 +7319,9 @@ function renderVolChart(){
   const padL=20, padR=16, padT=18, padB=26;
   const plotW = W-padL-padR, plotH = H-padT-padB;
   const n = data.length;
-  /* THE PLAN ON THE CHART. On the weekly view of running, the current week also
-     shows where the plan would take it: a dashed rise from what has been run to
-     what is planned. A week in progress otherwise always looks like a collapse
-     on a Monday, which is the opposite of what the chart is for. */
-  let planV = null;
-  if (volGran === 'week' && volType === 'Run' && meta.metric !== 'count'){
-    try { planV = weekPlanGoal(meta.metric); } catch(e){ planV = null; }
-    if (!(planV > data[n-1].v + 0.05)) planV = null;
-  }
+  /* The current week used to carry a dashed "plan N" marker here. Removed at
+     Will's request (v147): the chart shows what was run, the plan lives in the planner. */
+  const planV = null;
   /* the average of the finished periods on screen: the line consistency is judged against */
   const done = data.slice(0, n-1).map(d=>d.v);
   const avgV = done.length >= 3 ? done.reduce((s,v)=>s+v,0)/done.length : null;
@@ -7459,18 +7453,8 @@ function renderVolChart(){
     +   'stroke-linejoin="round" stroke-linecap="round"/>'
     + dots + xlabels + hits;
 
-  /* the sentence people actually read this chart for: is the volume steady */
-  (function(){
-    const svg = document.getElementById('volChart');
-    let note = document.getElementById('volNote');
-    if (!note && svg && svg.parentNode){ note = document.createElement('div'); note.id = 'volNote'; note.className = 'vol-note'; svg.parentNode.insertBefore(note, svg.nextSibling); }
-    if (!note) return;
-    if (avgV == null || volGran === 'year'){ note.textContent = ''; return; }
-    const per = volGran === 'week' ? 'week' : 'month', unit = ({distance:' mi', elevation:' ft', time:' h', count:''})[meta.metric] || '';
-    const active = done.filter(function(v){ return v > 0; }).length, hi = Math.max.apply(null, done);
-    note.innerHTML = '<span><b>' + fmtV(avgV) + unit + '</b> average a ' + per + '</span><span><b>' + fmtV(hi) + unit + '</b> biggest</span>'
-      + '<span><b>' + active + ' of ' + done.length + '</b> ' + per + 's active</span>';
-  })();
+  /* a summary line (average / biggest / weeks active) sat under the chart until v147; removed as clutter */
+  (function(){ const old = document.getElementById('volNote'); if (old) old.remove(); })();
   paintVolHeader(data, meta);
   document.getElementById('volChart').querySelectorAll('.vdot').forEach(el =>
     el.addEventListener('click', ()=>{ volSel = +el.dataset.i; renderVolChart(); }));
