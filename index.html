@@ -425,7 +425,8 @@ a,button,.set,.lrow,.row,.dayrow,.ycard,.food-row,.sup-row,.vdot,.seg button,
 
 .prings{position:absolute;inset:0;width:212px;height:212px;}
 .pfall{position:absolute;left:50%;top:50%;border-radius:50%;border:1.5px solid var(--clay);transform:translate(-50%,-50%);animation:fall 6s ease-in infinite;}
-@keyframes fall{0%{width:178px;height:178px;opacity:0;}22%{opacity:.5;}100%{width:42px;height:42px;opacity:0;}}
+/* the falling ring fades out before it reaches the number (it used to shrink to 42px, across the digits) */
+@keyframes fall{0%{width:178px;height:178px;opacity:0;}22%{opacity:.5;}100%{width:122px;height:122px;opacity:0;}}
 /* The score arc IS the brandmark gradient.
    The mask is an inline SVG rather than stacked CSS gradients: CSS masks feather
    over a pixel or two and alias badly on a curve, and they cut square ends. A
@@ -6445,8 +6446,12 @@ function renderPortal(){
   if (!hasScore) return;
 
   /* cool ramp, deep to bright, ending on the accent */
-  const stops=['#141830','#1a2044','#232a5e','#2f3a80','#7fd9bd','var(--a)'], rad=[96,81,66,51,38,25];
-  let s=''; rad.forEach((r,i)=>{ s+='<circle cx="106" cy="106" r="'+r+'" fill="none" stroke="'+stops[i]+'" stroke-opacity="'+(0.3+i*0.09).toFixed(2)+'" stroke-width="'+(i>=4?1.6:1)+'"'+(i>=4?' style="filter:drop-shadow(0 0 3px '+stops[i]+')"':'')+'/>'; });
+  /* Four rings, and the innermost stops at r=60. There used to be six, the last
+     two at r=38 and r=25 in bright green and lavender with a glow — which put
+     them straight through the digits of the score. The number needs about 45px
+     of clear radius; nothing is drawn inside that now. */
+  const stops=['#141830','#1a2044','#232a5e','#7fd9bd'], rad=[96,84,72,60];
+  let s=''; rad.forEach((r,i)=>{ s+='<circle cx="106" cy="106" r="'+r+'" fill="none" stroke="'+stops[i]+'" stroke-opacity="'+(0.3+i*0.09).toFixed(2)+'" stroke-width="'+(i===3?1.3:1)+'"/>'; });
   document.getElementById('prings').innerHTML = s;
   const deg = Math.round(R.score*3.6);
   /* stroked SVG arc as the mask: crisp curve, round caps */
@@ -6688,7 +6693,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v141';
+const RH_BUILD = 'v142';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -19815,6 +19820,16 @@ render();
 /* the portal is 212px on the phone; here it sits beside text, a little smaller */
 .hm-ringslot .portal{margin:0;zoom:.74;}
 /* the volume card fills its column so both columns end on the same line */
+/* ONE CARD. The sport picker and the Wk/Mo/Yr/Trail switch used to float above
+   the chart's card, so the column started with two loose controls while the
+   column beside it started with a card edge, and the two never lined up. Here
+   the whole volume block is the card, the controls are its first row, and the
+   inner cards lose their own frames. */
+#hmVolSlot > .ov-volume{position:relative;background:var(--glass);border:1px solid var(--el2-line);border-radius:18px;padding:16px 18px 14px;
+  box-shadow:inset 0 1px 0 rgba(230,236,255,.08),0 2px 3px rgba(3,5,10,.3),0 22px 44px -24px rgba(3,5,10,.6);}
+#hmVolSlot #volCardMain,#hmVolSlot #trailCard{background:none;border:none;box-shadow:none;padding:0;border-radius:0;-webkit-backdrop-filter:none;backdrop-filter:none;}
+#hmVolSlot #volCardMain::before,#hmVolSlot #volCardMain::after{display:none;}
+#hmVolSlot .vol-controls{margin-bottom:14px;}
 #hmVolSlot{min-width:0;display:flex;}
 #hmVolSlot > .ov-volume{flex:1;display:flex;flex-direction:column;min-width:0;}
 #hmVolSlot #volCardMain{flex:1;display:flex;flex-direction:column;}
@@ -19831,6 +19846,9 @@ render();
 /* direction is carried by the arrow as well as the colour */
 .hm-chip.t-up i{color:var(--pos);} .hm-chip.t-dn i{color:var(--neg);}
 .hm-chip.t-up{border-color:color-mix(in srgb,var(--pos) 34%,transparent);} .hm-chip.t-dn{border-color:color-mix(in srgb,var(--neg) 34%,transparent);}
+/* At width the week strip is directly below and already shows today, so the
+   checklist would say it twice. The phone has no week strip, so it keeps it. */
+@media (min-width:760px){ .hm-today{display:none;} .hm-chips{margin-bottom:4px;} }
 .hm-today label{display:block;font-size:12px;color:var(--n3);margin-bottom:6px;}
 .hm-td{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--n1);padding:7px 0;border-top:1px solid var(--line);}
 .hm-td i{flex:0 0 auto;width:16px;height:16px;border-radius:50%;border:1.5px solid var(--k,var(--a));position:relative;}
@@ -19926,6 +19944,7 @@ render();
   .dk-scroll .dk-heat,.dk-scroll .dk-heatx{width:700px;}
   #fuelPane{max-width:none;}
   #dskHome .dk-card{padding:15px 15px 14px;border-radius:16px;}
+  #hmVolSlot > .ov-volume{padding:14px 14px 12px;border-radius:16px;}
   /* THE PHONE OVERVIEW IS A SUBSET, IN HIS ORDER.
      Desktop is the detailed version; the phone is the glance. He chose what
      stays and in what order: readiness, volume, last night, insights, recent.
