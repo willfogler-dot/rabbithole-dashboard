@@ -6333,7 +6333,7 @@ function buildBriefing(){
   const wan = weekAheadNote();
   if (wan) notes.push({ p: 75, t: ' ' + wan, fam:'weekahead' });
   /* weekly progress is the least newsworthy thing here — only if nothing else spoke */
-  const goalMi = goalVal('Run','distance','week') || wkGoal;
+  const goalMi = goalVal('Run','distance','week') || 0;
   /* Counting down the same target every morning is a progress bar read aloud,
      and two mid-week days running often produce the identical sentence. It is
      worth saying when the week is actually done, or near enough the end that
@@ -6674,7 +6674,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v130';
+const RH_BUILD = 'v131';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -8526,6 +8526,20 @@ function setGoalVal(type, metric, p, v){
   lsSet(GOALS_KEY, GOALS);
   queuePush();
 }
+/* What is on the plan for the week containing `anchor`: every planned run that
+   week, whether or not it has been done yet. Null when nothing is planned. */
+function weekPlanGoal(metric, anchor){
+  const mon = weekStart(anchor || todayD), sun = new Date(mon); sun.setDate(sun.getDate() + 6);
+  const a = iso(mon), b = iso(sun);
+  let t = 0;
+  (PLANNED || []).forEach(function(w){
+    if (!w || !w.date || w.date < a || w.date > b || !RUNLIKE.has(w.type)) return;
+    if (metric === 'distance') t += parseFloat(w.distance_mi) || 0;
+    else if (metric === 'elevation') t += parseFloat(w.elevation_ft) || 0;
+    else if (metric === 'time') t += (parseFloat(w.duration_min) || 0)/60;
+  });
+  return t > 0 ? t : null;
+}
 function goalVal(type, metric, p){
   if (p === 'year'){
     const t = planTotal(type, metric);
@@ -8535,7 +8549,14 @@ function goalVal(type, metric, p){
   if (p === 'month'){
     return monthGoal(type, metric, todayD.getMonth());
   }
-  /* weekly prorates THIS month's target across the weeks in this month */
+  /* A running week's goal is that week's plan, and nothing else. He sets the
+     year and the months as loose totals, then writes the detailed week on
+     Sunday — that plan IS the weekly target. A week with nothing planned has
+     no goal (null), and the miles get made up later in the month. This used to
+     fall back to a flat weekly number, or to the month divided by its weeks,
+     neither of which he ever chose. */
+  if (type === 'Run' && (metric === 'distance' || metric === 'elevation' || metric === 'time')) return weekPlanGoal(metric);
+  /* other sports still prorate THIS month's target across the weeks in this month */
   const own = goalRaw(type, metric, 'week');
   if (own != null) return own;
   const mg = monthGoal(type, metric, todayD.getMonth());
@@ -8550,6 +8571,7 @@ function goalIsDerived(type, metric, p){
     if (plan && plan[todayD.getMonth()] != null) return false;
     return goalRaw(type, metric, 'month') == null && goalVal(type, metric, 'month') != null;
   }
+  if (type === 'Run') return false;      /* the week's plan is not "derived" from anything */
   return goalRaw(type, metric, 'week') == null && goalVal(type, metric, 'week') != null;
 }
 function fmtMetric(metric, v){
@@ -8603,12 +8625,14 @@ function openGoal(type){
     const eff = goalVal(type, m, goalPeriod);
     const act = actualFor(type, m, goalPeriod);
     let hint;
-    if (derived) hint = 'auto ' + fmtMetric(m, eff) + ' from your annual goal \u2014 type to override';
+    const fromPlan = type === 'Run' && goalPeriod === 'week';
+    if (fromPlan) hint = eff != null ? 'this week\u2019s plan \u2014 change it by editing the plan' : 'nothing planned this week, so no goal';
+    else if (derived) hint = 'auto ' + fmtMetric(m, eff) + ' from your annual goal \u2014 type to override';
     else if (goalPeriod === 'year') hint = 'sets the pace for every month and week';
     else hint = 'no annual goal set';
     return '<label class="fl">'+meta.label+(meta.unit?' ('+meta.unit+')':'')
       + ' <span style="color:var(--ink4);text-transform:none;letter-spacing:0">\u00b7 '+fmtMetric(m, act)+' '+perLbl+'</span></label>'
-      + '<input class="fi" type="number" step="'+meta.step+'" inputmode="decimal" data-m="'+m+'" value="'+(own!=null?own:'')+'" placeholder="'+(derived?Math.round(eff*10)/10:'no target')+'">'
+      + '<input class="fi" type="number" step="'+meta.step+'" inputmode="decimal" data-m="'+m+'" '+(fromPlan?'disabled ':'')+'value="'+(fromPlan?(eff!=null?Math.round(eff*10)/10:''):(own!=null?own:''))+'" placeholder="'+(derived?Math.round(eff*10)/10:'no target')+'">'
       + '<div style="font-size:10.5px;color:'+(derived?'var(--sky)':'var(--ink4)')+';margin-top:5px">'+hint+'</div>';
   }).join('');
   document.getElementById('glBd').classList.add('on');
@@ -8618,6 +8642,7 @@ function closeGoal(){ document.getElementById('glBd').classList.remove('on'); do
 function saveGoal(){
   if (!goalType) return;
   document.getElementById('glFields').querySelectorAll('[data-m]').forEach(inp => {
+    if (inp.disabled) return;               /* a running week's goal is its plan; there is nothing to store */
     const v = parseFloat(inp.value);
     setGoalVal(goalType, inp.dataset.m, goalPeriod, isNaN(v) ? null : v);
   });
@@ -8883,10 +8908,8 @@ function renderPlanWeek(){
       + '</span></button>';
   }).join('');
 
-  /* this year's standing weekly goal */
-  const yr = String(days[0].getFullYear());
-  const g  = (GOALS && GOALS[yr] && GOALS[yr].Run && GOALS[yr].Run.week) || {};
-  const tgtMi = parseFloat(g.distance)||0, tgtFt = parseFloat(g.elevation)||0, tgtHr = parseFloat(g.time)||0;
+  /* the goal for the week on screen is that week's plan (see weekPlanGoal) */
+  const tgtMi = weekPlanGoal('distance', days[0]) || 0, tgtFt = weekPlanGoal('elevation', days[0]) || 0, tgtHr = weekPlanGoal('time', days[0]) || 0;
 
   const hm  = function(sec){ const h=Math.floor(sec/3600), m=Math.round((sec%3600)/60); return h+':'+String(m).padStart(2,'0'); };
   const pct = function(v,t){ return t>0 ? Math.max(0,Math.min(100, v/t*100)) : 0; };
@@ -17796,6 +17819,7 @@ if ('serviceWorker' in navigator){
 .plx-hx-n span{font-size:15px;color:var(--n3);}
 .plx-hx-s{font-size:12.5px;color:var(--n2);margin-top:9px;font-variant-numeric:tabular-nums;}
 .plx-hero .plx-wbar{height:7px;border-radius:4px;margin-top:13px;} .plx-hero .plx-wbar i{border-radius:4px;}
+.plx-hx-t b{font-weight:600;color:var(--n1);} .plx-hx-t b.gap{color:var(--warn);} .plx-hx-t b.ok{color:var(--pos);}
 .plx-hx-t{font-size:12px;color:var(--n3);margin-top:8px;font-variant-numeric:tabular-nums;}
 .plx-cols{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;align-items:end;height:118px;margin-top:10px;}
 .plx-col{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;min-width:0;}
@@ -18404,15 +18428,24 @@ function weeksOf(y, m){
   while (d <= last){ out.push(new Date(d)); d = addDays(d, 7); }
   return out;
 }
-function weekTarget(mon, metric){
-  /* A week has no stored target. It is the month's number spread per day, so a
-     week straddling two months takes its share of each. */
-  let t = 0, any = false;
-  for (let i=0;i<7;i++){
-    const d = addDays(mon, i), mt = monthTarget(d.getFullYear(), d.getMonth(), metric);
-    if (mt != null){ any = true; t += mt / new Date(d.getFullYear(), d.getMonth()+1, 0).getDate(); }
-  }
-  return any ? t : null;
+/* THE WEEK'S GOAL IS THE WEEK'S PLAN.
+   Year and month targets are loose totals he sets once. The number that matters
+   is the week, and he sets it by writing the week's sessions on Sunday — so the
+   goal for a week is simply what is planned in it (weekRun().planned), and a
+   week with nothing planned has no goal. There used to be a weekTarget() here
+   that divided the month's number by its days and called the result the week's
+   "share"; it put a target on the page that he had never chosen. What the
+   month contributes now is context: how much of it is still unplaced. */
+function monthLine(ix, d){
+  const y = d.getFullYear(), mo = d.getMonth(), m = METRIC[st.metric], T = monthTarget(y, mo);
+  if (T == null) return 'No ' + MON_FULL[mo] + ' target set';
+  const key = y + '-' + String(mo+1).padStart(2,'0'), dim = new Date(y, mo+1, 0).getDate();
+  let done = 0, togo = 0;
+  for (let i=1;i<=dim;i++){ const r = dayRun(ix, key + '-' + String(i).padStart(2,'0')); done += r.done; togo += r.togo; }
+  if (new Date(y, mo+1, 0) < todayD) return MON_FULL[mo] + ': ' + fmt1(done) + ' run of a ' + fmt(T) + ' ' + m.unit + ' target';
+  const gap = Math.round(T - done - togo);
+  return MON_FULL[mo] + ' target ' + fmt(T) + ' ' + m.unit + ' · ' + fmt1(done) + ' run · ' + fmt1(togo) + ' more planned · '
+    + (gap > 0 ? '<b class="gap">' + fmt(gap) + ' still to place</b>' : gap === 0 ? '<b class="ok">covered</b>' : '<b class="ok">' + fmt(-gap) + ' over</b>');
 }
 function chipColor(type, session){
   const t = normType(type);
@@ -18576,12 +18609,11 @@ function renderMonth(ix){
         + '</div>';
     }
     const W = weekRun(ix, mon), O = weekRun(ix, mon, other);
-    const wT = weekTarget(mon);
-    const scale = Math.max(wT || 0, W.head, W.planned, 1) * 1.08;
+    const scale = Math.max(W.planned, W.done, 1);
     const pc = function(v){ return Math.min(100, Math.max(0, v/scale*100)).toFixed(1); };
     let sub;
-    if (W.past) sub = 'run' + (W.planned ? ' · ' + fmt1(W.planned) + ' was planned' : '');
-    else if (W.future) sub = W.planned ? 'planned' : 'nothing planned yet';
+    if (W.past) sub = 'run' + (W.planned ? ' · ' + fmt1(W.planned) + ' was the plan' : ' · no plan');
+    else if (W.future) sub = W.planned ? 'planned' : 'no plan yet';
     else sub = fmt1(W.done) + ' run · ' + fmt1(W.togo) + ' to go';
     const oTxt = other === 'elevation' ? feet(O.head) + ' ft' : miles(O.head) + ' mi';
     const mixTxt = Object.keys(mix).map(function(k){ return k + ' ' + mix[k]; }).join(' · ');
@@ -18590,9 +18622,8 @@ function renderMonth(ix){
       + '<div class="wl">' + lbl + '</div>'
       + '<div class="big"><b>' + fmt1(W.head) + '</b><span>' + m.unit + '</span></div>'
       + '<div class="sub">' + sub + '</div>'
-      + '<div class="plx-wbar"><i class="pl" style="width:' + pc(W.past ? W.planned : W.head) + '%"></i><i class="dn" style="width:' + pc(W.done) + '%"></i>'
-      +   (wT != null ? '<em style="left:' + pc(wT) + '%" title="Week’s share of the monthly target: ' + fmt1(wT) + ' ' + m.unit + '"></em>' : '') + '</div>'
-      + '<div class="sub">' + (wT != null ? 'target ' + fmt1(wT) + ' · ' : '') + oTxt + '</div>'
+      + (W.planned > 0 || W.done > 0 ? '<div class="plx-wbar" title="' + fmt1(W.done) + ' done of ' + fmt1(W.planned) + ' planned"><i class="pl" style="width:' + pc(W.planned) + '%"></i><i class="dn" style="width:' + pc(W.done) + '%"></i></div>' : '')
+      + '<div class="sub">' + oTxt + '</div>'
       + (mixTxt ? '<div class="mix">' + E(mixTxt) + '</div>' : '')
       + '</div>';
   });
@@ -18611,16 +18642,19 @@ function renderWeekView(ix){
   const other = st.metric === 'distance' ? 'elevation' : 'distance';
   const W = weekRun(ix, mon), O = weekRun(ix, mon, other);
   const P = weekRun(ix, addDays(mon, -7));                     /* the week before */
-  const wT = weekTarget(mon);
   const thisMon = iso(weekStart(todayD));
   const rel = st.week === thisMon ? 'This week' : st.week === iso(addDays(dOf(thisMon), 7)) ? 'Next week'
             : st.week === iso(addDays(dOf(thisMon), -7)) ? 'Last week' : 'Week of ' + MON[mon.getMonth()] + ' ' + mon.getDate();
 
   let sub;
-  if (W.past) sub = 'run' + (W.planned ? ' · ' + fmt1(W.planned) + ' ' + m.unit + ' was planned' : '');
-  else if (W.future) sub = W.planned ? 'planned' : 'Nothing planned yet';
-  else sub = fmt1(W.done) + ' run · ' + fmt1(W.togo) + ' to go';
-  const scale = Math.max(wT || 0, W.head, W.planned, 1) * 1.08;
+  /* the headline is the goal while the week is open, and the result once it is over */
+  const goal = W.planned, hasGoal = goal > 0;
+  const headline = W.past ? W.done : (hasGoal ? goal : W.done);
+  if (W.past) sub = 'run' + (hasGoal ? ' · the plan was ' + fmt1(goal) + ' ' + m.unit : ' · no plan was set');
+  else if (!hasGoal) sub = W.done > 0 ? 'run · no plan set for this week' : 'No plan set for this week';
+  else if (W.future) sub = 'planned · this is the week’s goal';
+  else sub = 'the goal · ' + fmt1(W.done) + ' run · ' + fmt1(Math.max(0, goal - W.done)) + ' to go';
+  const scale = Math.max(goal, W.done, 1);
   const pc = function(v){ return Math.min(100, Math.max(0, v/scale*100)).toFixed(1); };
 
   /* daily shape */
@@ -18678,11 +18712,10 @@ function renderWeekView(ix){
 
   const hero = '<div class="plx-hero">'
     + '<div><div class="plx-hx-l">' + rel + '</div>'
-    +   '<div class="plx-hx-n' + (W.head > 0 ? '' : ' zero') + '"><b>' + fmt1(W.head) + '</b><span>' + m.unit + '</span></div>'
+    +   '<div class="plx-hx-n' + (headline > 0 ? '' : ' zero') + '"><b>' + fmt1(headline) + '</b><span>' + m.unit + '</span></div>'
     +   '<div class="plx-hx-s">' + sub + '</div>'
-    +   '<div class="plx-wbar"><i class="pl" style="width:' + pc(W.past ? W.planned : W.head) + '%"></i><i class="dn" style="width:' + pc(W.done) + '%"></i>'
-    +     (wT != null ? '<em style="left:' + pc(wT) + '%"></em>' : '') + '</div>'
-    +   '<div class="plx-hx-t">' + (wT != null ? 'Week’s share of the ' + MON_FULL[addDays(mon, 3).getMonth()] + ' target: ' + fmt1(wT) + ' ' + m.unit : 'No monthly target set') + '</div></div>'
+    +   (hasGoal || W.done > 0 ? '<div class="plx-wbar" title="' + fmt1(W.done) + ' done of ' + fmt1(goal) + ' planned"><i class="pl" style="width:' + pc(goal) + '%"></i><i class="dn" style="width:' + pc(W.done) + '%"></i></div>' : '')
+    +   '<div class="plx-hx-t">' + monthLine(ix, addDays(mon, 3)) + '</div></div>'
     + '<div><div class="plx-hx-l">' + (st.metric === 'distance' ? 'Miles by day' : 'Vert by day') + '<span class="plx-key"><u></u>Planned<i></i>Actual</span></div><div class="plx-cols">' + cols + '</div></div>'
     + '<div><div class="plx-hx-l">The week</div><div class="plx-facts">' + facts + '</div></div>'
     + '</div>';
@@ -19082,7 +19115,7 @@ function clearWeek(monISO){
   toast('Cleared ' + src.length + ' session' + (src.length === 1 ? '' : 's') + ' — Undo brings them back');
 }
 function copyTSV(){
-  const ix = buildIndex(), rows = [['Week of'].concat(DOW).concat(['Planned mi','Run mi','Target mi']).join('\t')];
+  const ix = buildIndex(), rows = [['Week of'].concat(DOW).concat(['Planned mi','Run mi']).join('\t')];
   weeksOf(st.year, st.month).forEach(function(mon){
     const cells = []; let p = 0, dn = 0;
     for (let i=0;i<7;i++){
@@ -19090,8 +19123,7 @@ function copyTSV(){
       p += r.planned; dn += r.done;
       cells.push(r.planned ? miles(r.planned) : (r.done ? miles(r.done) : ''));
     }
-    const t = weekTarget(mon, 'distance');
-    rows.push([iso(mon)].concat(cells).concat([miles(p), miles(dn), t != null ? miles(t) : '']).join('\t'));
+    rows.push([iso(mon)].concat(cells).concat([miles(p), miles(dn)]).join('\t'));
   });
   const txt = rows.join('\n');
   const done = function(){ toast('Copied — paste into Excel'); };
