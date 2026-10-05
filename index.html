@@ -3351,6 +3351,11 @@ function lsSet(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); return t
 let PLANNED = lsGet(PLANNED_KEY, []);
 let RACES   = lsGet(RACES_KEY, []);
 let GOALS = lsGet(GOALS_KEY, {});
+/* Repeat rules for the planner ("Qi Gong every morning"). The sessions are
+   ordinary PLANNED records; a rule is only what lets a series be extended,
+   edited or stopped as one thing. See the PLX block at the end of the file. */
+const REPEATS_KEY = 'rh_repeats_v1';
+let REPEATS = lsGet(REPEATS_KEY, []);
 /* ── plan sync ──
    localStorage is per-device, so a week planned on the laptop never reached the
    phone. Plans, races and goals now live in Supabase alongside the activity
@@ -3417,7 +3422,7 @@ async function pushPlan(force){
                             routesFull: ROUTECACHE,
                             jarvisFeedback: lsGet(FB_KEY, []),
                             foodMemory: lsGet(FOODMEM_KEY, {}),
-                            customFoods: CUSTOM, templates: TEMPLATES,
+                            customFoods: CUSTOM, templates: TEMPLATES, repeats: REPEATS,
                             stravaActs: stravaActs,
                             stravaSyncedAt: lsGet(STRAVA_SYNCED, null),
                             ts: ts };
@@ -3489,6 +3494,9 @@ async function reconcilePlan(){
   if (Array.isArray(p.recipes)){ RECIPES = p.recipes; lsSet(RECIPE_KEY, RECIPES); }
   if (Array.isArray(p.customFoods)){ CUSTOM = p.customFoods; lsSet(CUSTOM_KEY, CUSTOM); }
   if (Array.isArray(p.templates)){ TEMPLATES = p.templates; lsSet(TPL_KEY, TEMPLATES); }
+  /* Only adopted when the cloud copy carries the key at all: a device still on
+     an older build pushes a plan without it, and that must not erase the rules. */
+  if (Array.isArray(p.repeats)){ REPEATS = p.repeats; lsSet(REPEATS_KEY, REPEATS); }
   if (Array.isArray(p.stravaActs) && p.stravaActs.length){
     const local = lsGet(STRAVA_ACTS_KEY, []) || [];
     const byId = {};
@@ -6657,7 +6665,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v112';
+const RH_BUILD = 'v113';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -17458,64 +17466,95 @@ if ('serviceWorker' in navigator){
   #s-plan > *:not(#plx){display:none !important;}
   #plx{display:block;position:relative;padding-top:20px;-webkit-user-select:none;user-select:none;}
 }
+/* The brandmark's three hues, kept as one ramp. It marks exactly three things —
+   where you are (today, this week), what is selected, and what is filling — so
+   it reads as light on the page rather than as decoration. */
+#plx{--g1:#7fd9bd;--g2:#8f9ae8;--g3:#b39ae8;
+  --grad:linear-gradient(112deg,var(--g1),var(--g2) 46%,var(--g3));
+  --cell:linear-gradient(180deg,color-mix(in srgb,var(--bg-lift) 46%,var(--bg-mid)),var(--bg-mid) 62%);
+  --cell-dim:linear-gradient(180deg,color-mix(in srgb,var(--bg-mid) 60%,var(--bg-bot)),var(--bg-bot));
+  --glass:linear-gradient(180deg,rgba(143,154,232,.10),rgba(143,154,232,.035));}
+/* ambient light behind the top of the page: the thing the glass panels sit on */
+/* Every glow ends inside the box. An earlier version let them run past its
+   edges, which drew the box itself as a faint rectangle across the page. */
+#plx::before{content:'';position:absolute;left:0;right:0;top:-110px;height:640px;pointer-events:none;z-index:0;
+  background:radial-gradient(27% 34% at 28% 36%,rgba(127,217,189,.13),transparent),
+             radial-gradient(29% 36% at 70% 38%,rgba(179,154,232,.16),transparent),
+             radial-gradient(26% 32% at 50% 34%,rgba(143,154,232,.12),transparent);}
+#plx > :not(.plx-pop){position:relative;z-index:1;}
 #plx input,#plx textarea,#plx select{-webkit-user-select:text;user-select:text;font-family:var(--fb);}
 #plx button{font-family:var(--fb);cursor:pointer;}
 
 /* ── top bar ── */
-.plx-top{display:flex;align-items:center;gap:14px;margin-bottom:16px;}
+.plx-top{display:flex;align-items:center;gap:14px;margin-bottom:14px;}
 .plx-yr{display:flex;align-items:center;gap:4px;}
-.plx-yr b{font-family:var(--fd);font-size:30px;font-weight:600;color:var(--n1);letter-spacing:-.02em;min-width:86px;text-align:center;font-variant-numeric:tabular-nums;}
-.plx-nav{width:34px;height:34px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--n2);font-size:18px;line-height:1;display:flex;align-items:center;justify-content:center;transition:background .15s,color .15s;}
-.plx-nav:hover{background:var(--card2);color:var(--n1);}
-.plx-seg{display:flex;background:var(--el0-bg);border:1px solid var(--line);border-radius:11px;padding:3px;gap:2px;}
-.plx-seg button{border:none;background:none;color:var(--n3);font-size:12px;font-weight:600;padding:7px 14px;border-radius:8px;transition:background .15s,color .15s;}
+.plx-yr b{font-family:var(--fd);font-size:32px;font-weight:600;color:var(--n1);letter-spacing:-.025em;min-width:92px;text-align:center;font-variant-numeric:tabular-nums;}
+.plx-nav{width:34px;height:34px;border-radius:11px;border:1px solid var(--el2-line);background:var(--glass);color:var(--n2);font-size:18px;line-height:1;display:flex;align-items:center;justify-content:center;
+  box-shadow:inset 0 1px 0 rgba(230,236,255,.08),0 2px 6px rgba(3,5,10,.35);transition:background .15s,color .15s,transform .12s;}
+.plx-nav:hover{color:var(--n1);background:linear-gradient(180deg,rgba(143,154,232,.18),rgba(143,154,232,.07));}
+.plx-nav:active{transform:scale(.94);}
+.plx-seg{display:flex;background:var(--el0-bg);border:1px solid var(--line);border-radius:12px;padding:3px;gap:2px;box-shadow:var(--el0-sh);}
+.plx-seg button{border:none;background:none;color:var(--n3);font-size:12px;font-weight:600;padding:7px 14px;border-radius:9px;transition:background .15s,color .15s;}
+.plx-seg button:hover{color:var(--n1);}
 .plx-seg button.on{background:var(--card2);color:var(--n1);box-shadow:var(--el1-sh);}
+/* Week / Month is the planner's main switch, so it carries the gradient */
+.plx-seg.view button{padding:7px 18px;}
+.plx-seg.view button.on{background:var(--grad);color:#080a12;box-shadow:0 2px 12px rgba(143,154,232,.34),inset 0 1px 0 rgba(255,255,255,.28);}
 .plx-sp{flex:1;}
 .plx-sum{font-size:12.5px;color:var(--n3);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
-.plx-tog{display:flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--card);color:var(--n2);font-size:12px;font-weight:600;padding:8px 11px 8px 14px;border-radius:10px;transition:background .15s,color .15s,border-color .15s;}
-.plx-tog:hover{background:var(--card2);color:var(--n1);}
-.plx-tog.on{background:var(--a-fill);border-color:var(--a-edge);color:var(--a-hi);}
-.plx-tog svg{width:13px;height:13px;transition:transform .2s;} .plx-tog.on svg{transform:rotate(180deg);}
-.plx-strip{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:4px;background:var(--card);border:1px solid var(--line);border-radius:15px;box-shadow:var(--shadow);padding:5px;}
-.plx-mc{display:block;border:1px solid transparent;background:none;border-radius:10px;padding:8px 6px 8px;text-align:center;min-width:0;transition:background .15s,border-color .15s;}
-.plx-mc:hover{background:var(--n6);}
-.plx-mc.sel{background:var(--a-fill);border-color:var(--a-edge);}
-.plx-mc i{display:block;font-style:normal;font-family:var(--fd);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--n4);font-weight:600;}
-.plx-mc.cur i{color:var(--a-hi);}
-.plx-mc b{display:block;font-family:var(--fd);font-size:14px;font-weight:600;color:var(--n1);font-variant-numeric:tabular-nums;margin:3px 0 6px;}
-.plx-mc u{display:block;text-decoration:none;height:3px;border-radius:2px;background:var(--el0-bg);overflow:hidden;margin:0 14%;}
-.plx-mc s{display:block;text-decoration:none;height:100%;border-radius:2px;background:linear-gradient(90deg,var(--a),var(--a-hi));}
 .plx-txt{border:none;background:none;color:var(--n3);font-size:12px;font-weight:600;padding:8px 10px;border-radius:9px;transition:background .15s,color .15s;}
 .plx-txt:hover{background:var(--card);color:var(--n1);}
 .plx-txt[disabled]{opacity:.35;pointer-events:none;}
+.plx-tog{display:flex;align-items:center;gap:7px;border:1px solid var(--el2-line);background:var(--glass);color:var(--n2);font-size:12px;font-weight:600;padding:8px 11px 8px 14px;border-radius:11px;
+  box-shadow:inset 0 1px 0 rgba(230,236,255,.08),0 2px 6px rgba(3,5,10,.35);transition:background .15s,color .15s,border-color .15s;}
+.plx-tog:hover{color:var(--n1);}
+.plx-tog.on{background:linear-gradient(180deg,rgba(143,154,232,.24),rgba(143,154,232,.10));border-color:rgba(170,180,255,.42);color:var(--a-hi);}
+.plx-tog svg{width:13px;height:13px;transition:transform .2s;} .plx-tog.on svg{transform:rotate(180deg);}
 
-/* ── year card ── */
-.plx-card{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);}
+/* ── glass panels: strip, year card, week hero ── */
+.plx-strip,.plx-card,.plx-hero{position:relative;background:var(--glass);border:1px solid var(--el2-line);border-radius:18px;
+  box-shadow:inset 0 1px 0 rgba(230,236,255,.08),0 2px 3px rgba(3,5,10,.4),0 22px 44px -22px rgba(3,5,10,.75);
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);}
+.plx-strip::before,.plx-card::before,.plx-hero::before{content:'';position:absolute;left:18px;right:18px;top:-1px;height:1px;pointer-events:none;
+  background:linear-gradient(90deg,transparent,rgba(127,217,189,.55),rgba(143,154,232,.7),rgba(179,154,232,.55),transparent);}
+
+.plx-strip{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:4px;padding:5px;}
+.plx-mc{display:block;border:1px solid transparent;background:none;border-radius:13px;padding:9px 6px 9px;text-align:center;min-width:0;transition:background .15s,border-color .15s,box-shadow .15s;}
+.plx-mc:hover{background:var(--n6);}
+.plx-mc.sel{background:linear-gradient(180deg,rgba(143,154,232,.26),rgba(143,154,232,.09));border-color:rgba(170,180,255,.42);
+  box-shadow:inset 0 1px 0 rgba(230,236,255,.16),0 8px 20px -10px rgba(143,154,232,.75);}
+.plx-mc i{display:block;font-style:normal;font-family:var(--fd);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--n4);font-weight:600;}
+.plx-mc.cur i,.plx-mc.sel i{color:var(--a-hi);}
+.plx-mc b{display:block;font-family:var(--fd);font-size:15px;font-weight:600;color:var(--n1);font-variant-numeric:tabular-nums;margin:3px 0 7px;}
+.plx-mc u{display:block;text-decoration:none;height:3px;border-radius:2px;background:rgba(0,0,0,.4);box-shadow:var(--el0-sh);overflow:hidden;margin:0 14%;}
+.plx-mc s{display:block;text-decoration:none;height:100%;border-radius:2px;background:var(--grad);box-shadow:0 0 8px rgba(143,154,232,.6);}
+
 .plx-kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border-bottom:1px solid var(--line);}
-.plx-k{padding:16px 20px 15px;border-left:1px solid var(--line);min-width:0;}
+.plx-k{padding:17px 20px 16px;border-left:1px solid var(--line);min-width:0;}
 .plx-k:first-child{border-left:none;}
 .plx-k label{display:block;font-family:var(--fd);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--n4);margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .plx-k .v{display:flex;align-items:baseline;gap:6px;}
-.plx-k .v b,.plx-k .v input{font-family:var(--fd);font-size:24px;font-weight:600;color:var(--n1);letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.1;}
+.plx-k .v b,.plx-k .v input{font-family:var(--fd);font-size:26px;font-weight:600;color:var(--n1);letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.1;}
 .plx-k .v input{width:100%;min-width:0;background:none;border:none;border-bottom:1px dashed var(--a-edge);padding:0 0 2px;color:var(--a-hi);outline:none;}
 .plx-k .v input:focus{border-bottom:1px solid var(--a);}
 .plx-k .v span{font-size:12px;color:var(--n3);flex:0 0 auto;}
 .plx-k small{display:block;font-size:11.5px;color:var(--n3);margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .plx-k small.ok{color:var(--pos);} .plx-k small.warn{color:var(--warn);}
-
 .plx-tools{display:flex;align-items:center;gap:4px;padding:10px 14px 0 20px;}
 .plx-tools i{font-style:normal;font-family:var(--fd);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--n4);margin-right:6px;}
-
 .plx-months{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:6px;padding:8px 14px 14px;}
-.plx-m{border-radius:13px;padding:10px 8px 9px;border:1px solid transparent;cursor:pointer;transition:background .15s,border-color .15s;min-width:0;}
+.plx-m{border-radius:14px;padding:10px 8px 9px;border:1px solid transparent;cursor:pointer;transition:background .15s,border-color .15s,box-shadow .15s;min-width:0;}
 .plx-m:hover{background:var(--n6);}
-.plx-m.sel{background:var(--a-fill);border-color:var(--a-edge);}
+.plx-m.sel{background:linear-gradient(180deg,rgba(143,154,232,.22),rgba(143,154,232,.07));border-color:rgba(170,180,255,.4);
+  box-shadow:inset 0 1px 0 rgba(230,236,255,.14),0 10px 24px -12px rgba(143,154,232,.7);}
 .plx-m .nm{display:flex;align-items:center;justify-content:center;gap:5px;font-family:var(--fd);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--n3);font-weight:600;}
 .plx-m.cur .nm{color:var(--a-hi);}
-.plx-m .nm em{width:5px;height:5px;border-radius:50%;background:#c026a0;flex:0 0 auto;}
-.plx-bar{position:relative;height:70px;margin:9px auto 8px;width:62%;max-width:54px;}
-.plx-bar .tg{position:absolute;left:0;right:0;bottom:0;border:1px solid var(--a-lo);border-bottom:none;border-radius:5px 5px 0 0;background:var(--a-dim);opacity:.55;}
-.plx-bar .dn{position:absolute;left:3px;right:3px;bottom:0;border-radius:3px 3px 0 0;background:linear-gradient(180deg,var(--a-hi),var(--a));}
+.plx-m .nm em{width:5px;height:5px;border-radius:50%;background:#c026a0;box-shadow:0 0 6px #c026a0;flex:0 0 auto;}
+.plx-bar{position:relative;height:74px;margin:9px auto 8px;width:62%;max-width:54px;}
+.plx-bar .tg{position:absolute;left:0;right:0;bottom:0;border:1px solid rgba(170,180,255,.3);border-bottom:none;border-radius:6px 6px 0 0;
+  background:linear-gradient(180deg,rgba(143,154,232,.16),rgba(143,154,232,.04));box-shadow:inset 0 1px 0 rgba(230,236,255,.1);}
+.plx-bar .dn{position:absolute;left:3px;right:3px;bottom:0;border-radius:4px 4px 0 0;
+  background:linear-gradient(180deg,var(--a-hi),var(--g2) 55%,var(--g1));box-shadow:0 0 14px rgba(143,154,232,.5),inset 0 1px 0 rgba(255,255,255,.4);}
 .plx-m.fut .plx-bar .dn{display:none;}
 .plx-bar .ly{position:absolute;left:-5px;right:-5px;height:0;border-top:1.5px dotted var(--n3);}
 .plx-m input.tg-in{display:block;width:100%;text-align:center;background:none;border:none;border-bottom:1px dashed transparent;outline:none;font-family:var(--fd);font-size:15px;font-weight:600;color:var(--n1);font-variant-numeric:tabular-nums;padding:1px 0;}
@@ -17523,7 +17562,7 @@ if ('serviceWorker' in navigator){
 .plx-m input.tg-in:focus{border-bottom:1px solid var(--a);color:var(--a-hi);}
 .plx-m input.tg-in::placeholder{color:var(--n4);font-weight:400;}
 .plx-m .dn-t{text-align:center;font-size:10.5px;color:var(--n3);margin-top:3px;font-variant-numeric:tabular-nums;white-space:nowrap;}
-.plx-m .dn-t.over{color:var(--pos);} .plx-m .dn-t.under{color:var(--n3);}
+.plx-m .dn-t.over{color:var(--pos);}
 .plx-m input.nt-in{display:block;width:100%;text-align:center;background:none;border:none;outline:none;font-size:10.5px;color:var(--info);margin-top:5px;padding:2px 0;border-radius:5px;text-overflow:ellipsis;}
 .plx-m input.nt-in::placeholder{color:transparent;}
 .plx-m:hover input.nt-in::placeholder,.plx-m.sel input.nt-in::placeholder{color:var(--n4);}
@@ -17531,13 +17570,13 @@ if ('serviceWorker' in navigator){
 .plx-legend{display:flex;gap:16px;padding:0 20px 14px;font-size:10.5px;color:var(--n4);}
 .plx-legend span{display:flex;align-items:center;gap:6px;}
 .plx-legend u{display:inline-block;text-decoration:none;width:12px;height:9px;border-radius:2px;}
-.plx-legend u.a{background:linear-gradient(180deg,var(--a-hi),var(--a));}
-.plx-legend u.b{border:1px solid var(--a-lo);background:var(--a-dim);opacity:.7;}
+.plx-legend u.a{background:linear-gradient(180deg,var(--a-hi),var(--g1));}
+.plx-legend u.b{border:1px solid rgba(170,180,255,.3);background:rgba(143,154,232,.1);}
 .plx-legend u.c{height:0;border-top:1.5px dotted var(--n3);border-radius:0;}
 
-/* ── month header ── */
-.plx-mh{display:flex;align-items:center;gap:14px;margin:22px 2px 12px;flex-wrap:wrap;}
-.plx-mh h2{font-family:var(--fd);font-size:21px;font-weight:600;color:var(--n1);letter-spacing:-.01em;margin:0 6px;min-width:168px;text-align:center;}
+/* ── month / week header ── */
+.plx-mh{display:flex;align-items:center;gap:14px;margin:22px 2px 13px;flex-wrap:wrap;}
+.plx-mh h2{font-family:var(--fd);font-size:23px;font-weight:600;color:var(--n1);letter-spacing:-.015em;margin:0 6px;min-width:176px;text-align:center;}
 .plx-mh .ttl{display:flex;align-items:center;gap:4px;}
 .plx-mstat{display:flex;align-items:baseline;gap:18px;font-size:12.5px;color:var(--n3);font-variant-numeric:tabular-nums;}
 .plx-mstat b{font-family:var(--fd);font-size:15px;font-weight:600;color:var(--n1);margin-left:5px;}
@@ -17546,85 +17585,175 @@ if ('serviceWorker' in navigator){
 .plx-mstat .tgt input::placeholder{color:var(--n4);font-weight:400;}
 .plx-mstat .gap{color:var(--warn);} .plx-mstat .gap.ok{color:var(--pos);}
 
-/* ── grid ── */
-.plx-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr)) 176px;border:1px solid var(--line);border-radius:18px;overflow:hidden;background:var(--line);gap:1px;box-shadow:var(--shadow);}
-.plx-gh{background:var(--bg-mid);padding:9px 10px;font-family:var(--fd);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--n4);}
-.plx-day{background:var(--bg-mid);min-height:116px;padding:7px 7px 9px;display:flex;flex-direction:column;gap:5px;cursor:pointer;position:relative;transition:background .12s;min-width:0;}
-.plx-day:hover{background:color-mix(in srgb,var(--a) 5%,var(--bg-mid));}
+/* ── month grid: a recessed board the sessions sit on ── */
+.plx-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr)) 184px;border:1px solid var(--el2-line);border-radius:20px;overflow:hidden;background:var(--n5);gap:1px;
+  box-shadow:inset 0 1px 0 rgba(230,236,255,.07),0 2px 3px rgba(3,5,10,.4),0 34px 60px -30px rgba(3,5,10,.85);}
+.plx-gh{background:color-mix(in srgb,var(--bg-lift) 70%,var(--bg-mid));padding:10px 10px 9px;font-family:var(--fd);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--n3);
+  box-shadow:inset 0 1px 0 rgba(230,236,255,.06);}
+.plx-gh.we{color:var(--info);}
+.plx-day{background:var(--cell);min-height:116px;padding:7px 7px 9px;display:flex;flex-direction:column;gap:5px;cursor:pointer;position:relative;transition:filter .12s;min-width:0;}
+.plx-day:hover{filter:brightness(1.22);}
+.plx-day.we{background:linear-gradient(180deg,color-mix(in srgb,var(--info) 7%,color-mix(in srgb,var(--bg-lift) 46%,var(--bg-mid))),var(--bg-mid) 62%);}
 .plx-day.old{min-height:72px;}
+.plx-day.past{background:var(--cell-dim);}
 .plx-day.out{background:var(--bg-bot);} .plx-day.out .dnum{color:var(--n4);}
-.plx-day.drop{background:var(--a-fill);box-shadow:inset 0 0 0 1.5px var(--a);}
+/* this week is lit; today is the brightest thing on the board */
+.plx-day.wknow{background:linear-gradient(180deg,color-mix(in srgb,var(--a) 13%,var(--bg-lift)),color-mix(in srgb,var(--a) 4%,var(--bg-mid)) 70%);}
+.plx-day.today{background:radial-gradient(130% 80% at 50% 0%,rgba(143,154,232,.34),transparent 72%),linear-gradient(180deg,color-mix(in srgb,var(--a) 16%,var(--bg-lift)),color-mix(in srgb,var(--a) 5%,var(--bg-mid)));}
+.plx-day.today::before{content:'';position:absolute;left:0;right:0;top:0;height:2px;background:var(--grad);box-shadow:0 0 12px rgba(143,154,232,.9);}
+.plx-day.drop{box-shadow:inset 0 0 0 1.5px var(--a),inset 0 0 26px rgba(143,154,232,.28);filter:brightness(1.25);}
 .plx-day .dh{display:flex;align-items:center;gap:6px;height:22px;}
 .plx-day .dnum{font-family:var(--fd);font-size:12.5px;font-weight:600;color:var(--n2);font-variant-numeric:tabular-nums;width:22px;height:22px;display:flex;align-items:center;justify-content:center;border-radius:50%;flex:0 0 auto;}
-.plx-day.today .dnum{background:var(--a);color:var(--bg-bot);}
+.plx-day.today .dnum{background:var(--grad);color:#080a12;box-shadow:0 0 14px rgba(143,154,232,.75),inset 0 1px 0 rgba(255,255,255,.4);}
 .plx-day.past .dnum{color:var(--n4);}
-.plx-day .rc{font-family:var(--fd);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:#fff;background:#c026a0;border-radius:5px;padding:2px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
-.plx-day .add{margin-left:auto;width:22px;height:22px;border-radius:7px;border:none;background:none;color:var(--n4);font-size:16px;line-height:1;opacity:0;transition:opacity .12s,background .12s,color .12s;flex:0 0 auto;}
+.plx-day .rc{font-family:var(--fd);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:#fff;background:linear-gradient(112deg,#c026a0,#8a3fd0);border-radius:5px;padding:2px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;box-shadow:0 0 10px rgba(192,38,160,.5);}
+.plx-day .add{margin-left:auto;width:22px;height:22px;border-radius:7px;border:none;background:none;color:var(--n3);font-size:16px;line-height:1;opacity:0;transition:opacity .12s,background .12s,color .12s;flex:0 0 auto;}
 .plx-day:hover .add{opacity:1;} .plx-day .add:hover{background:var(--a-fill);color:var(--a-hi);}
 @media (hover:none){ .plx-day .add{opacity:.55;} }
 .plx-chips{display:flex;flex-direction:column;gap:3px;min-width:0;}
-.plx-chip{display:flex;align-items:center;gap:6px;min-width:0;height:24px;padding:0 7px 0 8px;border-radius:7px;background:color-mix(in srgb,var(--c) 15%,transparent);border-left:3px solid var(--c);font-size:11.5px;color:var(--n1);cursor:grab;-webkit-touch-callout:none;transition:background .12s,transform .12s;}
-.plx-chip:hover{background:color-mix(in srgb,var(--c) 26%,transparent);}
-.plx-chip .nm{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.plx-chip .val{flex:0 0 auto;font-family:var(--fd);font-weight:600;font-variant-numeric:tabular-nums;font-size:11.5px;color:var(--n1);}
-.plx-chip.minor{height:20px;font-size:10.5px;color:var(--n2);background:color-mix(in srgb,var(--c) 8%,transparent);}
-.plx-chip.minor .val{font-size:10.5px;font-weight:500;color:var(--n3);}
-.plx-chip.done{background:color-mix(in srgb,var(--c) 9%,transparent);color:var(--n2);}
-.plx-chip.done .val{color:var(--pos);}
-.plx-chip.missed{background:none;border-left-color:var(--n4);color:var(--n4);text-decoration:line-through;}
-.plx-chip.missed .val{color:var(--n4);}
-.plx-chip.act{background:none;border:1px dashed color-mix(in srgb,var(--c) 55%,transparent);border-left:3px solid var(--c);cursor:default;color:var(--n2);}
-.plx-chip.plx-lift{opacity:.35;}
-.plx-ghost{position:fixed;z-index:60;pointer-events:none;width:170px;box-shadow:0 10px 28px rgba(0,0,0,.55);transform:rotate(-1.5deg);background:var(--bg-lift);}
 
-.plx-wk{background:var(--bg-mid);padding:10px 12px 10px;display:flex;flex-direction:column;min-width:0;}
-.plx-wk.cur{background:color-mix(in srgb,var(--a) 5%,var(--bg-mid));}
+/* a session: a small lit tile in its type's colour */
+.plx-chip{display:flex;align-items:center;gap:6px;min-width:0;height:25px;padding:0 7px 0 8px;border-radius:8px;border-left:3px solid var(--c);font-size:11.5px;color:var(--n1);cursor:grab;-webkit-touch-callout:none;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--c) 32%,transparent),color-mix(in srgb,var(--c) 15%,transparent));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.09),0 1px 2px rgba(3,5,10,.45);transition:filter .12s,transform .12s,box-shadow .12s;}
+.plx-chip:hover{filter:brightness(1.22);transform:translateY(-1px);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 4px 10px -2px rgba(3,5,10,.6);}
+.plx-chip .nm{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.plx-chip .rp{flex:0 0 auto;font-size:10px;line-height:1;color:color-mix(in srgb,var(--c) 70%,var(--n1));opacity:.8;}
+.plx-chip .val{flex:0 0 auto;font-family:var(--fd);font-weight:600;font-variant-numeric:tabular-nums;font-size:12px;color:var(--n1);}
+.plx-chip.minor{height:20px;font-size:10.5px;color:var(--n2);background:color-mix(in srgb,var(--c) 9%,transparent);box-shadow:none;}
+.plx-chip.minor .val{font-size:10.5px;font-weight:500;color:var(--n3);}
+.plx-chip.done{background:color-mix(in srgb,var(--c) 10%,transparent);color:var(--n2);box-shadow:none;}
+.plx-chip.done .val{color:var(--pos);}
+.plx-chip.missed{background:none;border-left-color:var(--n4);color:var(--n4);text-decoration:line-through;box-shadow:none;}
+.plx-chip.missed .val{color:var(--n4);}
+.plx-chip.act{background:none;border:1px dashed color-mix(in srgb,var(--c) 55%,transparent);border-left:3px solid var(--c);cursor:default;color:var(--n2);box-shadow:none;}
+.plx-chip.act:hover{transform:none;}
+.plx-chip.plx-lift{opacity:.3;}
+.plx-ghost{position:fixed;z-index:60;pointer-events:none;width:176px;transform:rotate(-2deg) scale(1.04);background:var(--bg-lift);
+  box-shadow:0 18px 36px rgba(0,0,0,.65),0 0 0 1px rgba(170,180,255,.4),0 0 24px rgba(143,154,232,.35);}
+
+.plx-wk{background:color-mix(in srgb,var(--bg-lift) 58%,var(--bg-mid));padding:11px 13px 10px;display:flex;flex-direction:column;min-width:0;box-shadow:inset 1px 0 0 rgba(230,236,255,.05);}
+.plx-wk.old{background:color-mix(in srgb,var(--bg-mid) 70%,var(--bg-bot));}
+.plx-wk.cur{background:linear-gradient(180deg,color-mix(in srgb,var(--a) 22%,var(--bg-lift)),color-mix(in srgb,var(--a) 8%,var(--bg-mid)));box-shadow:inset 3px 0 0 var(--g2),inset 0 1px 0 rgba(230,236,255,.1);}
 .plx-wk .wl{font-family:var(--fd);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--n4);}
+.plx-wk.cur .wl{color:var(--a-hi);}
 .plx-wk .big{display:flex;align-items:baseline;gap:5px;margin-top:7px;}
-.plx-wk .big b{font-family:var(--fd);font-size:25px;font-weight:600;letter-spacing:-.02em;color:var(--n1);font-variant-numeric:tabular-nums;line-height:1;}
+.plx-wk .big b{font-family:var(--fd);font-size:27px;font-weight:600;letter-spacing:-.025em;color:var(--n1);font-variant-numeric:tabular-nums;line-height:1;}
+.plx-wk.cur .big b{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;}
 .plx-wk .big span{font-size:11px;color:var(--n3);}
-.plx-wk.zero .big b{color:var(--n4);}
+.plx-wk.zero .big b{color:var(--n4);background:none;}
 .plx-wk .sub{font-size:11px;color:var(--n3);margin-top:5px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.plx-wbar{position:relative;height:5px;border-radius:3px;background:var(--el0-bg);margin-top:9px;overflow:visible;}
-.plx-wbar i{position:absolute;top:0;bottom:0;border-radius:3px;}
-.plx-wbar .pl{background:var(--a-dim);left:0;}
-.plx-wbar .dn{background:linear-gradient(90deg,var(--a),var(--a-hi));left:0;}
-.plx-wbar em{position:absolute;top:-3px;bottom:-3px;width:2px;border-radius:1px;background:var(--n2);}
+.plx-wbar{position:relative;height:5px;border-radius:3px;background:rgba(0,0,0,.42);box-shadow:var(--el0-sh);margin-top:10px;}
+.plx-wbar i{position:absolute;top:0;bottom:0;border-radius:3px;left:0;}
+.plx-wbar .pl{background:color-mix(in srgb,var(--a) 34%,transparent);}
+.plx-wbar .dn{background:var(--grad);box-shadow:0 0 9px rgba(143,154,232,.6);}
+.plx-wbar em{position:absolute;top:-3px;bottom:-3px;width:2px;border-radius:1px;background:var(--n1);box-shadow:0 0 5px rgba(230,236,255,.5);}
 .plx-wk .mix{font-size:10.5px;color:var(--n4);margin-top:8px;line-height:1.5;}
-.plx-wk .wa{margin-top:auto;padding-top:8px;display:flex;gap:2px;margin-left:-7px;opacity:0;transition:opacity .12s;}
+.plx-wk.old .mix,.plx-wk.old .plx-wbar,.plx-wk.old .sub + .plx-wbar + .sub,.plx-wk.old .wa{display:none;}
+.plx-wk.old{padding-top:9px;padding-bottom:9px;}
+.plx-wk.old .big b{font-size:21px;}
+.plx-wk{cursor:pointer;transition:filter .12s;}
+.plx-wk:hover{filter:brightness(1.18);}
+.plx-wk .wa{margin-top:auto;padding-top:8px;display:flex;flex-wrap:wrap;gap:2px;margin-left:-7px;opacity:0;transition:opacity .12s;}
 .plx-wk:hover .wa{opacity:1;}
 @media (hover:none){ .plx-wk .wa{opacity:1;} }
 .plx-wk .wa button{border:none;background:none;color:var(--n3);font-size:10.5px;font-weight:600;padding:4px 7px;border-radius:7px;}
 .plx-wk .wa button:hover{background:var(--a-fill);color:var(--a-hi);}
-.plx-wk.old .mix{display:none;}
+
+/* ── week view ── */
+.plx-hero{display:grid;grid-template-columns:minmax(210px,1fr) minmax(280px,1.5fr) minmax(220px,1.1fr);gap:0;margin-bottom:14px;}
+.plx-hero > div{padding:20px 24px;min-width:0;}
+.plx-hero > div + div{border-left:1px solid var(--line);}
+.plx-hx-l{font-family:var(--fd);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--n4);}
+.plx-hx-n{display:flex;align-items:baseline;gap:8px;margin-top:6px;}
+.plx-hx-n b{font-family:var(--fd);font-size:62px;font-weight:600;letter-spacing:-.04em;line-height:.95;font-variant-numeric:tabular-nums;
+  background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 6px 22px rgba(143,154,232,.35));}
+.plx-hx-n.zero b{background:none;color:var(--n4);filter:none;}
+.plx-hx-n span{font-size:15px;color:var(--n3);}
+.plx-hx-s{font-size:12.5px;color:var(--n2);margin-top:9px;font-variant-numeric:tabular-nums;}
+.plx-hero .plx-wbar{height:7px;border-radius:4px;margin-top:13px;} .plx-hero .plx-wbar i{border-radius:4px;}
+.plx-hx-t{font-size:11.5px;color:var(--n3);margin-top:8px;font-variant-numeric:tabular-nums;}
+.plx-cols{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;align-items:end;height:118px;margin-top:10px;}
+.plx-col{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;min-width:0;}
+.plx-col .cv{font-family:var(--fd);font-size:11.5px;font-weight:600;color:var(--n2);font-variant-numeric:tabular-nums;margin-bottom:5px;height:14px;}
+.plx-col .cb{position:relative;width:100%;max-width:38px;flex:0 0 auto;border-radius:6px 6px 2px 2px;min-height:3px;
+  background:linear-gradient(180deg,rgba(143,154,232,.2),rgba(143,154,232,.05));border:1px solid rgba(170,180,255,.26);border-bottom:none;box-shadow:inset 0 1px 0 rgba(230,236,255,.1);}
+.plx-col .cb i{position:absolute;left:2px;right:2px;bottom:0;border-radius:4px 4px 1px 1px;background:linear-gradient(180deg,var(--a-hi),var(--g2) 55%,var(--g1));box-shadow:0 0 14px rgba(143,154,232,.55),inset 0 1px 0 rgba(255,255,255,.4);}
+.plx-col.none .cb{background:none;border-color:transparent;box-shadow:none;border-top:1px solid var(--line);border-radius:0;min-height:1px;}
+.plx-col .cd{font-family:var(--fd);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--n4);margin-top:7px;}
+.plx-col.now .cd{color:var(--a-hi);}
+.plx-facts{display:flex;flex-direction:column;gap:10px;margin-top:10px;}
+.plx-fact{display:flex;align-items:baseline;justify-content:space-between;gap:12px;font-size:12.5px;color:var(--n3);}
+.plx-fact b{font-family:var(--fd);font-size:14.5px;font-weight:600;color:var(--n1);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap;}
+.plx-fact b.warn{color:var(--warn);} .plx-fact b.ok{color:var(--pos);}
+.plx-fact small{display:block;font-size:10.5px;color:var(--n4);font-weight:400;font-family:var(--fb);margin-top:1px;}
+
+.plx-week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:10px;align-items:stretch;}
+.plx-day.plx-wd{min-height:340px;border-radius:16px;border:1px solid var(--el2-line);padding:11px 9px 9px;gap:7px;
+  box-shadow:inset 0 1px 0 rgba(230,236,255,.07),0 2px 3px rgba(3,5,10,.4),0 20px 36px -22px rgba(3,5,10,.8);overflow:hidden;}
+.plx-day.plx-wd.today{border-color:rgba(170,180,255,.5);box-shadow:inset 0 1px 0 rgba(230,236,255,.12),0 0 0 1px rgba(143,154,232,.25),0 18px 40px -16px rgba(143,154,232,.45);}
+.plx-wdh{display:flex;align-items:center;gap:7px;padding:0 2px 6px;}
+.plx-wdh .dw{font-family:var(--fd);font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--n3);font-weight:600;}
+.plx-day.plx-wd.we .plx-wdh .dw{color:var(--info);}
+.plx-wdh .dnum{font-size:13.5px;width:24px;height:24px;}
+.plx-wdh .tot{margin-left:auto;font-family:var(--fd);font-size:12.5px;font-weight:600;color:var(--n1);font-variant-numeric:tabular-nums;white-space:nowrap;}
+.plx-wdh .tot small{font-size:10px;color:var(--n3);font-weight:400;margin-left:2px;}
+.plx-chip.plx-card{display:block;height:auto;padding:9px 10px 9px 10px;border-radius:11px;font-size:12.5px;}
+.plx-card .c1{display:flex;align-items:baseline;gap:6px;min-width:0;}
+.plx-card .c1 .nm{font-weight:600;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.25;}
+.plx-card .c1 .val{font-size:17px;letter-spacing:-.01em;}
+.plx-card .c1 .val small{font-size:10px;font-weight:400;color:var(--n3);margin-left:2px;font-family:var(--fb);}
+.plx-card .c2{font-size:10.5px;color:color-mix(in srgb,var(--c) 45%,var(--n2));margin-top:4px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.plx-card .c3{font-size:10.5px;color:var(--n3);margin-top:4px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:normal;}
+.plx-card.minor{height:auto;padding:6px 9px;}
+.plx-card.minor .c1 .nm{font-weight:500;font-size:11.5px;} .plx-card.minor .c1 .val{font-size:11.5px;}
+.plx-card.missed .c1 .nm{text-decoration:line-through;} .plx-card.missed{text-decoration:none;}
+.plx-wadd{margin-top:auto;border:1px dashed var(--line);background:none;color:var(--n4);font-size:11.5px;font-weight:600;padding:8px;border-radius:10px;transition:background .12s,color .12s,border-color .12s;}
+.plx-day:hover .plx-wadd{color:var(--n2);border-color:var(--a-edge);}
+.plx-wadd:hover{background:var(--a-fill);color:var(--a-hi) !important;}
 
 /* ── popover ── */
-.plx-pop{position:absolute;z-index:40;width:316px;background:var(--bg-lift);border:1px solid var(--el2-line);border-radius:15px;box-shadow:0 18px 44px rgba(0,0,0,.6),inset 0 1px 0 rgba(230,236,255,.07);padding:13px;}
+.plx-pop{position:absolute;z-index:40;width:320px;background:color-mix(in srgb,var(--bg-lift) 88%,transparent);border:1px solid rgba(170,196,226,.24);border-radius:16px;
+  -webkit-backdrop-filter:blur(22px) saturate(150%);backdrop-filter:blur(22px) saturate(150%);
+  box-shadow:0 24px 54px rgba(0,0,0,.66),0 0 0 1px rgba(3,5,10,.4),inset 0 1px 0 rgba(230,236,255,.1);padding:13px;animation:plxPop .14s cubic-bezier(.2,.8,.2,1);}
+@keyframes plxPop{from{opacity:0;transform:translateY(-4px) scale(.98);}to{opacity:1;transform:none;}}
+@media (prefers-reduced-motion:reduce){ .plx-pop{animation:none;} .plx-chip:hover{transform:none;} }
+.plx-pop::before{content:'';position:absolute;left:16px;right:16px;top:-1px;height:1px;background:linear-gradient(90deg,transparent,rgba(127,217,189,.6),rgba(143,154,232,.8),rgba(179,154,232,.6),transparent);}
 .plx-pop[hidden]{display:none;}
+.plx-pop{max-height:calc(100vh - 16px);overflow-y:auto;overscroll-behavior:contain;}
 .plx-pop .ph{font-family:var(--fd);font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--n3);margin-bottom:9px;display:flex;justify-content:space-between;align-items:center;}
 .plx-pop .ph button{border:none;background:none;color:var(--n3);font-size:14px;padding:0 2px;}
-.plx-pop input,.plx-pop select,.plx-pop textarea{width:100%;min-width:0;background:var(--el0-bg);border:1px solid var(--line);border-radius:9px;color:var(--n1);font-size:13px;padding:8px 10px;outline:none;-webkit-appearance:none;appearance:none;}
-.plx-pop input:focus,.plx-pop select:focus,.plx-pop textarea:focus{border-color:var(--a);}
+.plx-pop input,.plx-pop select,.plx-pop textarea{width:100%;min-width:0;background:rgba(0,0,0,.3);border:1px solid var(--line);border-radius:10px;color:var(--n1);font-size:13px;padding:8px 10px;outline:none;-webkit-appearance:none;appearance:none;box-shadow:var(--el0-sh);}
+.plx-pop input:focus,.plx-pop select:focus,.plx-pop textarea:focus{border-color:var(--a);box-shadow:var(--el0-sh),0 0 0 3px rgba(143,154,232,.16);}
 .plx-pop textarea{resize:none;line-height:1.4;}
-.plx-pop .q{font-size:14.5px;padding:10px 12px;}
-.plx-pop .hint{font-size:10.5px;color:var(--n4);margin-top:7px;line-height:1.5;}
+.plx-pop .q{font-size:14.5px;padding:11px 12px;}
+.plx-pop .hint{font-size:10.5px;color:var(--n4);line-height:1.5;}
 .plx-pop .prev{font-size:11.5px;color:var(--a-hi);margin-top:7px;min-height:15px;}
-.plx-pop .tp{display:flex;flex-wrap:wrap;gap:5px;margin-top:11px;}
+.plx-pop .tp{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px;}
 .plx-pop .tp button{border:1px solid var(--line);background:var(--card);color:var(--n2);font-size:11px;padding:5px 9px;border-radius:999px;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .plx-pop .tp button:hover{border-color:var(--a-edge);color:var(--n1);background:var(--a-fill);}
 .plx-pop .plx-r{display:grid;gap:7px;margin-top:7px;}
 .plx-pop .plx-r.c2{grid-template-columns:1fr 1fr;} .plx-pop .plx-r.c3{grid-template-columns:1fr 1fr 1fr;}
 .plx-pop .fld label{display:block;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--n4);margin:0 0 3px 2px;}
-.plx-pop .rep{display:flex;gap:4px;margin-top:4px;}
-.plx-pop .rep button{flex:1;height:28px;border-radius:8px;border:1px solid var(--line);background:none;color:var(--n3);font-size:11px;font-weight:600;padding:0;}
+.plx-pop .rep{display:flex;gap:4px;}
+.plx-pop .rep button{flex:1;height:29px;border-radius:9px;border:1px solid var(--line);background:none;color:var(--n3);font-size:11px;font-weight:600;padding:0;}
 .plx-pop .rep button.on{background:var(--a-fill);border-color:var(--a-edge);color:var(--a-hi);}
-.plx-pop .rep button.self{background:var(--a);border-color:var(--a);color:var(--bg-bot);}
+.plx-pop .rep button.self{background:var(--grad);border-color:transparent;color:#080a12;}
+.plx-pop .evr{display:flex;align-items:center;gap:10px;margin-top:8px;width:100%;border:1px solid var(--line);background:none;border-radius:10px;padding:8px 10px;color:var(--n2);font-size:12px;font-weight:600;text-align:left;}
+.plx-pop .evr u{flex:0 0 auto;text-decoration:none;width:30px;height:18px;border-radius:9px;background:rgba(0,0,0,.4);box-shadow:var(--el0-sh);position:relative;transition:background .18s;}
+.plx-pop .evr u::after{content:'';position:absolute;left:2px;top:2px;width:14px;height:14px;border-radius:50%;background:var(--n3);transition:transform .18s,background .18s;}
+.plx-pop .evr.on{border-color:var(--a-edge);color:var(--a-hi);background:var(--a-fill);}
+.plx-pop .evr.on u{background:var(--grad);} .plx-pop .evr.on u::after{transform:translateX(12px);background:#fff;}
+.plx-pop .evr small{display:block;font-size:10.5px;font-weight:400;color:var(--n3);margin-top:1px;}
+.plx-pop .scope{display:flex;background:rgba(0,0,0,.3);border:1px solid var(--line);border-radius:10px;padding:2px;gap:2px;margin-bottom:8px;}
+.plx-pop .scope button{flex:1;border:none;background:none;color:var(--n3);font-size:11px;font-weight:600;padding:6px 4px;border-radius:8px;}
+.plx-pop .scope button.on{background:var(--card2);color:var(--n1);box-shadow:var(--el1-sh);}
 .plx-pop .pf{display:flex;justify-content:space-between;align-items:center;margin-top:11px;}
 .plx-pop .pf button{border:none;background:none;font-size:12px;font-weight:600;padding:6px 8px;border-radius:8px;color:var(--n2);}
 .plx-pop .pf button:hover{background:var(--card2);}
 .plx-pop .pf .del{color:var(--neg);margin-left:-8px;} .plx-pop .pf .ok{color:var(--a-hi);margin-right:-8px;}
 
-/* iPad portrait: twelve months will not fit across, and the week column narrows */
+/* iPad portrait */
 @media (min-width:760px) and (max-width:1023px){
   /* Twelve months still go across: wrapping them to two rows pushed the
      calendar off the first screen, and the calendar is what he came for. */
@@ -17640,10 +17769,21 @@ if ('serviceWorker' in navigator){
   .plx-grid{grid-template-columns:repeat(7,minmax(0,1fr)) 112px;}
   .plx-day{padding:6px 4px 8px;}
   /* at this width the title needs the room more than "10m" does */
-  .plx-chip.minor .val{display:none;}
+  .plx-chip.minor:not(.plx-card) .val{display:none;}
   .plx-wk .big b{font-size:20px;}
   .plx-chip{font-size:10.5px;padding:0 5px 0 6px;gap:4px;}
   .plx-mh h2{min-width:150px;font-size:19px;}
+  .plx-sum{display:none;}
+  /* seven columns of cards do not fit; each day becomes a row instead */
+  .plx-hero{grid-template-columns:1fr 1.25fr;}
+  .plx-hero > div:nth-child(3){grid-column:1 / -1;border-left:none;border-top:1px solid var(--line);}
+  .plx-facts{flex-direction:row;flex-wrap:wrap;gap:8px 26px;}
+  .plx-fact{flex:1 1 40%;}
+  .plx-week{grid-template-columns:1fr;gap:8px;}
+  .plx-day.plx-wd{min-height:0;flex-direction:row;flex-wrap:wrap;align-items:flex-start;padding:10px;gap:7px;}
+  .plx-day.plx-wd .plx-wdh{flex:0 0 100%;padding-bottom:2px;}
+  .plx-day.plx-wd .plx-chip.plx-card{flex:0 1 calc(33.333% - 5px);font-size:12px;padding:8px 9px;}
+  .plx-day.plx-wd .plx-wadd{margin-top:0;flex:0 0 auto;padding:8px 14px;align-self:stretch;}
 }
 </style>
 
@@ -17661,8 +17801,8 @@ if ('serviceWorker' in navigator){
 
    Entry is the thing the old planner got wrong: every workout went through a
    full-screen form. Here a day takes a typed line ("6 easy", "12 long 2500ft",
-   "legs", "sauna 45") and the form is one click away for the sessions that
-   genuinely need it. */
+   "legs", "qi gong 5:30am daily") and the form is one click away for the
+   sessions that genuinely need it. */
 (function(){
 'use strict';
 const host = document.getElementById('s-plan');
@@ -17674,6 +17814,7 @@ const $year = document.getElementById('plxYear');
 const $month = document.getElementById('plxMonth');
 const $pop = document.getElementById('plxPop');
 const wide = window.matchMedia('(min-width:760px)');
+const BOOT = Date.now();
 
 const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const MON_FULL = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -17682,14 +17823,17 @@ const METRIC = { distance:{ f:'distance_mi', unit:'mi', label:'Miles' }, elevati
 
 /* The year plan is set once and revisited monthly; the calendar is used every
    week. So the year folds down to one row by default and remembers if he opens it. */
-const YEAR_OPEN_KEY = 'rh_plx_year_open';
+const YEAR_OPEN_KEY = 'rh_plx_year_open', VIEW_KEY = 'rh_plx_view';
 const st = { year: todayD.getFullYear(), month: todayD.getMonth(), metric:'distance', pop:null, undo:[],
-             yearOpen: lsGet(YEAR_OPEN_KEY, false) === true };
+             yearOpen: lsGet(YEAR_OPEN_KEY, false) === true,
+             view: lsGet(VIEW_KEY, 'month') === 'week' ? 'week' : 'month',
+             week: iso(weekStart(todayD)) };
 
 const E = function(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
   return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]; }); };
 const dOf = function(isoStr){ return new Date(isoStr + 'T00:00:00'); };
 const addDays = function(d, n){ const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+const dowOf = function(isoStr){ return (dOf(isoStr).getDay() + 6) % 7; };       /* Mon = 0 */
 const isRunW = function(w){ return RUNLIKE.has(w.type); };
 function fmt(v){                      /* month- and year-scale numbers */
   if (v == null || isNaN(v)) return '—';
@@ -17703,6 +17847,12 @@ function fmt1(v){                     /* week- and day-scale miles keep a decima
   return (r % 1 === 0) ? String(r) : r.toFixed(1);
 }
 const miles = function(v){ const r = Math.round(v*10)/10; return (r % 1 === 0) ? String(r) : r.toFixed(1); };
+const feet = function(v){ return Math.round(v).toLocaleString(); };
+function clock(t){                    /* "05:30" -> "5:30 am" */
+  if (!t) return '';
+  const p = String(t).split(':'), h = +p[0];
+  return ((h % 12) || 12) + ':' + (p[1] || '00') + (h < 12 ? ' am' : ' pm');
+}
 
 /* Every number field takes arithmetic, because half of planning is arithmetic:
    "=1149*1.12", "1500/12", "45k". Only digits and operators get through, so
@@ -17771,23 +17921,105 @@ function dayRun(ix, dateISO, metric){
   else if (dateISO === TODAY) togo = Math.max(0, planned - done);
   return { done: dateISO <= TODAY ? done : 0, planned: planned, togo: togo };
 }
+function weekRun(ix, mon, metric){
+  let done = 0, togo = 0, planned = 0;
+  for (let i=0;i<7;i++){ const r = dayRun(ix, iso(addDays(mon, i)), metric); done += r.done; togo += r.togo; planned += r.planned; }
+  const past = iso(addDays(mon, 6)) < TODAY;
+  return { done:done, togo:togo, planned:planned, past:past, future: iso(mon) > TODAY, head: past ? done : done + togo };
+}
 
-/* ── undo: one snapshot per action, plan and goals together ── */
+/* ── undo: one snapshot per action — plan, goals and repeat rules together ── */
 function snap(){
-  st.undo.push({ p: JSON.stringify(PLANNED), g: JSON.stringify(GOALS) });
+  st.undo.push({ p: JSON.stringify(PLANNED), g: JSON.stringify(GOALS), r: JSON.stringify(REPEATS) });
   if (st.undo.length > 30) st.undo.shift();
 }
 function undo(){
   const s = st.undo.pop();
   if (!s){ return; }
-  PLANNED = JSON.parse(s.p); GOALS = JSON.parse(s.g);
-  lsSet(GOALS_KEY, GOALS);
+  PLANNED = JSON.parse(s.p); GOALS = JSON.parse(s.g); REPEATS = JSON.parse(s.r || '[]');
+  lsSet(GOALS_KEY, GOALS); lsSet(REPEATS_KEY, REPEATS);
   closePop();
   planChanged(TODAY);
   toast('Undone');
 }
 let _lastId = 0;
 function newId(){ _lastId = Math.max(Date.now(), _lastId + 1); return _lastId; }
+
+/* ═══ REPEATING SESSIONS ═══
+   "Qi Gong at 5:30 every morning, from now on." Two ways to build that, and the
+   obvious one is wrong here: storing only the rule and drawing its days on the
+   fly would mean the phone views, the readiness logic, Jarvis and the morning
+   brief — all of which read PLANNED — never see those sessions.
+
+   So a repeat is real PLANNED records, written about six months ahead, each
+   tagged with the rule's id. The rule itself (REPEATS, synced with the plan) is
+   what lets the series be edited or stopped as one thing, and lets it be
+   extended as time passes. Deleting or moving one day is just editing that one
+   record; nothing regenerates behind it, because extension only ever writes
+   past the last date it already reached. */
+const REP_WEEKS = 26, REP_REFILL_UNDER = 18;
+function ruleOf(w){ return (w && w.rep != null) ? REPEATS.find(function(r){ return String(r.id) === String(w.rep); }) : null; }
+function ruleLive(r, dateISO){ return !!r && (!r.until || r.until >= dateISO); }
+function protoOf(w){ const p = JSON.parse(JSON.stringify(w)); delete p.id; delete p.date; delete p.rep; delete p._days; return p; }
+function saveReps(){ lsSet(REPEATS_KEY, REPEATS); }
+function repFill(rule, fromISO, toISO, onlyDow){
+  let n = 0, d = dOf(fromISO); const end = dOf(toISO);
+  while (d <= end){
+    const key = iso(d), dw = (d.getDay() + 6) % 7;
+    if (rule.days.indexOf(dw) >= 0 && (onlyDow == null || dw === onlyDow) && (!rule.until || key <= rule.until)){
+      /* a session of the same name already on that day joins the series rather than being doubled */
+      const ex = PLANNED.find(function(x){ return x.date === key && (String(x.rep) === String(rule.id)
+        || (x.rep == null && x.type === rule.proto.type && (x.title || '') === (rule.proto.title || ''))); });
+      /* …and takes the series' details: "Qi Gong at 5:30 every morning" has to
+         move the 6:00 ones already on the calendar, or it has not done what was asked */
+      if (ex){ if (ex.rep == null){ Object.assign(ex, JSON.parse(JSON.stringify(rule.proto)), { rep:rule.id }); } }
+      else { PLANNED.push(Object.assign(blankWorkout(key), JSON.parse(JSON.stringify(rule.proto)), { id:newId(), date:key, rep:rule.id })); n++; }
+    }
+    d = addDays(d, 1);
+  }
+  return n;
+}
+function repCreate(proto, startISO, days){
+  const rule = { id:newId(), days:days.slice().sort(), start:startISO, until:null, proto:proto,
+                 through: iso(addDays(dOf(startISO), REP_WEEKS*7)) };
+  REPEATS.push(rule);
+  const n = repFill(rule, startISO, rule.through);
+  saveReps();
+  return { rule:rule, n:n };
+}
+/* Stopping removes everything after the cut and dissolves the rule. What is left
+   on the calendar becomes ordinary sessions — there is nothing "repeating"
+   about a series with no future, and showing it as one would be a lie. */
+function repStop(rule, keepThroughISO){
+  const before = PLANNED.length;
+  PLANNED = PLANNED.filter(function(x){ return !(String(x.rep) === String(rule.id) && x.date > keepThroughISO); });
+  PLANNED.forEach(function(x){ if (String(x.rep) === String(rule.id)) delete x.rep; });
+  REPEATS = REPEATS.filter(function(r){ return r !== rule; });
+  saveReps();
+  return before - PLANNED.length;
+}
+/* Top up series that are running short. Held back for the first seconds after
+   load: writing the plan before the cloud copy has been reconciled would stamp
+   this device as newest and overwrite edits made on another one. */
+function repExtend(){
+  if (!REPEATS.length || Date.now() - BOOT < 15000) return 0;
+  const horizon = iso(addDays(todayD, REP_WEEKS*7)), low = iso(addDays(todayD, REP_REFILL_UNDER*7));
+  let n = 0;
+  REPEATS.forEach(function(r){
+    if (!r || !r.days || !r.proto || (r.until && r.until < TODAY) || r.through >= low) return;
+    n += repFill(r, iso(addDays(dOf(r.through), 1)), horizon);
+    r.through = horizon;
+  });
+  if (n){ saveReps(); savePlanned(); }
+  return n;
+}
+function daysLabel(days){
+  const d = days.slice().sort();
+  if (d.length === 7) return 'every day';
+  if (d.join() === '0,1,2,3,4') return 'weekdays';
+  if (d.join() === '5,6') return 'weekends';
+  return 'every ' + d.map(function(i){ return DOW[i]; }).join(', ');
+}
 
 /* ═══ YEAR ═══ */
 function renderYear(ix){
@@ -17799,6 +18031,38 @@ function renderYear(ix){
   for (let i=0;i<12;i++){ act[i] = monthActual(ix, y, i); done += act[i]; }
   const tg = []; let sum = 0, anyT = false;
   for (let i=0;i<12;i++){ tg[i] = monthTarget(y, i); if (tg[i] != null){ sum += tg[i]; anyT = true; } }
+
+  let summary = '';
+  if (target != null) summary = fmt(target) + ' ' + m.unit + ' target'
+    + (y <= curY ? ' · ' + fmt(done) + ' done' + (target ? ' · ' + Math.round(done/target*100) + '%' : '') : '');
+  else summary = 'no ' + y + ' target yet';
+
+  const top =
+      '<div class="plx-top">'
+    +   '<div class="plx-yr"><button class="plx-nav" data-act="yr-" aria-label="Previous year">‹</button><b>' + y + '</b>'
+    +     '<button class="plx-nav" data-act="yr+" aria-label="Next year">›</button></div>'
+    +   '<div class="plx-seg"><button data-metric="distance"' + (st.metric === 'distance' ? ' class="on"' : '') + '>Miles</button>'
+    +     '<button data-metric="elevation"' + (st.metric === 'elevation' ? ' class="on"' : '') + '>Vert</button></div>'
+    +   (st.yearOpen ? '' : '<span class="plx-sum">' + summary + '</span>')
+    +   '<div class="plx-sp"></div>'
+    +   '<button class="plx-txt" data-act="undo"' + (st.undo.length ? '' : ' disabled') + ' title="Undo the last change (Ctrl/Cmd+Z)">Undo</button>'
+    +   '<button class="plx-tog' + (st.yearOpen ? ' on' : '') + '" data-act="toggle" aria-expanded="' + st.yearOpen + '">Year plan<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>'
+    + '</div>';
+
+  if (!st.yearOpen){
+    /* folded: twelve cells that still show the shape of the year and still
+       switch the calendar, with nothing to edit by accident */
+    const cells = MON.map(function(nm, i){
+      const isCur = (y === curY && i === todayD.getMonth());
+      const fut = (y > curY) || (y === curY && i > todayD.getMonth());
+      const pct = tg[i] ? Math.min(100, act[i]/tg[i]*100) : (act[i] > 0 ? 100 : 0);
+      return '<button class="plx-mc' + (i === st.month ? ' sel' : '') + (isCur ? ' cur' : '') + '" data-m="' + i + '" title="' + MON_FULL[i] + ': ' + (tg[i] != null ? 'target ' + fmt(tg[i]) + ' ' + m.unit : 'no target') + (fut ? '' : ', ' + fmt(act[i]) + ' run') + '">'
+        + '<i>' + nm + '</i><b>' + (tg[i] != null ? fmt(tg[i]) : '—') + '</b>'
+        + '<u><s style="width:' + (fut ? 0 : pct).toFixed(0) + '%"></s></u></button>';
+    }).join('');
+    $year.innerHTML = top + '<div class="plx-strip">' + cells + '</div>';
+    return;
+  }
 
   const yoy = (target != null && lastTotal > 0) ? (target/lastTotal - 1)*100 : null;
   let k3 = '', k4 = '', k5 = '';
@@ -17831,7 +18095,7 @@ function renderYear(ix){
   /* one scale for all twelve bars, so the shape of the year is readable */
   let max = 1;
   for (let i=0;i<12;i++) max = Math.max(max, tg[i] || 0, act[i] || 0, last[i] || 0);
-  const h = function(v){ return Math.max(0, Math.round((v || 0)/max*70)); };
+  const h = function(v){ return Math.max(0, Math.round((v || 0)/max*74)); };
 
   const months = MON.map(function(nm, i){
     const isCur = (y === curY && i === todayD.getMonth());
@@ -17839,7 +18103,7 @@ function renderYear(ix){
     const race = RACES.some(function(r){ return r && r.date && r.date.slice(0,7) === y + '-' + String(i+1).padStart(2,'0'); });
     let dn = '';
     if (!fut){
-      const cls = (tg[i] != null && !isCur) ? (act[i] >= tg[i] ? ' over' : ' under') : '';
+      const cls = (tg[i] != null && !isCur && act[i] >= tg[i]) ? ' over' : '';
       dn = '<div class="dn-t' + cls + '">' + fmt(act[i]) + ' done</div>';
     } else {
       dn = '<div class="dn-t">' + (last[i] ? fmt(last[i]) + ' in ' + String(y-1).slice(2) : '&nbsp;') + '</div>';
@@ -17856,38 +18120,6 @@ function renderYear(ix){
       + '<input class="nt-in" data-fk="mn' + i + '" data-mn="' + i + '" autocomplete="off" maxlength="40" placeholder="note" value="' + E(monthNote(y, i)) + '" title="Trips, races, anything that shapes this month">'
       + '</div>';
   }).join('');
-
-  let summary = '';
-  if (target != null) summary = fmt(target) + ' ' + m.unit + ' target'
-    + (y <= curY ? ' \u00b7 ' + fmt(done) + ' done' + (target ? ' \u00b7 ' + Math.round(done/target*100) + '%' : '') : '');
-  else summary = 'no ' + y + ' target yet';
-
-  const top =
-      '<div class="plx-top">'
-    +   '<div class="plx-yr"><button class="plx-nav" data-act="yr-" aria-label="Previous year">\u2039</button><b>' + y + '</b>'
-    +     '<button class="plx-nav" data-act="yr+" aria-label="Next year">\u203a</button></div>'
-    +   '<div class="plx-seg"><button data-metric="distance"' + (st.metric === 'distance' ? ' class="on"' : '') + '>Miles</button>'
-    +     '<button data-metric="elevation"' + (st.metric === 'elevation' ? ' class="on"' : '') + '>Vert</button></div>'
-    +   (st.yearOpen ? '' : '<span class="plx-sum">' + summary + '</span>')
-    +   '<div class="plx-sp"></div>'
-    +   '<button class="plx-txt" data-act="undo"' + (st.undo.length ? '' : ' disabled') + ' title="Undo the last change (Ctrl/Cmd+Z)">Undo</button>'
-    +   '<button class="plx-tog' + (st.yearOpen ? ' on' : '') + '" data-act="toggle" aria-expanded="' + st.yearOpen + '">Year plan<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>'
-    + '</div>';
-
-  if (!st.yearOpen){
-    /* folded: twelve cells that still show the shape of the year and still
-       switch the calendar, with nothing to edit by accident */
-    const cells = MON.map(function(nm, i){
-      const isCur = (y === curY && i === todayD.getMonth());
-      const fut = (y > curY) || (y === curY && i > todayD.getMonth());
-      const pct = tg[i] ? Math.min(100, act[i]/tg[i]*100) : (act[i] > 0 ? 100 : 0);
-      return '<button class="plx-mc' + (i === st.month ? ' sel' : '') + (isCur ? ' cur' : '') + '" data-m="' + i + '" title="' + MON_FULL[i] + ': ' + (tg[i] != null ? 'target ' + fmt(tg[i]) + ' ' + m.unit : 'no target') + (fut ? '' : ', ' + fmt(act[i]) + ' run') + '">'
-        + '<i>' + nm + '</i><b>' + (tg[i] != null ? fmt(tg[i]) : '\u2014') + '</b>'
-        + '<u><s style="width:' + (fut ? 0 : pct).toFixed(0) + '%"></s></u></button>';
-    }).join('');
-    $year.innerHTML = top + '<div class="plx-strip">' + cells + '</div>';
-    return;
-  }
 
   $year.innerHTML = top
     + '<div class="plx-card">'
@@ -17955,7 +18187,7 @@ function writeMonths(vals, T, lockBefore){
   saveGoals(); render();
 }
 
-/* ═══ MONTH ═══ */
+/* ═══ SHARED: targets, colours, session markup ═══ */
 function weeksOf(y, m){
   const first = new Date(y, m, 1), last = new Date(y, m+1, 0);
   const out = []; let d = weekStart(first);
@@ -17987,48 +18219,119 @@ function chipColor(type, session){
   if (t === 'sauna') return 'var(--warn)';
   return 'var(--n3)';
 }
+function sessLabel(w){
+  const list = sessionsFor(w.type);
+  const s = list && list.find(function(x){ return x.key === w.session; });
+  if (s) return s.label.replace(' / Vert', '');
+  return w.type === 'Weight Training' ? 'Strength' : w.type;
+}
+function chipState(w, dateISO){
+  if (dateISO <= TODAY){
+    if (isFulfilled(w)) return 'done';
+    if (dateISO < TODAY) return 'missed';
+  }
+  return '';
+}
+function isMinor(w){
+  const run = isRunW(w) || normType(w.type) === 'hike';
+  const min = parseFloat(w.duration_min) || 0;
+  if (run) return false;
+  if (!min) return normType(w.type) !== 'weighttraining';
+  return min <= 15;
+}
 function planChip(w, dateISO){
   const run = isRunW(w) || normType(w.type) === 'hike';
   const mi = parseFloat(w.distance_mi) || 0, ft = parseFloat(w.elevation_ft) || 0, min = parseFloat(w.duration_min) || 0;
   let val = '';
-  if (st.metric === 'elevation' && run) val = ft ? Math.round(ft).toLocaleString() : (mi ? miles(mi) + ' mi' : '');
+  if (st.metric === 'elevation' && run) val = ft ? feet(ft) : (mi ? miles(mi) + ' mi' : '');
   else if (run && mi) val = miles(mi);
   else if (min) val = Math.round(min) + 'm';
-  let cls = '';
-  if (dateISO <= TODAY){
-    if (isFulfilled(w)){ cls = ' done'; val = '✓' + (val ? ' ' + val : ''); }
-    else if (dateISO < TODAY) cls = ' missed';
-  }
-  if (!run && !min && normType(w.type) !== 'weighttraining') cls += ' minor';
-  else if (!run && min && min <= 15) cls += ' minor';
-  const tip = (w.time ? w.time + '  ' : '') + (w.title || w.type)
-    + (mi ? '  ·  ' + miles(mi) + ' mi' : '') + (ft ? '  ·  ' + Math.round(ft).toLocaleString() + ' ft' : '')
-    + (min ? '  ·  ' + Math.round(min) + ' min' : '') + (w.notes ? '\n' + w.notes : '');
-  return '<div class="plx-chip' + cls + '" data-id="' + E(w.id) + '" style="--c:' + chipColor(w.type, w.session) + '" title="' + E(tip) + '">'
-    + '<span class="nm">' + E(w.title || w.type) + '</span>' + (val ? '<span class="val">' + val + '</span>' : '') + '</div>';
+  const state = chipState(w, dateISO);
+  if (state === 'done') val = '✓' + (val ? ' ' + val : '');
+  const live = ruleLive(ruleOf(w), dateISO);
+  const tip = (w.time ? clock(w.time) + '  ' : '') + (w.title || w.type)
+    + (mi ? '  ·  ' + miles(mi) + ' mi' : '') + (ft ? '  ·  ' + feet(ft) + ' ft' : '')
+    + (min ? '  ·  ' + Math.round(min) + ' min' : '') + (live ? '  ·  repeats' : '') + (w.notes ? '\n' + w.notes : '');
+  return '<div class="plx-chip' + (state ? ' ' + state : '') + (isMinor(w) ? ' minor' : '') + '" data-id="' + E(w.id) + '" style="--c:' + chipColor(w.type, w.session) + '" title="' + E(tip) + '">'
+    + '<span class="nm">' + E(w.title || w.type) + '</span>' + (live ? '<span class="rp" aria-label="repeats">↻</span>' : '')
+    + (val ? '<span class="val">' + val + '</span>' : '') + '</div>';
 }
 function actChip(a){
   const run = RUNLIKE.has(a.type) || normType(a.type) === 'hike';
   let val = '';
-  if (st.metric === 'elevation' && run && a.elevation_ft) val = Math.round(a.elevation_ft).toLocaleString();
+  if (st.metric === 'elevation' && run && a.elevation_ft) val = feet(a.elevation_ft);
   else if (run && a.distance_mi) val = miles(a.distance_mi);
   else if (a.moving_time) val = Math.round(a.moving_time/60) + 'm';
   return '<div class="plx-chip act' + (run ? '' : ' minor') + '" style="--c:' + chipColor(a.type, null) + '" title="' + E((a.name || a.type) + ' — logged, not planned') + '">'
     + '<span class="nm">' + E(a.name || a.type) + '</span>' + (val ? '<span class="val">' + val + '</span>' : '') + '</div>';
+}
+/* the week view has room to say what a session actually is */
+function planCard(w, dateISO){
+  const run = isRunW(w) || normType(w.type) === 'hike';
+  const mi = parseFloat(w.distance_mi) || 0, ft = parseFloat(w.elevation_ft) || 0, min = parseFloat(w.duration_min) || 0;
+  let val = '';
+  if (run && mi) val = miles(mi) + '<small>mi</small>';
+  else if (min) val = Math.round(min) + '<small>min</small>';
+  const state = chipState(w, dateISO), live = ruleLive(ruleOf(w), dateISO);
+  const meta = [];
+  if (w.time) meta.push(clock(w.time));
+  meta.push(sessLabel(w));
+  if (ft) meta.push(feet(ft) + ' ft');
+  if (run && mi && min) meta.push(Math.round(min) + ' min');
+  if (w.pace) meta.push(w.pace);
+  if (state === 'done') meta.push('✓ done'); else if (state === 'missed') meta.push('missed');
+  const note = (w.notes || '').replace(/\s*\n+\s*/g, ' · ').trim();
+  return '<div class="plx-chip plx-card' + (state ? ' ' + state : '') + (isMinor(w) ? ' minor' : '') + '" data-id="' + E(w.id) + '" style="--c:' + chipColor(w.type, w.session) + '">'
+    + '<div class="c1"><span class="nm">' + E(w.title || w.type) + '</span>' + (live ? '<span class="rp" aria-label="repeats">↻</span>' : '')
+    +   (val ? '<span class="val">' + val + '</span>' : '') + '</div>'
+    + '<div class="c2">' + E(meta.join(' · ')) + '</div>'
+    + (note && !isMinor(w) ? '<div class="c3">' + E(note) + '</div>' : '')
+    + '</div>';
+}
+function actCard(a){
+  const run = RUNLIKE.has(a.type) || normType(a.type) === 'hike';
+  let val = '';
+  if (run && a.distance_mi) val = miles(a.distance_mi) + '<small>mi</small>';
+  else if (a.moving_time) val = Math.round(a.moving_time/60) + '<small>min</small>';
+  const meta = ['logged'];
+  if (run && a.elevation_ft) meta.push(feet(a.elevation_ft) + ' ft');
+  if (run && a.moving_time) meta.push(hhmm(a.moving_time));
+  return '<div class="plx-chip plx-card act' + (run ? '' : ' minor') + '" style="--c:' + chipColor(a.type, null) + '">'
+    + '<div class="c1"><span class="nm">' + E(a.name || a.type) + '</span>' + (val ? '<span class="val">' + val + '</span>' : '') + '</div>'
+    + '<div class="c2">' + E(meta.join(' · ')) + '</div></div>';
 }
 function sortPlans(a, b){
   const ta = a.time || '99', tb = b.time || '99';
   if (ta !== tb) return ta < tb ? -1 : 1;
   return (isRunW(b) ? 1 : 0) - (isRunW(a) ? 1 : 0);
 }
+function dayParts(ix, key){
+  const plans = (ix.planDay[key] || []).slice().sort(sortPlans);
+  const acts = key <= TODAY ? (ix.actDay[key] || []) : [];
+  /* logged activities nothing on the plan accounts for */
+  const extra = acts.filter(function(a){ return !plans.some(function(w){ return typesMatch(a, w); }); });
+  const races = RACES.filter(function(rc){ return rc && rc.date === key; });
+  return { plans:plans, extra:extra, races:races };
+}
+function headHTML(title, stat, right){
+  return '<div class="plx-mh">'
+    + '<div class="ttl"><button class="plx-nav" data-act="mo-" aria-label="Previous">‹</button><h2>' + title + '</h2>'
+    +   '<button class="plx-nav" data-act="mo+" aria-label="Next">›</button>'
+    +   '<button class="plx-txt" data-act="today" style="margin-left:6px">Today</button></div>'
+    + '<div class="plx-seg view"><button data-view="week"' + (st.view === 'week' ? ' class="on"' : '') + '>Week</button>'
+    +   '<button data-view="month"' + (st.view === 'month' ? ' class="on"' : '') + '>Month</button></div>'
+    + '<div class="plx-mstat">' + stat + '</div>'
+    + '<div class="plx-sp"></div>' + right + '</div>';
+}
 
+/* ═══ MONTH ═══ */
 function renderMonth(ix){
   const y = st.year, mo = st.month, m = METRIC[st.metric];
   const other = st.metric === 'distance' ? 'elevation' : 'distance';
   const weeks = weeksOf(y, mo);
   const mKey = y + '-' + String(mo+1).padStart(2,'0');
+  const thisMon = iso(weekStart(todayD));
 
-  /* month totals */
   let mDone = 0, mTogo = 0;
   const dim = new Date(y, mo+1, 0).getDate();
   for (let d=1; d<=dim; d++){
@@ -18038,62 +18341,51 @@ function renderMonth(ix){
   const mT = monthTarget(y, mo);
   const proj = mDone + mTogo;
   const isPastMonth = new Date(y, mo+1, 0) < todayD;
-  let stat = '<span class="tgt">Target<input data-fk="mh" data-mth inputmode="decimal" autocomplete="off" placeholder="set" value="' + (mT != null ? fmt(mT) : '') + '" title="Target for ' + MON_FULL[mo] + ' \u2014 takes arithmetic"></span>';
+  let stat = '<span class="tgt">Target<input data-fk="mh" data-mth inputmode="decimal" autocomplete="off" placeholder="set" value="' + (mT != null ? fmt(mT) : '') + '" title="Target for ' + MON_FULL[mo] + ' — takes arithmetic"></span>';
   if (isPastMonth) stat += '<span>Run<b>' + fmt1(mDone) + '</b></span>';
-  else stat += '<span>On the calendar<b>' + fmt1(proj) + '</b></span>'
-            + (mDone > 0 ? '<span>' + fmt1(mDone) + ' run + ' + fmt1(mTogo) + ' planned</span>' : '');
+  else stat += '<span>On the calendar<b>' + fmt1(proj) + '</b></span>';
   if (mT != null && !isPastMonth){
     const gap = mT - proj;
     stat += Math.round(gap) > 0 ? '<span class="gap">' + fmt1(gap) + ' ' + m.unit + ' still to place</span>'
           : '<span class="gap ok">' + (Math.round(gap) === 0 ? 'target covered' : fmt1(-gap) + ' ' + m.unit + ' over target') + '</span>';
   }
 
-  let grid = DOW.map(function(d){ return '<div class="plx-gh">' + d + '</div>'; }).join('') + '<div class="plx-gh">Week</div>';
+  let grid = DOW.map(function(d, i){ return '<div class="plx-gh' + (i > 4 ? ' we' : '') + '">' + d + '</div>'; }).join('') + '<div class="plx-gh">Week</div>';
 
   weeks.forEach(function(mon){
-    let wDone = 0, wTogo = 0, wPlan = 0, oDone = 0, oTogo = 0;
+    const monISO = iso(mon), sun = addDays(mon, 6), isNow = monISO === thisMon, old = iso(sun) < TODAY;
     const mix = {};
-    let hasToday = false;
     for (let i=0;i<7;i++){
-      const d = addDays(mon, i), key = iso(d);
-      const plans = (ix.planDay[key] || []).slice().sort(sortPlans);
-      const acts = key <= TODAY ? (ix.actDay[key] || []) : [];
-      const r = dayRun(ix, key), ro = dayRun(ix, key, other);
-      wDone += r.done; wTogo += r.togo; wPlan += r.planned; oDone += ro.done; oTogo += ro.togo;
-      if (key === TODAY) hasToday = true;
-      plans.forEach(function(w){
+      const d = addDays(mon, i), key = iso(d), p = dayParts(ix, key);
+      p.plans.forEach(function(w){
         if (isRunW(w)) return;
         const lb = normType(w.type) === 'weighttraining' ? 'Strength' : w.type;
         mix[lb] = (mix[lb] || 0) + 1;
       });
-      /* logged activities nothing on the plan accounts for */
-      const extra = acts.filter(function(a){ return !plans.some(function(w){ return typesMatch(a, w); }); });
-      const races = RACES.filter(function(rc){ return rc && rc.date === key; });
-      grid += '<div class="plx-day' + (iso(addDays(mon, 6)) < TODAY ? ' old' : '') + (d.getMonth() !== mo ? ' out' : '') + (key === TODAY ? ' today' : '') + (key < TODAY ? ' past' : '') + '" data-date="' + key + '">'
+      grid += '<div class="plx-day' + (old ? ' old' : '') + (i > 4 ? ' we' : '') + (key < TODAY ? ' past' : '') + (isNow ? ' wknow' : '')
+        + (d.getMonth() !== mo ? ' out' : '') + (key === TODAY ? ' today' : '') + '" data-date="' + key + '">'
         + '<div class="dh"><span class="dnum">' + d.getDate() + '</span>'
-        +   races.map(function(rc){ return '<span class="rc" title="' + E(rc.name) + '">' + E(rc.name) + '</span>'; }).join('')
+        +   p.races.map(function(rc){ return '<span class="rc" title="' + E(rc.name) + '">' + E(rc.name) + '</span>'; }).join('')
         +   '<button class="add" data-add aria-label="Add to ' + key + '">+</button></div>'
-        + '<div class="plx-chips">' + plans.map(function(w){ return planChip(w, key); }).join('') + extra.map(actChip).join('') + '</div>'
+        + '<div class="plx-chips">' + p.plans.map(function(w){ return planChip(w, key); }).join('') + p.extra.map(actChip).join('') + '</div>'
         + '</div>';
     }
-    const sun = addDays(mon, 6), past = iso(sun) < TODAY, future = iso(mon) > TODAY;
-    const head = past ? wDone : (wDone + wTogo);
+    const W = weekRun(ix, mon), O = weekRun(ix, mon, other);
     const wT = weekTarget(mon);
-    const scale = Math.max(wT || 0, head, wPlan, 1) * 1.08;
+    const scale = Math.max(wT || 0, W.head, W.planned, 1) * 1.08;
     const pc = function(v){ return Math.min(100, Math.max(0, v/scale*100)).toFixed(1); };
     let sub;
-    if (past) sub = 'run' + (wPlan ? ' · ' + fmt1(wPlan) + ' was planned' : '');
-    else if (future) sub = wPlan ? 'planned' : 'nothing planned yet';
-    else sub = fmt1(wDone) + ' run · ' + fmt1(wTogo) + ' to go';
-    const oHead = past ? oDone : (oDone + oTogo);
-    const oTxt = other === 'elevation' ? Math.round(oHead).toLocaleString() + ' ft' : miles(oHead) + ' mi';
+    if (W.past) sub = 'run' + (W.planned ? ' · ' + fmt1(W.planned) + ' was planned' : '');
+    else if (W.future) sub = W.planned ? 'planned' : 'nothing planned yet';
+    else sub = fmt1(W.done) + ' run · ' + fmt1(W.togo) + ' to go';
+    const oTxt = other === 'elevation' ? feet(O.head) + ' ft' : miles(O.head) + ' mi';
     const mixTxt = Object.keys(mix).map(function(k){ return k + ' ' + mix[k]; }).join(' · ');
     const lbl = MON[mon.getMonth()] + ' ' + mon.getDate() + ' – ' + (sun.getMonth() !== mon.getMonth() ? MON[sun.getMonth()] + ' ' : '') + sun.getDate();
-    grid += '<div class="plx-wk' + (hasToday ? ' cur' : '') + (past ? ' old' : '') + (head > 0 ? '' : ' zero') + '" data-week="' + iso(mon) + '">'
+    grid += '<div title="Open this week" class="plx-wk' + (isNow ? ' cur' : '') + (W.past ? ' old' : '') + (W.head > 0 ? '' : ' zero') + '" data-week="' + monISO + '">'
       + '<div class="wl">' + lbl + '</div>'
-      + '<div class="big"><b>' + fmt1(head) + '</b><span>' + m.unit + '</span></div>'
+      + '<div class="big"><b>' + fmt1(W.head) + '</b><span>' + m.unit + '</span></div>'
       + '<div class="sub">' + sub + '</div>'
-      + '<div class="plx-wbar"><i class="pl" style="width:' + pc(past ? wPlan : head) + '%"></i><i class="dn" style="width:' + pc(wDone) + '%"></i>'
+      + '<div class="plx-wbar"><i class="pl" style="width:' + pc(W.past ? W.planned : W.head) + '%"></i><i class="dn" style="width:' + pc(W.done) + '%"></i>'
       +   (wT != null ? '<em style="left:' + pc(wT) + '%" title="Week’s share of the monthly target: ' + fmt1(wT) + ' ' + m.unit + '"></em>' : '') + '</div>'
       + '<div class="sub">' + (wT != null ? 'target ' + fmt1(wT) + ' · ' : '') + oTxt + '</div>'
       + (mixTxt ? '<div class="mix">' + E(mixTxt) + '</div>' : '')
@@ -18102,24 +18394,119 @@ function renderMonth(ix){
       + '</div>';
   });
 
-  $month.innerHTML =
-      '<div class="plx-mh">'
-    +   '<div class="ttl"><button class="plx-nav" data-act="mo-" aria-label="Previous month">‹</button><h2>' + MON_FULL[mo] + ' ' + y + '</h2>'
-    +     '<button class="plx-nav" data-act="mo+" aria-label="Next month">›</button>'
-    +     '<button class="plx-txt" data-act="today" style="margin-left:6px">Today</button></div>'
-    +   '<div class="plx-mstat">' + stat + '</div>'
-    +   '<div class="plx-sp"></div>'
-    +   '<button class="plx-txt" data-act="tsv" title="Copy this month as a table you can paste into Excel">Copy for Excel</button>'
-    + '</div>'
+  $month.innerHTML = headHTML(MON_FULL[mo] + ' ' + y, stat,
+      '<button class="plx-txt" data-act="tsv" title="Copy this month as a table you can paste into Excel">Copy for Excel</button>')
     + '<div class="plx-grid">' + grid + '</div>';
 }
 
+/* ═══ WEEK ═══
+   Seven days is a different question from thirty. The month answers "is the
+   load in the right places"; the week answers "what am I actually doing, and is
+   it a sensible step from last week". So this view spends its room on the
+   sessions themselves — time, kind, climb, notes — and on the jump from the
+   week before, which is the number that gets runners hurt. */
+function renderWeekView(ix){
+  const mon = dOf(st.week), sun = addDays(mon, 6), m = METRIC[st.metric];
+  const other = st.metric === 'distance' ? 'elevation' : 'distance';
+  const W = weekRun(ix, mon), O = weekRun(ix, mon, other);
+  const P = weekRun(ix, addDays(mon, -7));                     /* the week before */
+  const wT = weekTarget(mon);
+  const thisMon = iso(weekStart(todayD));
+  const rel = st.week === thisMon ? 'This week' : st.week === iso(addDays(dOf(thisMon), 7)) ? 'Next week'
+            : st.week === iso(addDays(dOf(thisMon), -7)) ? 'Last week' : 'Week of ' + MON[mon.getMonth()] + ' ' + mon.getDate();
+
+  let sub;
+  if (W.past) sub = 'run' + (W.planned ? ' · ' + fmt1(W.planned) + ' ' + m.unit + ' was planned' : '');
+  else if (W.future) sub = W.planned ? 'planned' : 'Nothing planned yet';
+  else sub = fmt1(W.done) + ' run · ' + fmt1(W.togo) + ' to go';
+  const scale = Math.max(wT || 0, W.head, W.planned, 1) * 1.08;
+  const pc = function(v){ return Math.min(100, Math.max(0, v/scale*100)).toFixed(1); };
+
+  /* daily shape */
+  const days = []; let dmax = 0.0001, longest = null;
+  const mix = {};
+  for (let i=0;i<7;i++){
+    const key = iso(addDays(mon, i)), r = dayRun(ix, key), p = dayParts(ix, key);
+    const show = key < TODAY ? r.done : Math.max(r.planned, r.done);
+    dmax = Math.max(dmax, show);
+    days.push({ key:key, r:r, p:p, show:show });
+    p.plans.forEach(function(w){
+      if (isRunW(w)){
+        const mi = parseFloat(w.distance_mi) || 0;
+        if (mi > 0 && (!longest || mi > longest.mi)) longest = { mi:mi, day:DOW[i] };
+        return;
+      }
+      const lb = normType(w.type) === 'weighttraining' ? 'Strength' : w.type;
+      mix[lb] = (mix[lb] || 0) + 1;
+    });
+  }
+  const cols = days.map(function(d, i){
+    const hgt = Math.round(d.show/dmax*86), dn = d.show > 0 ? Math.round(Math.min(d.r.done, d.show)/d.show*100) : 0;
+    return '<div class="plx-col' + (d.show > 0 ? '' : ' none') + (d.key === TODAY ? ' now' : '') + '">'
+      + '<div class="cv">' + (d.show > 0 ? fmt1(d.show) : '') + '</div>'
+      + '<div class="cb" style="height:' + Math.max(d.show > 0 ? 6 : 1, hgt) + 'px">' + (dn > 0 ? '<i style="height:' + dn + '%"></i>' : '') + '</div>'
+      + '<div class="cd">' + DOW[i].charAt(0) + '</div></div>';
+  }).join('');
+
+  /* the step from last week */
+  let ramp = '—', rampCls = '', rampSub = 'no running the week before';
+  if (P.head > 0){
+    const pct = (W.head/P.head - 1)*100;
+    ramp = (pct >= 0 ? '+' : '') + Math.round(pct) + '%';
+    /* a jump only matters once the base is big enough for a percentage to mean something */
+    rampCls = (pct > 15 && W.head >= 15) ? 'warn' : (pct >= -40 ? 'ok' : '');
+    rampSub = fmt1(P.head) + ' ' + m.unit + ' the week before';
+  }
+  const oTxt = other === 'elevation' ? feet(O.head) + ' ft' : miles(O.head) + ' mi';
+  const mixKeys = Object.keys(mix);
+  const facts =
+      '<div class="plx-fact"><span>' + (other === 'elevation' ? 'Vert' : 'Miles') + '</span><b>' + oTxt + '</b></div>'
+    + '<div class="plx-fact"><span>Longest run</span><b>' + (longest ? miles(longest.mi) + ' mi<small>' + longest.day + '</small>' : '—') + '</b></div>'
+    + '<div class="plx-fact"><span>vs week before</span><b class="' + rampCls + '">' + ramp + '<small>' + rampSub + '</small></b></div>'
+    + '<div class="plx-fact"><span>Other sessions</span><b>' + (mixKeys.length ? mixKeys.reduce(function(s,k){ return s + mix[k]; }, 0) : '—')
+    +   (mixKeys.length ? '<small>' + E(mixKeys.map(function(k){ return k + ' ' + mix[k]; }).join(' · ')) + '</small>' : '') + '</b></div>';
+
+  const hero = '<div class="plx-hero">'
+    + '<div><div class="plx-hx-l">' + rel + '</div>'
+    +   '<div class="plx-hx-n' + (W.head > 0 ? '' : ' zero') + '"><b>' + fmt1(W.head) + '</b><span>' + m.unit + '</span></div>'
+    +   '<div class="plx-hx-s">' + sub + '</div>'
+    +   '<div class="plx-wbar"><i class="pl" style="width:' + pc(W.past ? W.planned : W.head) + '%"></i><i class="dn" style="width:' + pc(W.done) + '%"></i>'
+    +     (wT != null ? '<em style="left:' + pc(wT) + '%"></em>' : '') + '</div>'
+    +   '<div class="plx-hx-t">' + (wT != null ? 'Week’s share of the ' + MON_FULL[addDays(mon, 3).getMonth()] + ' target: ' + fmt1(wT) + ' ' + m.unit : 'No monthly target set') + '</div></div>'
+    + '<div><div class="plx-hx-l">' + (st.metric === 'distance' ? 'Miles by day' : 'Vert by day') + '</div><div class="plx-cols">' + cols + '</div></div>'
+    + '<div><div class="plx-hx-l">The week</div><div class="plx-facts">' + facts + '</div></div>'
+    + '</div>';
+
+  const board = days.map(function(d, i){
+    const dt = dOf(d.key), tot = d.key < TODAY ? d.r.done : Math.max(d.r.planned, d.r.done);
+    return '<div class="plx-day plx-wd' + (i > 4 ? ' we' : '') + (d.key < TODAY ? ' past' : '') + (d.key === TODAY ? ' today' : '') + '" data-date="' + d.key + '">'
+      + '<div class="plx-wdh"><span class="dnum">' + dt.getDate() + '</span><span class="dw">' + DOW[i] + '</span>'
+      +   (tot > 0 ? '<span class="tot">' + fmt1(tot) + '<small>' + m.unit + '</small></span>' : '') + '</div>'
+      + d.p.races.map(function(rc){ return '<span class="rc" title="' + E(rc.name) + '">' + E(rc.name) + '</span>'; }).join('')
+      + d.p.plans.map(function(w){ return planCard(w, d.key); }).join('') + d.p.extra.map(actCard).join('')
+      + '<button class="plx-wadd" data-add>+ Add</button>'
+      + '</div>';
+  }).join('');
+
+  const title = MON[mon.getMonth()] + ' ' + mon.getDate() + ' – ' + (sun.getMonth() !== mon.getMonth() ? MON[sun.getMonth()] + ' ' : '') + sun.getDate() + ', ' + sun.getFullYear();
+  $month.innerHTML = headHTML(title, '',
+      '<button class="plx-txt" data-wkcopy data-week="' + st.week + '" title="Copy every session in this week onto the next one">Copy to next week</button>'
+    + '<button class="plx-txt" data-wkclear data-week="' + st.week + '" title="Remove every planned session in this week">Clear week</button>')
+    + hero + '<div class="plx-week">' + board + '</div>';
+}
+function gotoWeek(monISO){
+  st.week = monISO;
+  /* the month strip follows the week: a week belongs to the month its Thursday is in */
+  const th = addDays(dOf(monISO), 3);
+  st.year = th.getFullYear(); st.month = th.getMonth();
+}
+
 /* ═══ QUICK ENTRY ═══
-   One typed line becomes a workout. Order of meaning: an exact match on a saved
-   template or a title used before wins outright; otherwise keywords pick the
-   type, and the numbers are read by their units. A bare number is miles for
-   anything run-shaped and minutes for everything else, because that is what he
-   would mean. */
+   One typed line becomes a workout. Order of meaning: a saved template or a
+   title used before wins outright; otherwise keywords pick the type, and the
+   numbers are read by their units. A bare number is miles for anything
+   run-shaped and minutes for everything else, because that is what he would
+   mean. "daily", "weekdays" or "every mon wed fri" makes it repeat. */
 const KW = [
   [/\blong\b/i,'Run','long'], [/\btempo\b/i,'Run','tempo'], [/\b(intervals?|reps|track)\b/i,'Run','intervals'],
   [/\bhills?\b/i,'Run','hills'], [/\bprogression\b/i,'Run','progression'], [/\bfartlek\b/i,'Run','fartlek'],
@@ -18133,6 +18520,7 @@ const KW = [
 ];
 const GENERIC = new Set(('easy run runs long tempo interval intervals reps track hill hills progression fartlek shakeout race trail jog '
   + 'strength lift lifting weights weight gym legs leg upper core full body day hike yoga mobility sauna recovery mi mile miles and the a of').split(' '));
+const DAY_RX = { mon:0, tue:1, tues:1, wed:2, weds:2, thu:3, thur:3, thurs:3, fri:4, sat:5, sun:6 };
 function knownSessions(){
   /* saved templates first, then titles that keep coming back */
   const out = [], seen = {};
@@ -18141,9 +18529,9 @@ function knownSessions(){
     const k = nm.toLowerCase(); if (seen[k]) return; seen[k] = 1;
     out.push({ name:nm, proto:t, n:999 });
   });
-  const cut = iso(addDays(todayD, -120)), tally = {};
+  const cut = iso(addDays(todayD, -120)), ahead = iso(addDays(todayD, 21)), tally = {};
   PLANNED.forEach(function(w){
-    if (!w || !w.title || w.date < cut) return;
+    if (!w || !w.title || w.date < cut || w.date > ahead) return;
     const k = w.title.toLowerCase();
     const o = tally[k] || (tally[k] = { name:w.title, proto:w, n:0 });
     o.n++; if (w.date > o.proto.date) o.proto = w;
@@ -18155,28 +18543,50 @@ function knownSessions(){
 }
 function cloneOnto(proto, dateISO){
   const rec = Object.assign(blankWorkout(dateISO), JSON.parse(JSON.stringify(proto)), { id:newId(), date:dateISO });
-  delete rec.tplId; delete rec.tplName;
+  delete rec.tplId; delete rec.tplName; delete rec.rep;
   return rec;
 }
 function parseQuick(text, dateISO){
   const raw = String(text || '').trim();
   if (!raw) return null;
-  const hit = knownSessions().find(function(k){ return k.name.toLowerCase() === raw.toLowerCase(); });
-  if (hit) return cloneOnto(hit.proto, dateISO);
+  let s = ' ' + raw + ' ', time = null, ft = null, min = null, mi = null, days = null;
 
-  let s = ' ' + raw + ' ', time = null, ft = null, min = null, mi = null;
+  /* how often */
+  s = s.replace(/\b(every ?day|everyday|daily)\b/i, function(){ days = [0,1,2,3,4,5,6]; return ' '; });
+  if (!days) s = s.replace(/\bweekdays?\b/i, function(){ days = [0,1,2,3,4]; return ' '; });
+  if (!days) s = s.replace(/\b(every\s+)?weekends?\b/i, function(){ days = [5,6]; return ' '; });
+  if (!days) s = s.replace(/\bevery\s+((?:(?:mon|tues?|weds?|thu(?:rs?)?|fri|sat|sun)[a-z]*[\s,&+/]*(?:and\s+)?)+)/i, function(_, list){
+    const got = [];
+    list.toLowerCase().replace(/(mon|tues?|weds?|thu(?:rs?)?|fri|sat|sun)/g, function(d){ if (DAY_RX[d] != null && got.indexOf(DAY_RX[d]) < 0) got.push(DAY_RX[d]); return d; });
+    if (got.length) days = got;
+    return ' ';
+  });
+  if (!days) s = s.replace(/\b(every week|weekly)\b/i, function(){ days = [dowOf(dateISO)]; return ' '; });
+
+  /* when */
   s = s.replace(/(?:@\s*)?\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/i, function(_, h, mm, ap){
     let hh = (+h) % 12; if (/pm/i.test(ap)) hh += 12;
     time = String(hh).padStart(2,'0') + ':' + (mm || '00'); return ' ';
   });
   if (!time) s = s.replace(/(?:@\s*)?\b(\d{1,2}):(\d{2})\b/, function(_, h, mm){ time = String(+h).padStart(2,'0') + ':' + mm; return ' '; });
+
+  /* a session he already has: take everything it carries, change only what he typed */
+  const bare0 = s.replace(/\s+/g,' ').trim().toLowerCase();
+  const hit = knownSessions().find(function(k){ return k.name.toLowerCase() === bare0; });
+  if (hit){
+    const rec = cloneOnto(hit.proto, dateISO);
+    if (time) rec.time = time;
+    if (days) rec._days = days;
+    return rec;
+  }
+
   s = s.replace(/(\d[\d,]*(?:\.\d+)?)\s*(k)?\s*(?:ft\b|feet\b|vert\b|')/i, function(_, n, k){ ft = parseFloat(n.replace(/,/g,'')) * (k ? 1000 : 1); return ' '; });
   s = s.replace(/(\d+(?:\.\d+)?)\s*(?:hours?|hrs?|h)\b/i, function(_, n){ min = (min || 0) + parseFloat(n)*60; return ' '; });
   s = s.replace(/(\d+(?:\.\d+)?)\s*(?:minutes?|mins?|m)\b/i, function(_, n){ min = (min || 0) + parseFloat(n); return ' '; });
   s = s.replace(/(\d+(?:\.\d+)?)\s*(?:miles?|mi)\b/i, function(_, n){ mi = parseFloat(n); return ' '; });
 
   let type = null, session = null;
-  for (let i=0;i<KW.length;i++){ if (KW[i][0].test(raw)){ type = KW[i][1]; session = KW[i][2]; break; } }
+  for (let i=0;i<KW.length;i++){ if (KW[i][0].test(s)){ type = KW[i][1]; session = KW[i][2]; break; } }
 
   const bare = s.match(/(?:^|[\s(])(\d+(?:\.\d+)?)(?=[\s),.]|$)/);
   if (bare){
@@ -18204,32 +18614,45 @@ function parseQuick(text, dateISO){
     const lab = (RUN_SESSIONS.find(function(x){ return x.key === session; }) || {}).label || 'Easy';
     rec.title = miles(mi) + (mi === 1 ? ' Mile ' : ' Miles ') + lab.replace(' / Vert','');
   } else rec.title = autoTitleFor(rec);
+  if (days) rec._days = days;
   return rec;
 }
 function describe(rec){
   const bits = [rec.type === 'Weight Training' ? 'Strength' : rec.type];
   if (rec.distance_mi) bits.push(miles(rec.distance_mi) + ' mi');
-  if (rec.elevation_ft) bits.push(Math.round(rec.elevation_ft).toLocaleString() + ' ft');
+  if (rec.elevation_ft) bits.push(feet(rec.elevation_ft) + ' ft');
   if (rec.duration_min) bits.push(rec.duration_min + ' min');
-  if (rec.time) bits.push(rec.time);
+  if (rec.time) bits.push(clock(rec.time));
+  if (rec._days) bits.push('repeats ' + daysLabel(rec._days));
   return '“' + rec.title + '” · ' + bits.join(' · ');
 }
 
 /* ═══ POPOVER ═══ */
 function placePop(){
   if (!st.pop) return;
-  const a = st.pop.kind === 'edit'
-    ? $month.querySelector('.plx-chip[data-id="' + st.pop.id + '"]')
-    : $month.querySelector('.plx-day[data-date="' + st.pop.date + '"]');
+  let a;
+  if (st.pop.kind === 'edit') a = $month.querySelector('.plx-chip[data-id="' + st.pop.id + '"]');
+  else {
+    const day = $month.querySelector('.plx-day[data-date="' + st.pop.date + '"]');
+    a = day ? (day.querySelector('.plx-wadd') || day) : null;        /* week view: sit under the Add button */
+  }
   if (!a){ closePop(); return; }
   const rr = $root.getBoundingClientRect(), ar = a.getBoundingClientRect();
-  const pw = $pop.offsetWidth, ph = $pop.offsetHeight;
-  let left = ar.left - rr.left;
-  left = Math.max(0, Math.min(left, rr.width - pw));
-  let top = ar.bottom - rr.top + 6;
-  /* flip above when it would run off the bottom of the window */
-  if (ar.bottom + ph + 12 > window.innerHeight && ar.top - ph - 6 > 0) top = ar.top - rr.top - ph - 6;
-  $pop.style.left = left + 'px'; $pop.style.top = top + 'px';
+  const pw = $pop.offsetWidth, ph = $pop.offsetHeight, vw = window.innerWidth, vh = window.innerHeight;
+  /* Worked out in window coordinates, then converted. Below the anchor if it
+     fits, above if that fits, and otherwise beside it and pinned inside the
+     window — on an iPad in landscape the form is taller than the space under
+     most rows, and a form you have to scroll to reach is a form you fight. */
+  let x = ar.left, y = ar.bottom + 6;
+  if (y + ph > vh - 8){
+    if (ar.top - ph - 6 >= 8) y = ar.top - ph - 6;
+    else {
+      y = Math.max(8, vh - ph - 8);
+      x = (ar.right + 8 + pw <= vw - 8) ? ar.right + 8 : ar.left - pw - 8;
+    }
+  }
+  x = Math.max(8, Math.min(x, vw - pw - 8));
+  $pop.style.left = (x - rr.left) + 'px'; $pop.style.top = (y - rr.top) + 'px';
 }
 function closePop(){ st.pop = null; $pop.hidden = true; $pop.innerHTML = ''; }
 
@@ -18242,7 +18665,7 @@ function openQuick(dateISO){
     + '<input class="q" data-q autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="6 easy · 12 long 2500ft · legs">'
     + '<div class="prev" data-prev></div>'
     + (known.length ? '<div class="tp">' + known.map(function(k, i){ return '<button data-k="' + i + '">' + E(k.name) + '</button>'; }).join('') + '</div>' : '')
-    + '<div class="pf"><button data-full>Full editor</button><span class="hint" style="margin:0">Enter adds · Tab next day</span></div>';
+    + '<div class="pf"><button data-full>Full editor</button><span class="hint">Enter adds · Tab next day · “daily” repeats</span></div>';
   $pop._known = known;
   $pop.hidden = false; placePop();
   const q = $pop.querySelector('[data-q]');
@@ -18253,27 +18676,40 @@ function quickAdd(text){
   if (!st.pop || st.pop.kind !== 'add') return false;
   const rec = parseQuick(text, st.pop.date);
   if (!rec) return false;
-  snap(); PLANNED.push(rec);
+  const days = rec._days; delete rec._days;
+  snap();
+  if (days){
+    /* typed on a day the pattern does not include: the series still starts from here */
+    const made = repCreate(protoOf(rec), rec.date, days);
+    commit(rec.date);
+    const thr = dOf(made.rule.through);
+    toast('Repeats ' + daysLabel(days) + ' — ' + made.n + ' sessions through ' + MON[thr.getMonth()] + ' ' + thr.getDate());
+    return true;
+  }
+  PLANNED.push(rec);
   commit(rec.date);
   return true;
 }
 
-function openEdit(id){
+function openEdit(id, keepScope){
   const w = PLANNED.find(function(x){ return String(x.id) === String(id); });
   if (!w) return;
-  st.pop = { kind:'edit', id:String(id), date:w.date };
+  const rule = ruleOf(w), live = ruleLive(rule, w.date);
+  st.pop = { kind:'edit', id:String(id), date:w.date, scope: (keepScope && live) ? keepScope : 'one' };
   const types = DISCIPLINES.map(function(d){ return d.key; });
   if (types.indexOf(w.type) < 0) types.unshift(w.type);
   const sess = sessionsFor(w.type);
   const mon = weekStart(dOf(w.date));
   const rep = DOW.map(function(nm, i){
-    const key = iso(addDays(mon, i));
-    const self = key === w.date;
-    const twin = !self && PLANNED.some(function(x){ return x.date === key && x.type === w.type && (x.title || '') === (w.title || ''); });
-    return '<button data-rep="' + key + '" class="' + (self ? 'self' : twin ? 'on' : '') + '">' + nm.charAt(0) + '</button>';
+    const key = iso(addDays(mon, i)), self = key === w.date;
+    const on = live ? rule.days.indexOf(i) >= 0
+      : PLANNED.some(function(x){ return x !== w && x.date === key && x.type === w.type && (x.title || '') === (w.title || ''); });
+    return '<button data-rep="' + i + '" class="' + (self ? 'self' : on ? 'on' : '') + '" title="' + DOW[i] + '">' + nm.charAt(0) + '</button>';
   }).join('');
   $pop.innerHTML =
-      '<div class="ph"><span>Edit session</span><button data-x aria-label="Close">✕</button></div>'
+      '<div class="ph"><span>' + (live ? 'Repeating session' : 'Edit session') + '</span><button data-x aria-label="Close">✕</button></div>'
+    + (live ? '<div class="scope"><button data-scope="one"' + (st.pop.scope === 'one' ? ' class="on"' : '') + '>Change this day</button>'
+        + '<button data-scope="all"' + (st.pop.scope === 'all' ? ' class="on"' : '') + '>This and all after</button></div>' : '')
     + '<input data-f="title" autocomplete="off" value="' + E(w.title || '') + '" placeholder="Title">'
     + '<div class="plx-r ' + (sess ? 'c2' : '') + '">'
     +   '<div class="fld"><select data-f="type">' + types.map(function(t){ return '<option' + (t === w.type ? ' selected' : '') + ' value="' + E(t) + '">' + E(t === 'Weight Training' ? 'Strength' : t) + '</option>'; }).join('') + '</select></div>'
@@ -18289,8 +18725,10 @@ function openEdit(id){
     +   '<div class="fld"><label>Time</label><input data-f="time" type="time" value="' + E(w.time || '') + '"></div>'
     + '</div>'
     + '<div class="plx-r"><div class="fld"><label>Notes</label><textarea data-f="notes" rows="2">' + E(w.notes || '') + '</textarea></div></div>'
-    + '<div class="plx-r"><div class="fld"><label>Also on</label><div class="rep">' + rep + '</div></div></div>'
-    + '<div class="pf"><button class="del" data-del>Delete</button><button data-full>Full editor</button><button class="ok" data-x>Done</button></div>';
+    + '<div class="plx-r"><div class="fld"><label>' + (live ? 'Repeats on' : 'Also on, this week') + '</label><div class="rep">' + rep + '</div>'
+    +   '<button class="evr' + (live ? ' on' : '') + '" data-evr><u></u><span>' + (live ? 'Repeating ' + daysLabel(rule.days) : 'Repeat every week')
+    +     '<small>' + (live ? 'Turn off to stop after this week' : 'On these days, from here on') + '</small></span></button></div></div>'
+    + '<div class="pf"><button class="del" data-del>Delete' + (live ? ' this day' : '') + '</button><button data-full>Full editor</button><button class="ok" data-x>Done</button></div>';
   $pop.hidden = false; placePop();
 }
 function applyField(el){
@@ -18304,33 +18742,79 @@ function applyField(el){
     v = (n == null) ? null : Math.round(n*100)/100;
   }
   if (f === 'date' && !/^\d{4}-\d{2}-\d{2}$/.test(v)) return;
+  if (f === 'time' && !v) v = null;
   if (String(w[f] == null ? '' : w[f]) === String(v == null ? '' : v)) return;
   snap();
-  const from = w.date;
-  w[f] = (f === 'time' && !v) ? null : v;
-  if (f === 'duration_min') w.duration_sec = v ? v*60 : null;
-  if (f === 'type'){
-    const list = sessionsFor(w.type);
-    w.session = list ? list[0].key : null;
-  }
+  const rule = ruleOf(w), series = st.pop.scope === 'all' && f !== 'date' && ruleLive(rule, w.date);
+  /* one day, or this day and every later one in the series (and the rule, so new weeks match) */
+  const targets = series ? PLANNED.filter(function(x){ return String(x.rep) === String(rule.id) && x.date >= w.date; }) : [w];
+  const setOn = function(o){
+    o[f] = v;
+    if (f === 'duration_min') o.duration_sec = v ? v*60 : null;
+    if (f === 'type'){ const list = sessionsFor(o.type); o.session = list ? list[0].key : null; }
+  };
+  targets.forEach(setOn);
+  if (series){ setOn(rule.proto); saveReps(); }
   if (f === 'date'){
     st.pop.date = w.date;
     const d = dOf(w.date);
-    if (d.getFullYear() !== st.year || d.getMonth() !== st.month){ st.year = d.getFullYear(); st.month = d.getMonth(); }
+    if (st.view === 'week') gotoWeek(iso(weekStart(d)));
+    else if (d.getFullYear() !== st.year || d.getMonth() !== st.month){ st.year = d.getFullYear(); st.month = d.getMonth(); }
   }
+  const scope = st.pop.scope;
   commit(w.date);
+  if (series) toast('Changed ' + targets.length + ' session' + (targets.length === 1 ? '' : 's'));
   /* type changes which fields exist, so the form itself has to be rebuilt */
-  if (f === 'type') openEdit(w.id);
-  void from;
+  if (f === 'type') openEdit(w.id, scope);
 }
-function toggleRepeat(dateISO){
+function toggleDay(dw){
   const w = PLANNED.find(function(x){ return String(x.id) === st.pop.id; });
-  if (!w || dateISO === w.date) return;
-  const twin = PLANNED.find(function(x){ return x.date === dateISO && x.type === w.type && (x.title || '') === (w.title || ''); });
+  if (!w) return;
+  const mon = weekStart(dOf(w.date)), dateISO = iso(addDays(mon, dw)), scope = st.pop.scope;
+  if (dateISO === w.date) return;
+  const rule = ruleOf(w);
   snap();
-  if (twin) PLANNED = PLANNED.filter(function(x){ return x !== twin; });
-  else PLANNED.push(cloneOnto(w, dateISO));
+  if (ruleLive(rule, w.date)){
+    /* series: add or drop that weekday from this week onward */
+    const at = rule.days.indexOf(dw), from = iso(mon);
+    if (at >= 0){
+      rule.days.splice(at, 1);
+      PLANNED = PLANNED.filter(function(x){ return !(String(x.rep) === String(rule.id) && x.date >= from && dowOf(x.date) === dw && !(x.date <= TODAY && isFulfilled(x))); });
+    } else {
+      rule.days.push(dw); rule.days.sort();
+      repFill(rule, from > rule.start ? from : rule.start, rule.through, dw);
+    }
+    saveReps();
+  } else {
+    const twin = PLANNED.find(function(x){ return x !== w && x.date === dateISO && x.type === w.type && (x.title || '') === (w.title || ''); });
+    if (twin) PLANNED = PLANNED.filter(function(x){ return x !== twin; });
+    else PLANNED.push(cloneOnto(w, dateISO));
+  }
   commit(dateISO);
+  openEdit(w.id, scope);
+}
+function toggleEvery(){
+  const w = PLANNED.find(function(x){ return String(x.id) === st.pop.id; });
+  if (!w) return;
+  const rule = ruleOf(w), mon = weekStart(dOf(w.date));
+  snap();
+  if (ruleLive(rule, w.date)){
+    const n = repStop(rule, iso(addDays(mon, 6)));
+    commit(w.date);
+    toast('Stops after this week — ' + n + ' later session' + (n === 1 ? '' : 's') + ' removed');
+  } else {
+    /* the days lit in the row above become the pattern */
+    const days = [dowOf(w.date)];
+    for (let i=0;i<7;i++){
+      const key = iso(addDays(mon, i));
+      if (key !== w.date && PLANNED.some(function(x){ return x.date === key && x.type === w.type && (x.title || '') === (w.title || ''); })) days.push(i);
+    }
+    w.rep = null;
+    const made = repCreate(protoOf(w), w.date, days);
+    commit(w.date);
+    const thr = dOf(made.rule.through);
+    toast('Repeats ' + daysLabel(days) + ' — ' + made.n + ' sessions added through ' + MON[thr.getMonth()] + ' ' + thr.getDate());
+  }
   openEdit(w.id);
 }
 /* Save and repaint through the app's own door, so the phone views, the
@@ -18389,9 +18873,11 @@ function render(){
   /* a field that just lost focus to another field must not have that focus
      thrown away by the redraw — find where it went and put it back */
   const ae = document.activeElement, fk = ae && $root.contains(ae) && ae.dataset ? ae.dataset.fk : null;
+  try { repExtend(); } catch(e){ console.error('[plx] repeat top-up', e); }
   const ix = buildIndex();
   try { renderYear(ix); } catch(e){ console.error('[plx] year', e); $year.innerHTML = '<div class="empty">The year view hit an error — run rhErrors().</div>'; }
-  try { renderMonth(ix); } catch(e){ console.error('[plx] month', e); $month.innerHTML = '<div class="empty">The month view hit an error — run rhErrors().</div>'; }
+  try { if (st.view === 'week') renderWeekView(ix); else renderMonth(ix); }
+  catch(e){ console.error('[plx] ' + st.view, e); $month.innerHTML = '<div class="empty">The calendar hit an error — run rhErrors().</div>'; }
   if (fk){ const el = $root.querySelector('[data-fk="' + fk + '"]'); if (el){ el.focus(); if (el.select) el.select(); } }
   if (st.pop) placePop();
 }
@@ -18403,7 +18889,11 @@ $year.addEventListener('click', function(e){
   if (b){
     if (b.dataset.metric){ st.metric = b.dataset.metric; closePop(); render(); return; }
     const a = b.dataset.act;
-    if (a === 'yr-' || a === 'yr+'){ st.year += (a === 'yr+' ? 1 : -1); closePop(); render(); }
+    if (a === 'yr-' || a === 'yr+'){
+      st.year += (a === 'yr+' ? 1 : -1);
+      if (st.view === 'week') st.week = iso(weekStart(new Date(st.year, st.month, 1)));
+      closePop(); render();
+    }
     else if (a === 'toggle'){ st.yearOpen = !st.yearOpen; lsSet(YEAR_OPEN_KEY, st.yearOpen); closePop(); render(); }
     else if (a === 'undo') undo();
     else if (a === 'like') fillLike();
@@ -18413,7 +18903,16 @@ $year.addEventListener('click', function(e){
   }
   if (e.target.tagName === 'INPUT') return;
   const m = e.target.closest('.plx-m,.plx-mc');
-  if (m){ st.month = +m.dataset.m; closePop(); render(); }
+  if (m){
+    st.month = +m.dataset.m;
+    /* in week view a month means "take me there": this week if it is the
+       current month, otherwise the week its first day falls in */
+    if (st.view === 'week'){
+      const cur = st.year === todayD.getFullYear() && st.month === todayD.getMonth();
+      st.week = iso(weekStart(cur ? todayD : new Date(st.year, st.month, 1)));
+    }
+    closePop(); render();
+  }
 });
 $year.addEventListener('focusin', function(e){
   const t = e.target;
@@ -18421,7 +18920,7 @@ $year.addEventListener('focusin', function(e){
   if (t.select && !t.dataset.mn) t.select();
   const m = t.closest('.plx-m');
   /* tabbing along the months should bring the calendar with it */
-  if (m && +m.dataset.m !== st.month){ st.month = +m.dataset.m; closePop(); try { renderMonth(buildIndex()); } catch(err){}
+  if (m && +m.dataset.m !== st.month && st.view === 'month'){ st.month = +m.dataset.m; closePop(); try { renderMonth(buildIndex()); } catch(err){}
     $year.querySelectorAll('.plx-m').forEach(function(x){ x.classList.toggle('sel', +x.dataset.m === st.month); }); }
 });
 $year.addEventListener('keydown', function(e){
@@ -18455,30 +18954,53 @@ $year.addEventListener('change', function(e){
 
 $month.addEventListener('click', function(e){
   if (drag.moved){ drag.moved = false; return; }           /* that click was the end of a drag */
+  const vw = e.target.closest('[data-view]');
+  if (vw){
+    if (vw.dataset.view === st.view) return;
+    st.view = vw.dataset.view; lsSet(VIEW_KEY, st.view);
+    if (st.view === 'week'){
+      /* land on the week he was most likely looking at: this one, when it is on screen */
+      const cur = st.year === todayD.getFullYear() && st.month === todayD.getMonth();
+      st.week = iso(weekStart(cur ? todayD : new Date(st.year, st.month, 1)));
+    }
+    closePop(); render(); return;
+  }
   const act = e.target.closest('[data-act]');
   if (act){
     const a = act.dataset.act;
     if (a === 'mo-' || a === 'mo+'){
-      st.month += (a === 'mo+' ? 1 : -1);
-      if (st.month < 0){ st.month = 11; st.year--; } else if (st.month > 11){ st.month = 0; st.year++; }
+      const dir = a === 'mo+' ? 1 : -1;
+      if (st.view === 'week') gotoWeek(iso(addDays(dOf(st.week), dir*7)));
+      else {
+        st.month += dir;
+        if (st.month < 0){ st.month = 11; st.year--; } else if (st.month > 11){ st.month = 0; st.year++; }
+      }
       closePop(); render();
-    } else if (a === 'today'){ st.year = todayD.getFullYear(); st.month = todayD.getMonth(); closePop(); render(); }
+    } else if (a === 'today'){
+      st.year = todayD.getFullYear(); st.month = todayD.getMonth(); st.week = iso(weekStart(todayD));
+      closePop(); render();
+    }
     else if (a === 'tsv') copyTSV();
     return;
   }
-  const wk = e.target.closest('.plx-wk');
-  if (wk){
-    if (e.target.closest('[data-wkcopy]')) copyWeek(wk.dataset.week);
-    else if (e.target.closest('[data-wkclear]')) clearWeek(wk.dataset.week);
+  const wc = e.target.closest('[data-wkcopy],[data-wkclear],[data-wkopen]');
+  if (wc){
+    const cell = wc.closest('.plx-wk'), wk = wc.dataset.week || (cell && cell.dataset.week);
+    if (!wk) return;
+    if (wc.hasAttribute('data-wkcopy')) copyWeek(wk);
+    else if (wc.hasAttribute('data-wkclear')) clearWeek(wk);
+    else { st.view = 'week'; lsSet(VIEW_KEY, 'week'); gotoWeek(wk); closePop(); render(); }
     return;
   }
+  /* the totals cell is the way into that week */
+  const wkc = e.target.closest('.plx-wk');
+  if (wkc){ st.view = 'week'; lsSet(VIEW_KEY, 'week'); gotoWeek(wkc.dataset.week); closePop(); render(); return; }
   const chip = e.target.closest('.plx-chip');
   if (chip){ if (chip.dataset.id) openEdit(chip.dataset.id); return; }
   if (e.target.tagName === 'INPUT') return;
   const day = e.target.closest('.plx-day');
   if (day) openQuick(day.dataset.date);
 });
-
 $month.addEventListener('change', function(e){
   const t = e.target;
   if (!t.hasAttribute('data-mth')) return;
@@ -18506,6 +19028,12 @@ $pop.addEventListener('click', function(e){
     closePop(); commit(w.date); toast('Removed — Undo brings it back');
     return;
   }
+  const sc = t.closest('[data-scope]');
+  if (sc && st.pop){
+    st.pop.scope = sc.dataset.scope;
+    $pop.querySelectorAll('[data-scope]').forEach(function(b){ b.classList.toggle('on', b.dataset.scope === st.pop.scope); });
+    return;
+  }
   const k = t.closest('[data-k]');
   if (k && st.pop && st.pop.kind === 'add'){
     const item = ($pop._known || [])[+k.dataset.k];
@@ -18514,8 +19042,9 @@ $pop.addEventListener('click', function(e){
     const q = $pop.querySelector('[data-q]'); if (q) q.focus();
     return;
   }
+  if (t.closest('[data-evr]')){ toggleEvery(); return; }
   const r = t.closest('[data-rep]');
-  if (r) toggleRepeat(r.dataset.rep);
+  if (r) toggleDay(+r.dataset.rep);
 });
 $pop.addEventListener('input', function(e){
   if (!e.target.hasAttribute('data-q')) return;
@@ -18646,10 +19175,16 @@ window.rhPlan = function(){
   let sum = 0, done = 0;
   for (let i=0;i<12;i++){ sum += monthTarget(y, i) || 0; done += monthActual(ix, y, i); }
   console.log('%c  planner', 'font-weight:bold');
-  console.log('  showing          : ' + MON_FULL[st.month] + ' ' + y + '  (' + st.metric + ')');
+  console.log('  showing          : ' + (st.view === 'week' ? 'week of ' + st.week : MON_FULL[st.month] + ' ' + y) + '  (' + st.metric + ')');
   console.log('  wide layout      : ' + wide.matches + '   plan tab on: ' + host.classList.contains('on'));
   console.log('  annual target    : ' + yearTarget(y) + '   months add to: ' + Math.round(sum) + '   done: ' + Math.round(done));
   console.log('  planned sessions : ' + PLANNED.length + '   undo steps: ' + st.undo.length);
+  console.log('  repeating series : ' + REPEATS.length);
+  REPEATS.forEach(function(r){
+    console.log('     ' + ((r.proto && r.proto.title) || '?') + ' — ' + daysLabel(r.days || []) + ', from ' + r.start
+      + (r.until ? ' until ' + r.until : '') + ', written through ' + r.through
+      + '  (' + PLANNED.filter(function(x){ return String(x.rep) === String(r.id); }).length + ' on the calendar)');
+  });
   return 'ok';
 };
 
