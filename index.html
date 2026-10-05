@@ -6665,7 +6665,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v115';
+const RH_BUILD = 'v116';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -19349,6 +19349,94 @@ render();
   .dk-g21,.dk-g32,.dk-g11{grid-template-columns:minmax(0,1fr);}
   .dk-stat .v b{font-size:32px;}
 }
+
+/* ═══ HOME (Overview) and PROFILE at width ═══
+   These two keep the phone's own content — it is already the right content —
+   and only change how it is arranged, plus one panel each that the phone has
+   no room for: the week at a glance on Home, lifetime totals on Profile. */
+#dskHome,#dskLife{padding-top:0;}
+@media (min-width:760px){
+  .app:has(#s-overview.on){max-width:920px;padding-left:28px;padding-right:28px;}
+  #s-overview.on{display:grid;gap:4px 24px;align-items:start;
+    grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);
+    grid-template-areas:"brief brief" "home home" "vol night" "recent recent";}
+  #s-overview > .ov-brief{grid-area:brief;min-width:0;}
+  #s-overview > #dskHome{grid-area:home;min-width:0;margin-top:18px;}
+  #s-overview > .ov-volume{grid-area:vol;min-width:0;}
+  #s-overview > .ov-overnight{grid-area:night;min-width:0;}
+  #s-overview > .ov-recent{grid-area:recent;min-width:0;}
+  /* portal beside the briefing rather than above it: a paragraph reads better
+     at a column's width than centred under a ring */
+  #s-overview > .ov-brief{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:30px;align-items:center;}
+  #s-overview > .ov-brief > *{grid-column:1 / -1;}
+  #s-overview > .ov-brief > .portal{grid-column:1;margin:10px 0 0;}
+  #s-overview > .ov-brief > .greet{grid-column:2;text-align:left;margin:10px 0 0;max-width:62ch;}
+  #s-overview > .ov-brief.minimal > .portal,#s-overview > .ov-brief:has(> .greet:empty) > .portal{grid-column:1 / -1;margin:10px auto 0;}
+  /* Recent is a list you scroll past on the phone, so it starts closed there.
+     Here there is room, so it is always open and the toggle is just a heading. */
+  #s-overview #recentToggle{pointer-events:none;}
+  #s-overview #recentToggle .hsec-chev{display:none;}
+  #s-overview #recent.survey,#s-overview #recent.survey.collapsed{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));}
+  #s-overview #recent .lrow{min-width:0;}
+
+  .app:has(#s-profile.on){max-width:1080px;padding-left:28px;padding-right:28px;}
+  #s-profile.on{column-count:2;column-gap:28px;}
+  #s-profile > .prof-top,#s-profile > #dskLife{column-span:all;}
+  #s-profile > #dskLife{margin-top:20px;}
+  /* margin is dropped at the top of a column, padding is not: keeps both columns level */
+  #s-profile > .hsec{break-after:avoid;margin-top:0;padding-top:26px;}
+  #s-profile > .survey,#s-profile > #routePanel,#s-profile > #stvAuth{break-inside:avoid;}
+}
+@media (min-width:1024px){
+  .app:has(#s-overview.on){max-width:1380px;}
+  /* Left: readiness and the overnight numbers behind it. Right: the week,
+     then volume beside the recent list. A long briefing makes the first row
+     taller, so the week panel stretches to match instead of leaving a hole. */
+  #s-overview.on{grid-template-columns:330px minmax(0,1.5fr) minmax(0,1fr);
+    grid-template-areas:"brief home home" "night vol recent";}
+  #s-overview > #dskHome{margin-top:6px;align-self:stretch;display:flex;flex-direction:column;}
+  #dskHome > .dk-card.lead{flex:1;display:flex;flex-direction:column;}
+  #dskHome .hm-days{flex:1;}
+  #s-overview > .ov-brief{display:block;}
+  #s-overview > .ov-brief > .portal{margin:10px auto 0;}
+  #s-overview > .ov-brief > .greet{margin:16px 2px 0;max-width:none;}
+  #s-overview #recent.survey,#s-overview #recent.survey.collapsed{grid-template-columns:minmax(0,1fr);}
+}
+
+/* the week at a glance */
+.hm-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;margin-top:12px;}
+.hm-day{min-width:0;border-radius:13px;padding:9px 7px 8px;background:var(--el0-bg);border:1px solid transparent;min-height:118px;display:flex;flex-direction:column;gap:5px;}
+.hm-day.today{background:linear-gradient(180deg,rgba(143,154,232,.20),rgba(143,154,232,.05));border-color:rgba(143,154,232,.45);box-shadow:0 0 22px -6px rgba(143,154,232,.5);}
+.hm-dh{display:flex;align-items:baseline;justify-content:space-between;padding:0 3px 3px;font-size:10.5px;color:var(--n3);letter-spacing:.06em;text-transform:uppercase;}
+.hm-dh b{font-family:var(--fd);font-size:15px;font-weight:600;color:var(--n2);letter-spacing:0;font-variant-numeric:tabular-nums;}
+.hm-day.today .hm-dh b,.hm-day.today .hm-dh{color:var(--n1);}
+.hm-it{display:flex;align-items:baseline;gap:5px;width:100%;min-width:0;text-align:left;border:none;border-left:2px solid var(--k,var(--a));border-radius:6px;padding:5px 6px;background:var(--n6);color:var(--n1);font-size:11px;line-height:1.25;transition:background .12s;}
+.hm-it:hover{background:color-mix(in srgb,var(--k,var(--a)) 22%,transparent);}
+.hm-it .t{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;}
+.hm-it .v{flex:0 0 auto;font-family:var(--fd);font-size:10.5px;color:var(--n2);font-variant-numeric:tabular-nums;}
+/* three states, told apart by more than colour: done is ticked and filled,
+   still-to-do is outlined, missed is struck through */
+.hm-it.done{background:color-mix(in srgb,var(--k,var(--a)) 18%,transparent);}
+.hm-it.done .t::before{content:'✓ ';color:var(--pos);font-weight:700;}
+.hm-it.next{background:none;box-shadow:inset 0 0 0 1px var(--n5);}
+.hm-it.miss{background:none;color:var(--n4);}
+.hm-it.miss .t{text-decoration:line-through;font-weight:400;} .hm-it.miss .v{color:var(--n4);}
+.hm-none{font-size:10.5px;color:var(--n4);padding:4px 3px;}
+.hm-tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:14px 0 0;}
+/* a button centres its content by default, which left the shorter tile floating */
+.hm-tiles .dk-card{padding:15px 17px 14px;text-align:left;width:100%;color:inherit;font:inherit;display:flex;flex-direction:column;justify-content:flex-start;align-items:stretch;}
+.hm-tiles button.dk-card{transition:transform .12s,border-color .15s;}
+.hm-tiles button.dk-card:hover{border-color:rgba(143,154,232,.5);transform:translateY(-1px);}
+.hm-tiles .dk-stat .v b{font-size:30px;}
+.hm-tiles .dk-stat .d{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hm-race{font-family:var(--fd);font-size:14px;font-weight:600;color:var(--n1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:6px;}
+@media (min-width:760px) and (max-width:1199px){
+  .hm-tiles{grid-template-columns:repeat(2,minmax(0,1fr));}
+  /* seven columns across an iPad leave ~90px each: wrap the name onto two
+     lines with the number under it rather than cutting it to "Qi G…" */
+  .hm-it{flex-wrap:wrap;gap:1px 5px;}
+  .hm-it .t{flex:1 0 100%;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+}
 </style>
 
 <script id="dsk-script">
@@ -20101,9 +20189,135 @@ if ($hTop){
   $rec.addEventListener('click', function(e){ if (e.target.closest('[data-go="ready"]')) openReadiness(); });
 }
 
+/* ═══ HOME ═══
+   One panel the phone has no room for: the whole week on one line — what was
+   planned, what got done, what is still to come — and where the week, month
+   and year stand against what was set in the planner. */
+const oHost = document.getElementById('s-overview');
+let $home = null;
+if (oHost){
+  const brief = oHost.querySelector('.ov-brief');
+  if (brief){ brief.insertAdjacentHTML('afterend', '<div class="dsk nolight" id="dskHome"></div>'); $home = document.getElementById('dskHome'); }
+}
+function valOf(mi, sec, min){
+  if (mi > 0) return MET.distance.fine(mi) + ' mi';
+  const m = min || (sec ? Math.round(sec/60) : 0);
+  return m ? (m >= 90 ? (Math.round(m/6)/10) + 'h' : m + 'm') : '';
+}
+function kOf(type){
+  try { return TYPE_COLOR[RUNLIKE.has(type) ? 'Run' : type] || TYPE_COLOR[normType(type)] || ''; } catch(e){ return ''; }
+}
+function progBar(done, target, paceFrac){
+  if (!(target > 0)) return '';
+  return '<div class="dk-prog" title="Bar: done. Mark: where an even pace would have you today."><i style="width:' + Math.min(100, done/target*100).toFixed(1) + '%"></i>'
+    + (paceFrac != null ? '<em style="left:' + Math.min(100, paceFrac*100).toFixed(1) + '%"></em>' : '') + '</div>';
+}
+function renderHome(){
+  if (!$home || !wide.matches || !oHost.classList.contains('on')) return;
+  const mon = weekStart(todayD), tIso = iso(todayD), y = todayD.getFullYear(), mo = todayD.getMonth();
+  const plans = (typeof PLANNED !== 'undefined' && Array.isArray(PLANNED)) ? PLANNED : [];
+  let wkDone = 0, wkPlan = 0, wkFt = 0, wkSec = 0, days = '';
+  for (let i=0;i<7;i++){
+    const d = addDays(mon, i), di = iso(d), past = di < tIso;
+    const acts = ACTS.filter(function(a){ return a && a._iso === di; });
+    const pl = plans.filter(function(w){ return w && w.date === di; })
+                    .sort(function(a,b){ return String(a.time || '99').localeCompare(String(b.time || '99')); });
+    let items = '', used = new Set(), dayRunDone = 0, dayRunPlan = 0;
+    acts.forEach(function(a){ if (RUNLIKE.has(a.type)){ dayRunDone += a.distance_mi || 0; wkFt += a.elevation_ft || 0; } wkSec += a.moving_time || 0; });
+    pl.forEach(function(w){
+      const match = acts.filter(function(a){ return typesMatch(a, w); });
+      const done = isFulfilled(w);
+      if (RUNLIKE.has(w.type)) dayRunPlan += parseFloat(w.distance_mi) || 0;
+      /* any matching activity is spoken for by its plan, done in full or not,
+         so it is not listed a second time underneath as an extra */
+      match.forEach(function(a){ used.add(a.id); });
+      const mi = match.reduce(function(s,a){ return s + (a.distance_mi || 0); }, 0), sec = match.reduce(function(s,a){ return s + (a.moving_time || 0); }, 0);
+      const cls = done ? 'done' : (match.length ? 'done' : (past ? 'miss' : 'next'));
+      const v = match.length ? valOf(mi, sec) : valOf(parseFloat(w.distance_mi) || 0, w.duration_sec, w.duration_min);
+      const k = kOf(w.type);
+      items += '<button class="hm-it ' + cls + '"' + (k ? ' style="--k:' + k + '"' : '') + (match.length ? ' data-act="' + E(match[0].id) + '"' : ' data-go="plan"')
+            + ' title="' + E((w.title || w.type) + (done ? ' — done' : match.length ? ' — done short of plan' : past ? ' — not done' : ' — planned')) + '"><span class="t">' + E(w.title || w.type) + '</span><span class="v">' + E(v) + '</span></button>';
+    });
+    acts.forEach(function(a){
+      if (used.has(a.id)) return;
+      const k = kOf(a.type);
+      items += '<button class="hm-it done"' + (k ? ' style="--k:' + k + '"' : '') + ' data-act="' + E(a.id) + '" title="' + E((a.name || a.type) + ' — not on the plan') + '"><span class="t">' + E(a.name || a.type) + '</span><span class="v">' + E(valOf(a.distance_mi, a.moving_time)) + '</span></button>';
+    });
+    wkDone += dayRunDone;
+    /* what the week adds up to if the rest goes to plan: days already run count
+       as what was actually run, days still to come as what is planned */
+    wkPlan += (past || dayRunDone > 0) ? Math.max(dayRunDone, past ? 0 : dayRunPlan) : dayRunPlan;
+    days += '<div class="hm-day' + (di === tIso ? ' today' : '') + '"><div class="hm-dh"><span>' + DOWS[i] + '</span><b>' + d.getDate() + '</b></div>'
+          + (items || '<div class="hm-none">' + (past ? 'Rest' : '—') + '</div>') + '</div>';
+  }
+  const R = runs();
+  const moDone = R.reduce(function(s,a){ return s + (a._date.getFullYear() === y && a._date.getMonth() === mo ? (a.distance_mi || 0) : 0); }, 0);
+  const yrDone = R.reduce(function(s,a){ return s + (a._date.getFullYear() === y ? (a.distance_mi || 0) : 0); }, 0);
+  let moT = null; try { const g = GOALS[String(y)].Run.months.distance; moT = parseFloat(g[mo] != null ? g[mo] : g[String(mo)]) || null; } catch(e){}
+  const yrT = goalYear(y, 'distance');
+  const dim = new Date(y, mo + 1, 0).getDate(), fine = MET.distance.fine;
+
+  let tiles = '<button class="dk-card dk-stat lead" data-go="plan"><label>This week</label><div class="v"><b>' + fine(wkDone) + '</b><span>mi' + (wkPlan > wkDone + .05 ? ' of ' + fine(wkPlan) : '') + '</span></div>'
+    + '<div class="d">' + Math.round(wkFt).toLocaleString() + ' ft · ' + hhmm(wkSec) + ' all training</div>' + progBar(wkDone, wkPlan, null) + '</button>';
+  tiles += '<button class="dk-card dk-stat" data-go="plan"><label>' + MON[mo] + (moT ? ' · target ' + fine(moT) : '') + '</label><div class="v"><b>' + fine(moDone) + '</b><span>mi</span></div>'
+    + '<div class="d">' + (moT ? (moDone >= moT ? '<b class="up">Target met</b>' : '<b>' + fine(moT - moDone) + ' mi</b> to go · ' + (dim - todayD.getDate()) + ' days left') : 'No target set for this month') + '</div>'
+    + progBar(moDone, moT, todayD.getDate()/dim) + '</button>';
+  let yd = 'No target set for ' + y;
+  if (yrT){ const gap = yrDone - yrT*dayOfYear(todayD)/daysIn(y), n = Math.abs(Math.round(gap/(yrT/daysIn(y))));
+    yd = '<b class="' + (gap >= 0 ? 'up' : 'dn') + '">' + n + ' day' + (n === 1 ? '' : 's') + ' ' + (gap >= 0 ? 'ahead' : 'behind') + '</b> of an even pace'; }
+  tiles += '<button class="dk-card dk-stat" data-go="progress"><label>' + y + (yrT ? ' · target ' + Math.round(yrT).toLocaleString() : '') + '</label><div class="v"><b>' + Math.round(yrDone).toLocaleString() + '</b><span>mi</span></div>'
+    + '<div class="d">' + yd + '</div>' + progBar(yrDone, yrT, dayOfYear(todayD)/daysIn(y)) + '</button>';
+  let race = null; try { race = goalRace() || nextRace(); } catch(e){}
+  if (race){
+    const n = daysUntil(race.date), rd = new Date(race.date + 'T00:00:00');
+    tiles += '<button class="dk-card dk-stat" data-go="plan"><label>Next race</label><div class="hm-race">' + E(race.name) + '</div><div class="v"><b>' + (n === 0 ? 'Today' : n) + '</b><span>' + (n === 0 ? '' : n === 1 ? 'day out' : 'days out') + '</span></div>'
+      + '<div class="d">' + rd.toLocaleDateString(undefined, { month:'short', day:'numeric' }) + (race.distance_mi ? ' · ' + fine(parseFloat(race.distance_mi)) + ' mi' : '') + '</div></button>';
+  } else {
+    tiles += '<button class="dk-card dk-stat" data-go="plan"><label>Next race</label><div class="v"><b>—</b></div><div class="d">Nothing on the calendar. Add one in Plan.</div></button>';
+  }
+  const sun = addDays(mon, 6);
+  $home.innerHTML = '<div class="dk-card lead"><div class="dk-h"><h3>This week</h3><span>' + MON[mon.getMonth()] + ' ' + mon.getDate() + ' – ' + (sun.getMonth() !== mon.getMonth() ? MON[sun.getMonth()] + ' ' : '') + sun.getDate() + '</span>'
+    + '<span class="dk-sp"></span><button class="dk-txt" data-go="plan">Open planner</button></div><div class="hm-days">' + days + '</div></div>'
+    + '<div class="hm-tiles">' + tiles + '</div>';
+}
+if ($home){
+  $home.addEventListener('click', function(e){
+    const a = e.target.closest('[data-act]'); if (a){ openActDetail(a.dataset.act); return; }
+    const g = e.target.closest('[data-go]'); if (g) showTab(g.dataset.go);
+  });
+}
+
+/* ═══ PROFILE ═══ lifetime totals, with the comparisons that make them mean something */
+const pHost = document.getElementById('s-profile');
+let $life = null;
+if (pHost){
+  const top = pHost.querySelector('.prof-top');
+  if (top){ top.insertAdjacentHTML('afterend', '<div class="dsk nolight" id="dskLife"></div>'); $life = document.getElementById('dskLife'); }
+}
+function renderLife(){
+  if (!$life || !wide.matches || !pHost.classList.contains('on')) return;
+  const R = runs().filter(function(a){ return a.distance_mi > 0; });
+  if (!R.length){ $life.innerHTML = ''; return; }
+  const mi = R.reduce(function(s,a){ return s + a.distance_mi; }, 0), ft = R.reduce(function(s,a){ return s + (a.elevation_ft || 0); }, 0);
+  const allSec = ACTS.reduce(function(s,a){ return s + (a.moving_time || 0); }, 0);
+  const first = R.reduce(function(m,a){ return a._date < m ? a._date : m; }, R[0]._date);
+  const longest = R.reduce(function(b,a){ return a.distance_mi > b.distance_mi ? a : b; }, R[0]);
+  const activeDays = new Set(ACTS.map(function(a){ return a._iso; })).size;
+  /* Earth's circumference at the equator, and Everest from sea level */
+  const EARTH = 24901, EVEREST = 29032;
+  const t = function(label, big, unit, sub, lead){ return '<div class="dk-card dk-stat' + (lead ? ' lead' : '') + '"><label>' + label + '</label><div class="v"><b>' + big + '</b><span>' + unit + '</span></div><div class="d">' + sub + '</div></div>'; };
+  $life.innerHTML = '<div class="dk-grid dk-g5" style="margin-bottom:0">'
+    + t('Lifetime miles', Math.round(mi).toLocaleString(), 'mi', '<b>' + (mi/EARTH*100).toFixed(1) + '%</b> of the way around the Earth', true)
+    + t('Lifetime vert', MET.elevation.fmt(ft), 'ft', '<b>' + (ft/EVEREST).toFixed(1) + '</b> Everests from sea level')
+    + t('Time moving', Math.round(allSec/3600).toLocaleString(), 'h', '<b>' + (allSec/86400).toFixed(1) + '</b> full days, all activities')
+    + t('Runs', R.length.toLocaleString(), '', 'since ' + MON[first.getMonth()] + ' ' + first.getFullYear() + ' · <b>' + activeDays.toLocaleString() + '</b> active days')
+    + t('Longest run', MET.distance.fine(longest.distance_mi), 'mi', E(longest.name || 'Run') + ' · ' + longest._date.getFullYear())
+    + '</div>';
+}
+
 /* ═══ WIRING ═══ */
 function safe(fn, label){ try { fn(); } catch(e){ console.error('[dsk] ' + label, e); } }
-function renderAll(){ safe(renderTrain, 'training'); safe(renderRec, 'recovery'); }
+function renderAll(){ safe(renderTrain, 'training'); safe(renderRec, 'recovery'); safe(renderHome, 'home'); safe(renderLife, 'lifetime'); }
 window.dskRender = renderAll;
 /* The app redraws the Progress tab through renderProgress whenever activities
    or goals change. Wrapping it means this dashboard hears about every one of
@@ -20117,6 +20331,16 @@ if (typeof renderHealth === 'function'){
   const _rh = renderHealth;
   renderHealth = function(){ const r = _rh.apply(this, arguments); safe(renderRec, 'recovery'); return r; };
 }
+/* Home redraws with the activity list (renderRecent runs on every sync) and
+   whenever the tab is shown, which also picks up anything changed in the planner. */
+if (typeof renderRecent === 'function'){
+  const _rr = renderRecent;
+  renderRecent = function(){ const r = _rr.apply(this, arguments); safe(renderHome, 'home'); return r; };
+}
+if (oHost) new MutationObserver(function(){ if (oHost.classList.contains('on')) safe(renderHome, 'home'); })
+  .observe(oHost, { attributes:true, attributeFilter:['class'] });
+if (pHost) new MutationObserver(function(){ if (pHost.classList.contains('on')) safe(renderLife, 'lifetime'); })
+  .observe(pHost, { attributes:true, attributeFilter:['class'] });
 if (hHost) new MutationObserver(function(){ if (hHost.classList.contains('on')) safe(renderRec, 'recovery'); else tipHide(); })
   .observe(hHost, { attributes:true, attributeFilter:['class'] });
 if (host) new MutationObserver(function(){ if (host.classList.contains('on')) safe(renderTrain, 'training'); else tipHide(); })
