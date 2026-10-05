@@ -2806,6 +2806,10 @@ body.sheet-open::after{z-index:19;}
 
     <div class="hsec"><span>Race History</span><i></i></div>
     <div class="survey" id="racePast"></div>
+    <!-- Which build this device is actually running. The service worker serves the
+         cached copy first, so after a deploy a phone can be a version behind, and
+         until now the only place to check was the desktop console. -->
+    <div id="rhBuildTag" style="column-span:all;text-align:center;font-size:12px;color:var(--n3);margin:22px 0 4px"></div>
 
   </section>
 </div>
@@ -6682,7 +6686,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v134';
+const RH_BUILD = 'v135';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -7867,6 +7871,7 @@ function renderProfile(){
     + (dup ? ' · ' + dup + ' duplicate' + (dup>1?'s':'') + ' merged' : '');
   const last = ACTS[0];
   document.getElementById('lastAct').textContent = last ? (last.name + ' · ' + last._date.toLocaleDateString()) : '—';
+  const bt = document.getElementById('rhBuildTag'); if (bt) bt.textContent = 'Build ' + RH_BUILD;
   document.getElementById('profSub').textContent = 'Trail & Ultra · ' + Math.round(yrMiles()) + ' mi in ' + YEAR;
 }
 
