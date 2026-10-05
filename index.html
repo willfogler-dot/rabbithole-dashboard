@@ -6674,7 +6674,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v127';
+const RH_BUILD = 'v128';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -8048,7 +8048,22 @@ function scrollSheetTop(id){
    strength family counts against a strength plan. Core on its own, or core with
    yoga, is still treated as recovery — that is a day-type question, not a
    fulfilment one. */
-const STRENGTH_WORDS = /weight|strength|lift|leg|upper|lower|push|pull|squat|deadlift|press|core|abs|mobility|crossfit|bodyweight|gym/i;
+/* "mobility" used to be in this list. That made a planned Qi Gong (type
+   Mobility) count as a lift, so one strength session would have ticked off
+   both the lift and the Qi Gong. Mobility has its own rule below. */
+const STRENGTH_WORDS = /weight|strength|lift|leg|upper|lower|push|pull|squat|deadlift|press|core|abs|band|kettlebell|crossfit|hiit|bodyweight|gym/i;
+/* Qi Gong is planned as Mobility, but Strava has no such sport: he records it
+   as Yoga, 5 to 20 minutes, usually first thing. So a short Yoga activity
+   satisfies a planned mobility session. The window is a little wider than he
+   described (4 to 25 min) so a session that ran long, or a watch stopped early,
+   still counts. A full-length yoga class does not. */
+const QIGONG_WORDS = /qi\s*gong|qigong|tai\s*chi|mobility|stretch/i;
+function isMobilityPlan(w){ return normType(w.type) === 'mobility' || QIGONG_WORDS.test(w.title || ''); }
+function isMobilityAct(a){
+  if (QIGONG_WORDS.test(a.name || '') || normType(a.type) === 'mobility') return true;
+  const min = (a.moving_time || a.elapsed_time || 0) / 60;
+  return normType(a.type) === 'yoga' && min >= 4 && min <= 25;
+}
 function isStrengthish(t, name){
   const s = (t||'') + ' ' + (name||'');
   return STRENGTH_WORDS.test(s);
@@ -8056,8 +8071,11 @@ function isStrengthish(t, name){
 function typesMatch(a, w){
   if (normType(a.type) === normType(w.type)) return true;
   if (RUNLIKE.has(a.type) && RUNLIKE.has(w.type)) return true;
-  /* a logged lift satisfies any planned lift, whatever either is called */
-  if (isStrengthish(a.type, a.name) && isStrengthish(w.type, w.title)) return true;
+  if (isMobilityPlan(w)) return isMobilityAct(a);
+  /* A logged lift satisfies any planned lift, whatever either is called:
+     Strava says "Weight Training", the plan says Core + Bandwork or Legs.
+     Never for a planned run — "Hill strength" is still a run. */
+  if (!RUNLIKE.has(w.type) && isStrengthish(a.type, a.name) && isStrengthish(w.type, w.title)) return true;
   return false;
 }
 function isFulfilled(w){
