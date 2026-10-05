@@ -6657,7 +6657,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v111';
+const RH_BUILD = 'v112';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -8865,6 +8865,10 @@ function setPlanView(v){
   if (v==='today') renderPlanToday();
   else if (v==='week') renderPlanWeek();
   else renderCal();
+  /* The wide-screen planner (PLX block at the end of the file) draws from the
+     same data. Every plan change already funnels through here, so this one
+     call keeps it current without it needing its own list of triggers. */
+  if (typeof window.plxRender === 'function') window.plxRender();
 }
 document.getElementById('planSeg').querySelectorAll('[data-v]').forEach(function(b){
   b.addEventListener('click', function(){ setPlanView(b.dataset.v); });
@@ -17440,5 +17444,1218 @@ if ('serviceWorker' in navigator){
   });
 }
 </script>
+<!-- PLX:BEGIN — wide-screen planner (year → month → week). Self-contained: its own
+     style and script blocks, so a fault here cannot stop the main script from
+     running, and it can be removed by deleting everything between the markers. -->
+<style id="plx-style">
+/* The planner only exists at tablet width and up. Planning is done on an iPad or
+   a laptop; the phone keeps the older Today/Week/Month views for review. */
+#plx{display:none;}
+@media (min-width:760px){
+  /* The whole app is a 520px column. Only the Plan tab breaks out of it, and
+     only while it is the tab on screen. */
+  .app:has(#s-plan.on){max-width:1380px;padding-left:28px;padding-right:28px;}
+  #s-plan > *:not(#plx){display:none !important;}
+  #plx{display:block;position:relative;padding-top:20px;-webkit-user-select:none;user-select:none;}
+}
+#plx input,#plx textarea,#plx select{-webkit-user-select:text;user-select:text;font-family:var(--fb);}
+#plx button{font-family:var(--fb);cursor:pointer;}
+
+/* ── top bar ── */
+.plx-top{display:flex;align-items:center;gap:14px;margin-bottom:16px;}
+.plx-yr{display:flex;align-items:center;gap:4px;}
+.plx-yr b{font-family:var(--fd);font-size:30px;font-weight:600;color:var(--n1);letter-spacing:-.02em;min-width:86px;text-align:center;font-variant-numeric:tabular-nums;}
+.plx-nav{width:34px;height:34px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--n2);font-size:18px;line-height:1;display:flex;align-items:center;justify-content:center;transition:background .15s,color .15s;}
+.plx-nav:hover{background:var(--card2);color:var(--n1);}
+.plx-seg{display:flex;background:var(--el0-bg);border:1px solid var(--line);border-radius:11px;padding:3px;gap:2px;}
+.plx-seg button{border:none;background:none;color:var(--n3);font-size:12px;font-weight:600;padding:7px 14px;border-radius:8px;transition:background .15s,color .15s;}
+.plx-seg button.on{background:var(--card2);color:var(--n1);box-shadow:var(--el1-sh);}
+.plx-sp{flex:1;}
+.plx-sum{font-size:12.5px;color:var(--n3);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
+.plx-tog{display:flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--card);color:var(--n2);font-size:12px;font-weight:600;padding:8px 11px 8px 14px;border-radius:10px;transition:background .15s,color .15s,border-color .15s;}
+.plx-tog:hover{background:var(--card2);color:var(--n1);}
+.plx-tog.on{background:var(--a-fill);border-color:var(--a-edge);color:var(--a-hi);}
+.plx-tog svg{width:13px;height:13px;transition:transform .2s;} .plx-tog.on svg{transform:rotate(180deg);}
+.plx-strip{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:4px;background:var(--card);border:1px solid var(--line);border-radius:15px;box-shadow:var(--shadow);padding:5px;}
+.plx-mc{display:block;border:1px solid transparent;background:none;border-radius:10px;padding:8px 6px 8px;text-align:center;min-width:0;transition:background .15s,border-color .15s;}
+.plx-mc:hover{background:var(--n6);}
+.plx-mc.sel{background:var(--a-fill);border-color:var(--a-edge);}
+.plx-mc i{display:block;font-style:normal;font-family:var(--fd);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--n4);font-weight:600;}
+.plx-mc.cur i{color:var(--a-hi);}
+.plx-mc b{display:block;font-family:var(--fd);font-size:14px;font-weight:600;color:var(--n1);font-variant-numeric:tabular-nums;margin:3px 0 6px;}
+.plx-mc u{display:block;text-decoration:none;height:3px;border-radius:2px;background:var(--el0-bg);overflow:hidden;margin:0 14%;}
+.plx-mc s{display:block;text-decoration:none;height:100%;border-radius:2px;background:linear-gradient(90deg,var(--a),var(--a-hi));}
+.plx-txt{border:none;background:none;color:var(--n3);font-size:12px;font-weight:600;padding:8px 10px;border-radius:9px;transition:background .15s,color .15s;}
+.plx-txt:hover{background:var(--card);color:var(--n1);}
+.plx-txt[disabled]{opacity:.35;pointer-events:none;}
+
+/* ── year card ── */
+.plx-card{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);}
+.plx-kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border-bottom:1px solid var(--line);}
+.plx-k{padding:16px 20px 15px;border-left:1px solid var(--line);min-width:0;}
+.plx-k:first-child{border-left:none;}
+.plx-k label{display:block;font-family:var(--fd);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--n4);margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.plx-k .v{display:flex;align-items:baseline;gap:6px;}
+.plx-k .v b,.plx-k .v input{font-family:var(--fd);font-size:24px;font-weight:600;color:var(--n1);letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.1;}
+.plx-k .v input{width:100%;min-width:0;background:none;border:none;border-bottom:1px dashed var(--a-edge);padding:0 0 2px;color:var(--a-hi);outline:none;}
+.plx-k .v input:focus{border-bottom:1px solid var(--a);}
+.plx-k .v span{font-size:12px;color:var(--n3);flex:0 0 auto;}
+.plx-k small{display:block;font-size:11.5px;color:var(--n3);margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.plx-k small.ok{color:var(--pos);} .plx-k small.warn{color:var(--warn);}
+
+.plx-tools{display:flex;align-items:center;gap:4px;padding:10px 14px 0 20px;}
+.plx-tools i{font-style:normal;font-family:var(--fd);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--n4);margin-right:6px;}
+
+.plx-months{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:6px;padding:8px 14px 14px;}
+.plx-m{border-radius:13px;padding:10px 8px 9px;border:1px solid transparent;cursor:pointer;transition:background .15s,border-color .15s;min-width:0;}
+.plx-m:hover{background:var(--n6);}
+.plx-m.sel{background:var(--a-fill);border-color:var(--a-edge);}
+.plx-m .nm{display:flex;align-items:center;justify-content:center;gap:5px;font-family:var(--fd);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--n3);font-weight:600;}
+.plx-m.cur .nm{color:var(--a-hi);}
+.plx-m .nm em{width:5px;height:5px;border-radius:50%;background:#c026a0;flex:0 0 auto;}
+.plx-bar{position:relative;height:70px;margin:9px auto 8px;width:62%;max-width:54px;}
+.plx-bar .tg{position:absolute;left:0;right:0;bottom:0;border:1px solid var(--a-lo);border-bottom:none;border-radius:5px 5px 0 0;background:var(--a-dim);opacity:.55;}
+.plx-bar .dn{position:absolute;left:3px;right:3px;bottom:0;border-radius:3px 3px 0 0;background:linear-gradient(180deg,var(--a-hi),var(--a));}
+.plx-m.fut .plx-bar .dn{display:none;}
+.plx-bar .ly{position:absolute;left:-5px;right:-5px;height:0;border-top:1.5px dotted var(--n3);}
+.plx-m input.tg-in{display:block;width:100%;text-align:center;background:none;border:none;border-bottom:1px dashed transparent;outline:none;font-family:var(--fd);font-size:15px;font-weight:600;color:var(--n1);font-variant-numeric:tabular-nums;padding:1px 0;}
+.plx-m:hover input.tg-in,.plx-m.sel input.tg-in{border-bottom-color:var(--a-edge);}
+.plx-m input.tg-in:focus{border-bottom:1px solid var(--a);color:var(--a-hi);}
+.plx-m input.tg-in::placeholder{color:var(--n4);font-weight:400;}
+.plx-m .dn-t{text-align:center;font-size:10.5px;color:var(--n3);margin-top:3px;font-variant-numeric:tabular-nums;white-space:nowrap;}
+.plx-m .dn-t.over{color:var(--pos);} .plx-m .dn-t.under{color:var(--n3);}
+.plx-m input.nt-in{display:block;width:100%;text-align:center;background:none;border:none;outline:none;font-size:10.5px;color:var(--info);margin-top:5px;padding:2px 0;border-radius:5px;text-overflow:ellipsis;}
+.plx-m input.nt-in::placeholder{color:transparent;}
+.plx-m:hover input.nt-in::placeholder,.plx-m.sel input.nt-in::placeholder{color:var(--n4);}
+.plx-m input.nt-in:focus{background:var(--el0-bg);}
+.plx-legend{display:flex;gap:16px;padding:0 20px 14px;font-size:10.5px;color:var(--n4);}
+.plx-legend span{display:flex;align-items:center;gap:6px;}
+.plx-legend u{display:inline-block;text-decoration:none;width:12px;height:9px;border-radius:2px;}
+.plx-legend u.a{background:linear-gradient(180deg,var(--a-hi),var(--a));}
+.plx-legend u.b{border:1px solid var(--a-lo);background:var(--a-dim);opacity:.7;}
+.plx-legend u.c{height:0;border-top:1.5px dotted var(--n3);border-radius:0;}
+
+/* ── month header ── */
+.plx-mh{display:flex;align-items:center;gap:14px;margin:22px 2px 12px;flex-wrap:wrap;}
+.plx-mh h2{font-family:var(--fd);font-size:21px;font-weight:600;color:var(--n1);letter-spacing:-.01em;margin:0 6px;min-width:168px;text-align:center;}
+.plx-mh .ttl{display:flex;align-items:center;gap:4px;}
+.plx-mstat{display:flex;align-items:baseline;gap:18px;font-size:12.5px;color:var(--n3);font-variant-numeric:tabular-nums;}
+.plx-mstat b{font-family:var(--fd);font-size:15px;font-weight:600;color:var(--n1);margin-left:5px;}
+.plx-mstat .tgt input{width:62px;margin-left:5px;background:none;border:none;border-bottom:1px dashed var(--a-edge);outline:none;font-family:var(--fd);font-size:15px;font-weight:600;color:var(--a-hi);font-variant-numeric:tabular-nums;padding:0 0 1px;}
+.plx-mstat .tgt input:focus{border-bottom:1px solid var(--a);}
+.plx-mstat .tgt input::placeholder{color:var(--n4);font-weight:400;}
+.plx-mstat .gap{color:var(--warn);} .plx-mstat .gap.ok{color:var(--pos);}
+
+/* ── grid ── */
+.plx-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr)) 176px;border:1px solid var(--line);border-radius:18px;overflow:hidden;background:var(--line);gap:1px;box-shadow:var(--shadow);}
+.plx-gh{background:var(--bg-mid);padding:9px 10px;font-family:var(--fd);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--n4);}
+.plx-day{background:var(--bg-mid);min-height:116px;padding:7px 7px 9px;display:flex;flex-direction:column;gap:5px;cursor:pointer;position:relative;transition:background .12s;min-width:0;}
+.plx-day:hover{background:color-mix(in srgb,var(--a) 5%,var(--bg-mid));}
+.plx-day.old{min-height:72px;}
+.plx-day.out{background:var(--bg-bot);} .plx-day.out .dnum{color:var(--n4);}
+.plx-day.drop{background:var(--a-fill);box-shadow:inset 0 0 0 1.5px var(--a);}
+.plx-day .dh{display:flex;align-items:center;gap:6px;height:22px;}
+.plx-day .dnum{font-family:var(--fd);font-size:12.5px;font-weight:600;color:var(--n2);font-variant-numeric:tabular-nums;width:22px;height:22px;display:flex;align-items:center;justify-content:center;border-radius:50%;flex:0 0 auto;}
+.plx-day.today .dnum{background:var(--a);color:var(--bg-bot);}
+.plx-day.past .dnum{color:var(--n4);}
+.plx-day .rc{font-family:var(--fd);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:#fff;background:#c026a0;border-radius:5px;padding:2px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
+.plx-day .add{margin-left:auto;width:22px;height:22px;border-radius:7px;border:none;background:none;color:var(--n4);font-size:16px;line-height:1;opacity:0;transition:opacity .12s,background .12s,color .12s;flex:0 0 auto;}
+.plx-day:hover .add{opacity:1;} .plx-day .add:hover{background:var(--a-fill);color:var(--a-hi);}
+@media (hover:none){ .plx-day .add{opacity:.55;} }
+.plx-chips{display:flex;flex-direction:column;gap:3px;min-width:0;}
+.plx-chip{display:flex;align-items:center;gap:6px;min-width:0;height:24px;padding:0 7px 0 8px;border-radius:7px;background:color-mix(in srgb,var(--c) 15%,transparent);border-left:3px solid var(--c);font-size:11.5px;color:var(--n1);cursor:grab;-webkit-touch-callout:none;transition:background .12s,transform .12s;}
+.plx-chip:hover{background:color-mix(in srgb,var(--c) 26%,transparent);}
+.plx-chip .nm{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.plx-chip .val{flex:0 0 auto;font-family:var(--fd);font-weight:600;font-variant-numeric:tabular-nums;font-size:11.5px;color:var(--n1);}
+.plx-chip.minor{height:20px;font-size:10.5px;color:var(--n2);background:color-mix(in srgb,var(--c) 8%,transparent);}
+.plx-chip.minor .val{font-size:10.5px;font-weight:500;color:var(--n3);}
+.plx-chip.done{background:color-mix(in srgb,var(--c) 9%,transparent);color:var(--n2);}
+.plx-chip.done .val{color:var(--pos);}
+.plx-chip.missed{background:none;border-left-color:var(--n4);color:var(--n4);text-decoration:line-through;}
+.plx-chip.missed .val{color:var(--n4);}
+.plx-chip.act{background:none;border:1px dashed color-mix(in srgb,var(--c) 55%,transparent);border-left:3px solid var(--c);cursor:default;color:var(--n2);}
+.plx-chip.plx-lift{opacity:.35;}
+.plx-ghost{position:fixed;z-index:60;pointer-events:none;width:170px;box-shadow:0 10px 28px rgba(0,0,0,.55);transform:rotate(-1.5deg);background:var(--bg-lift);}
+
+.plx-wk{background:var(--bg-mid);padding:10px 12px 10px;display:flex;flex-direction:column;min-width:0;}
+.plx-wk.cur{background:color-mix(in srgb,var(--a) 5%,var(--bg-mid));}
+.plx-wk .wl{font-family:var(--fd);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--n4);}
+.plx-wk .big{display:flex;align-items:baseline;gap:5px;margin-top:7px;}
+.plx-wk .big b{font-family:var(--fd);font-size:25px;font-weight:600;letter-spacing:-.02em;color:var(--n1);font-variant-numeric:tabular-nums;line-height:1;}
+.plx-wk .big span{font-size:11px;color:var(--n3);}
+.plx-wk.zero .big b{color:var(--n4);}
+.plx-wk .sub{font-size:11px;color:var(--n3);margin-top:5px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.plx-wbar{position:relative;height:5px;border-radius:3px;background:var(--el0-bg);margin-top:9px;overflow:visible;}
+.plx-wbar i{position:absolute;top:0;bottom:0;border-radius:3px;}
+.plx-wbar .pl{background:var(--a-dim);left:0;}
+.plx-wbar .dn{background:linear-gradient(90deg,var(--a),var(--a-hi));left:0;}
+.plx-wbar em{position:absolute;top:-3px;bottom:-3px;width:2px;border-radius:1px;background:var(--n2);}
+.plx-wk .mix{font-size:10.5px;color:var(--n4);margin-top:8px;line-height:1.5;}
+.plx-wk .wa{margin-top:auto;padding-top:8px;display:flex;gap:2px;margin-left:-7px;opacity:0;transition:opacity .12s;}
+.plx-wk:hover .wa{opacity:1;}
+@media (hover:none){ .plx-wk .wa{opacity:1;} }
+.plx-wk .wa button{border:none;background:none;color:var(--n3);font-size:10.5px;font-weight:600;padding:4px 7px;border-radius:7px;}
+.plx-wk .wa button:hover{background:var(--a-fill);color:var(--a-hi);}
+.plx-wk.old .mix{display:none;}
+
+/* ── popover ── */
+.plx-pop{position:absolute;z-index:40;width:316px;background:var(--bg-lift);border:1px solid var(--el2-line);border-radius:15px;box-shadow:0 18px 44px rgba(0,0,0,.6),inset 0 1px 0 rgba(230,236,255,.07);padding:13px;}
+.plx-pop[hidden]{display:none;}
+.plx-pop .ph{font-family:var(--fd);font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--n3);margin-bottom:9px;display:flex;justify-content:space-between;align-items:center;}
+.plx-pop .ph button{border:none;background:none;color:var(--n3);font-size:14px;padding:0 2px;}
+.plx-pop input,.plx-pop select,.plx-pop textarea{width:100%;min-width:0;background:var(--el0-bg);border:1px solid var(--line);border-radius:9px;color:var(--n1);font-size:13px;padding:8px 10px;outline:none;-webkit-appearance:none;appearance:none;}
+.plx-pop input:focus,.plx-pop select:focus,.plx-pop textarea:focus{border-color:var(--a);}
+.plx-pop textarea{resize:none;line-height:1.4;}
+.plx-pop .q{font-size:14.5px;padding:10px 12px;}
+.plx-pop .hint{font-size:10.5px;color:var(--n4);margin-top:7px;line-height:1.5;}
+.plx-pop .prev{font-size:11.5px;color:var(--a-hi);margin-top:7px;min-height:15px;}
+.plx-pop .tp{display:flex;flex-wrap:wrap;gap:5px;margin-top:11px;}
+.plx-pop .tp button{border:1px solid var(--line);background:var(--card);color:var(--n2);font-size:11px;padding:5px 9px;border-radius:999px;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.plx-pop .tp button:hover{border-color:var(--a-edge);color:var(--n1);background:var(--a-fill);}
+.plx-pop .plx-r{display:grid;gap:7px;margin-top:7px;}
+.plx-pop .plx-r.c2{grid-template-columns:1fr 1fr;} .plx-pop .plx-r.c3{grid-template-columns:1fr 1fr 1fr;}
+.plx-pop .fld label{display:block;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--n4);margin:0 0 3px 2px;}
+.plx-pop .rep{display:flex;gap:4px;margin-top:4px;}
+.plx-pop .rep button{flex:1;height:28px;border-radius:8px;border:1px solid var(--line);background:none;color:var(--n3);font-size:11px;font-weight:600;padding:0;}
+.plx-pop .rep button.on{background:var(--a-fill);border-color:var(--a-edge);color:var(--a-hi);}
+.plx-pop .rep button.self{background:var(--a);border-color:var(--a);color:var(--bg-bot);}
+.plx-pop .pf{display:flex;justify-content:space-between;align-items:center;margin-top:11px;}
+.plx-pop .pf button{border:none;background:none;font-size:12px;font-weight:600;padding:6px 8px;border-radius:8px;color:var(--n2);}
+.plx-pop .pf button:hover{background:var(--card2);}
+.plx-pop .pf .del{color:var(--neg);margin-left:-8px;} .plx-pop .pf .ok{color:var(--a-hi);margin-right:-8px;}
+
+/* iPad portrait: twelve months will not fit across, and the week column narrows */
+@media (min-width:760px) and (max-width:1023px){
+  /* Twelve months still go across: wrapping them to two rows pushed the
+     calendar off the first screen, and the calendar is what he came for. */
+  .plx-months{gap:2px;padding:8px 8px 12px;}
+  .plx-m{padding:9px 3px 8px;}
+  .plx-m input.tg-in{font-size:13.5px;}
+  .plx-m .dn-t{font-size:9.5px;}
+  .plx-bar{height:56px;width:70%;}
+  .plx-k{padding:13px 12px 12px;}
+  .plx-k .v b,.plx-k .v input{font-size:19px;}
+  .plx-k small{font-size:10.5px;}
+  .plx-tools{padding-left:12px;} .plx-legend{padding-left:12px;}
+  .plx-grid{grid-template-columns:repeat(7,minmax(0,1fr)) 112px;}
+  .plx-day{padding:6px 4px 8px;}
+  /* at this width the title needs the room more than "10m" does */
+  .plx-chip.minor .val{display:none;}
+  .plx-wk .big b{font-size:20px;}
+  .plx-chip{font-size:10.5px;padding:0 5px 0 6px;gap:4px;}
+  .plx-mh h2{min-width:150px;font-size:19px;}
+}
+</style>
+
+<script id="plx-script">
+/* ═══════════ PLANNER (wide screens) ═══════════
+   The planning process this is built around: set an annual target off last
+   year's total, back into twelve monthly numbers around trips and races, then
+   fill in each week on Sunday night. So the screen reads top to bottom in that
+   order — year, months, weeks — and every number in it is editable in place.
+
+   It sits ON the existing data, not beside it. Workouts are the same PLANNED
+   records the phone views and the composer use; targets are the same
+   GOALS[year].Run.year / .months the Progress tab reads. Nothing is migrated and
+   nothing here needs to be kept in step with anything else.
+
+   Entry is the thing the old planner got wrong: every workout went through a
+   full-screen form. Here a day takes a typed line ("6 easy", "12 long 2500ft",
+   "legs", "sauna 45") and the form is one click away for the sessions that
+   genuinely need it. */
+(function(){
+'use strict';
+const host = document.getElementById('s-plan');
+if (!host) return;
+host.insertAdjacentHTML('afterbegin',
+  '<div id="plx"><div id="plxYear"></div><div id="plxMonth"></div><div id="plxPop" class="plx-pop" hidden></div></div>');
+const $root = document.getElementById('plx');
+const $year = document.getElementById('plxYear');
+const $month = document.getElementById('plxMonth');
+const $pop = document.getElementById('plxPop');
+const wide = window.matchMedia('(min-width:760px)');
+
+const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const MON_FULL = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const DOW = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+const METRIC = { distance:{ f:'distance_mi', unit:'mi', label:'Miles' }, elevation:{ f:'elevation_ft', unit:'ft', label:'Vert' } };
+
+/* The year plan is set once and revisited monthly; the calendar is used every
+   week. So the year folds down to one row by default and remembers if he opens it. */
+const YEAR_OPEN_KEY = 'rh_plx_year_open';
+const st = { year: todayD.getFullYear(), month: todayD.getMonth(), metric:'distance', pop:null, undo:[],
+             yearOpen: lsGet(YEAR_OPEN_KEY, false) === true };
+
+const E = function(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+  return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]; }); };
+const dOf = function(isoStr){ return new Date(isoStr + 'T00:00:00'); };
+const addDays = function(d, n){ const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+const isRunW = function(w){ return RUNLIKE.has(w.type); };
+function fmt(v){                      /* month- and year-scale numbers */
+  if (v == null || isNaN(v)) return '—';
+  if (st.metric === 'elevation' && Math.abs(v) >= 10000) return Math.round(v/1000) + 'k';
+  return Math.round(v).toLocaleString();
+}
+function fmt1(v){                     /* week- and day-scale miles keep a decimal when they have one */
+  if (v == null || isNaN(v)) return '—';
+  if (st.metric === 'elevation') return Math.round(v).toLocaleString();
+  const r = Math.round(v*10)/10;
+  return (r % 1 === 0) ? String(r) : r.toFixed(1);
+}
+const miles = function(v){ const r = Math.round(v*10)/10; return (r % 1 === 0) ? String(r) : r.toFixed(1); };
+
+/* Every number field takes arithmetic, because half of planning is arithmetic:
+   "=1149*1.12", "1500/12", "45k". Only digits and operators get through, so
+   this is a calculator and never an eval of something typed elsewhere. */
+function calc(raw){
+  if (raw == null) return null;
+  let s = String(raw).trim();
+  if (!s) return null;
+  s = s.replace(/^=/, '').replace(/,/g, '')
+       .replace(/(\d)\s*k\b/gi, '$1*1000')
+       .replace(/(\d+(?:\.\d+)?)\s*%/g, '($1/100)');
+  if (!/^[0-9+\-*/().\s]+$/.test(s)) return NaN;
+  try { const v = Function('"use strict";return (' + s + ')')(); return (typeof v === 'number' && isFinite(v)) ? v : NaN; }
+  catch(e){ return NaN; }
+}
+
+/* ── goals: read without creating, write through one door ── */
+function gRead(y){ const g = GOALS && GOALS[String(y)]; return (g && g.Run) || {}; }
+function gWrite(y){ const k = String(y); GOALS[k] = GOALS[k] || {}; GOALS[k].Run = GOALS[k].Run || {}; return GOALS[k].Run; }
+function yearTarget(y){ const r = gRead(y); return (r.year && r.year[st.metric] != null) ? r.year[st.metric] : null; }
+function monthTarget(y, m, metric){ const r = gRead(y); const p = r.months && r.months[metric || st.metric]; return (p && p[m] != null) ? p[m] : null; }
+function monthNote(y, m){ const r = gRead(y); const p = r.months && r.months.note; return (p && p[m]) || ''; }
+function setYearTarget(y, v){ const r = gWrite(y); r.year = r.year || {}; if (v == null) delete r.year[st.metric]; else r.year[st.metric] = v; }
+function setMonthTarget(y, m, v){
+  const r = gWrite(y); r.months = r.months || {}; r.months[st.metric] = r.months[st.metric] || {};
+  if (v == null) delete r.months[st.metric][m]; else r.months[st.metric][m] = v;
+}
+function setMonthNote(y, m, t){
+  const r = gWrite(y); r.months = r.months || {}; r.months.note = r.months.note || {};
+  if (!t) delete r.months.note[m]; else r.months.note[m] = t;
+}
+function saveGoals(){
+  lsSet(GOALS_KEY, GOALS); queuePush();
+  try { invalidateTab('progress'); } catch(e){}
+}
+
+/* ── indexes, rebuilt per render (a few thousand records; microseconds) ── */
+function buildIndex(){
+  const actDay = {}, actMonth = {}, planDay = {};
+  ACTS.forEach(function(a){
+    if (!a || !a._iso) return;
+    (actDay[a._iso] = actDay[a._iso] || []).push(a);
+    if (RUNLIKE.has(a.type)){
+      const k = a._iso.slice(0,7);
+      const o = actMonth[k] || (actMonth[k] = { distance:0, elevation:0 });
+      o.distance += a.distance_mi || 0; o.elevation += a.elevation_ft || 0;
+    }
+  });
+  PLANNED.forEach(function(w){ if (w && w.date) (planDay[w.date] = planDay[w.date] || []).push(w); });
+  return { actDay:actDay, actMonth:actMonth, planDay:planDay };
+}
+function monthActual(ix, y, m, metric){
+  const o = ix.actMonth[y + '-' + String(m+1).padStart(2,'0')];
+  return o ? o[metric || st.metric] : 0;
+}
+/* What a day contributes: done (already run) and togo (planned, not yet run).
+   Today counts both, less whatever of the plan has already been covered. */
+function dayRun(ix, dateISO, metric){
+  const f = METRIC[metric || st.metric].f;
+  const acts = (ix.actDay[dateISO] || []).filter(function(a){ return RUNLIKE.has(a.type); });
+  const plans = (ix.planDay[dateISO] || []).filter(isRunW);
+  const done = acts.reduce(function(s,a){ return s + (a[f] || 0); }, 0);
+  const planned = plans.reduce(function(s,w){ return s + (parseFloat(w[f]) || 0); }, 0);
+  let togo = 0;
+  if (dateISO > TODAY) togo = planned;
+  else if (dateISO === TODAY) togo = Math.max(0, planned - done);
+  return { done: dateISO <= TODAY ? done : 0, planned: planned, togo: togo };
+}
+
+/* ── undo: one snapshot per action, plan and goals together ── */
+function snap(){
+  st.undo.push({ p: JSON.stringify(PLANNED), g: JSON.stringify(GOALS) });
+  if (st.undo.length > 30) st.undo.shift();
+}
+function undo(){
+  const s = st.undo.pop();
+  if (!s){ return; }
+  PLANNED = JSON.parse(s.p); GOALS = JSON.parse(s.g);
+  lsSet(GOALS_KEY, GOALS);
+  closePop();
+  planChanged(TODAY);
+  toast('Undone');
+}
+let _lastId = 0;
+function newId(){ _lastId = Math.max(Date.now(), _lastId + 1); return _lastId; }
+
+/* ═══ YEAR ═══ */
+function renderYear(ix){
+  const y = st.year, m = METRIC[st.metric], curY = todayD.getFullYear();
+  const target = yearTarget(y);
+  const last = []; let lastTotal = 0;
+  for (let i=0;i<12;i++){ last[i] = monthActual(ix, y-1, i); lastTotal += last[i]; }
+  const act = []; let done = 0;
+  for (let i=0;i<12;i++){ act[i] = monthActual(ix, y, i); done += act[i]; }
+  const tg = []; let sum = 0, anyT = false;
+  for (let i=0;i<12;i++){ tg[i] = monthTarget(y, i); if (tg[i] != null){ sum += tg[i]; anyT = true; } }
+
+  const yoy = (target != null && lastTotal > 0) ? (target/lastTotal - 1)*100 : null;
+  let k3 = '', k4 = '', k5 = '';
+  if (y <= curY){
+    const pct = target ? Math.round(done/target*100) : null;
+    k3 = '<div class="v"><b>' + fmt(done) + '</b><span>' + m.unit + '</span></div>'
+       + '<small>' + (target ? pct + '% of target' + (done < target ? ' · ' + fmt(target - done) + ' to go' : '') : 'no target set') + '</small>';
+  } else {
+    k3 = '<div class="v"><b>—</b></div><small>season has not started</small>';
+  }
+  if (anyT){
+    const diff = target != null ? Math.round(sum - target) : null;
+    k4 = '<div class="v"><b>' + fmt(sum) + '</b><span>' + m.unit + '</span></div>'
+       + (diff == null ? '<small>set an annual target to compare</small>'
+          : diff === 0 ? '<small class="ok">matches the target</small>'
+          : '<small class="warn">' + fmt(Math.abs(diff)) + ' ' + (diff < 0 ? 'under' : 'over') + ' the target</small>');
+  } else {
+    k4 = '<div class="v"><b>—</b></div><small>no monthly numbers yet</small>';
+  }
+  if (target != null && y >= curY){
+    const end = new Date(y, 11, 31), from = (y === curY) ? todayD : new Date(y, 0, 1);
+    const wks = Math.max(0.1, (end - from)/86400000/7);
+    const left = Math.max(0, target - (y === curY ? done : 0));
+    k5 = '<div class="v"><b>' + (st.metric === 'distance' ? miles(left/wks) : fmt(left/wks)) + '</b><span>' + m.unit + ' / wk</span></div>'
+       + '<small>' + (left <= 0 ? 'target already met' : 'for the ' + Math.round(wks) + ' weeks left') + '</small>';
+  } else {
+    k5 = '<div class="v"><b>—</b></div><small>' + (y < curY ? 'season is over' : 'set an annual target') + '</small>';
+  }
+
+  /* one scale for all twelve bars, so the shape of the year is readable */
+  let max = 1;
+  for (let i=0;i<12;i++) max = Math.max(max, tg[i] || 0, act[i] || 0, last[i] || 0);
+  const h = function(v){ return Math.max(0, Math.round((v || 0)/max*70)); };
+
+  const months = MON.map(function(nm, i){
+    const isCur = (y === curY && i === todayD.getMonth());
+    const fut = (y > curY) || (y === curY && i > todayD.getMonth());
+    const race = RACES.some(function(r){ return r && r.date && r.date.slice(0,7) === y + '-' + String(i+1).padStart(2,'0'); });
+    let dn = '';
+    if (!fut){
+      const cls = (tg[i] != null && !isCur) ? (act[i] >= tg[i] ? ' over' : ' under') : '';
+      dn = '<div class="dn-t' + cls + '">' + fmt(act[i]) + ' done</div>';
+    } else {
+      dn = '<div class="dn-t">' + (last[i] ? fmt(last[i]) + ' in ' + String(y-1).slice(2) : '&nbsp;') + '</div>';
+    }
+    return '<div class="plx-m' + (i === st.month ? ' sel' : '') + (isCur ? ' cur' : '') + (fut ? ' fut' : '') + '" data-m="' + i + '">'
+      + '<div class="nm">' + nm + (race ? '<em title="Race this month"></em>' : '') + '</div>'
+      + '<div class="plx-bar">'
+      +   (tg[i] != null ? '<div class="tg" style="height:' + h(tg[i]) + 'px"></div>' : '')
+      +   '<div class="dn" style="height:' + h(act[i]) + 'px"></div>'
+      +   (last[i] ? '<div class="ly" style="bottom:' + h(last[i]) + 'px" title="' + (y-1) + ': ' + fmt(last[i]) + ' ' + m.unit + '"></div>' : '')
+      + '</div>'
+      + '<input class="tg-in" data-fk="mt' + i + '" data-mt="' + i + '" inputmode="decimal" autocomplete="off" placeholder="—" value="' + (tg[i] != null ? fmt(tg[i]) : '') + '" title="Target for ' + MON_FULL[i] + ' — takes arithmetic, e.g. =1500/12">'
+      + dn
+      + '<input class="nt-in" data-fk="mn' + i + '" data-mn="' + i + '" autocomplete="off" maxlength="40" placeholder="note" value="' + E(monthNote(y, i)) + '" title="Trips, races, anything that shapes this month">'
+      + '</div>';
+  }).join('');
+
+  let summary = '';
+  if (target != null) summary = fmt(target) + ' ' + m.unit + ' target'
+    + (y <= curY ? ' \u00b7 ' + fmt(done) + ' done' + (target ? ' \u00b7 ' + Math.round(done/target*100) + '%' : '') : '');
+  else summary = 'no ' + y + ' target yet';
+
+  const top =
+      '<div class="plx-top">'
+    +   '<div class="plx-yr"><button class="plx-nav" data-act="yr-" aria-label="Previous year">\u2039</button><b>' + y + '</b>'
+    +     '<button class="plx-nav" data-act="yr+" aria-label="Next year">\u203a</button></div>'
+    +   '<div class="plx-seg"><button data-metric="distance"' + (st.metric === 'distance' ? ' class="on"' : '') + '>Miles</button>'
+    +     '<button data-metric="elevation"' + (st.metric === 'elevation' ? ' class="on"' : '') + '>Vert</button></div>'
+    +   (st.yearOpen ? '' : '<span class="plx-sum">' + summary + '</span>')
+    +   '<div class="plx-sp"></div>'
+    +   '<button class="plx-txt" data-act="undo"' + (st.undo.length ? '' : ' disabled') + ' title="Undo the last change (Ctrl/Cmd+Z)">Undo</button>'
+    +   '<button class="plx-tog' + (st.yearOpen ? ' on' : '') + '" data-act="toggle" aria-expanded="' + st.yearOpen + '">Year plan<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>'
+    + '</div>';
+
+  if (!st.yearOpen){
+    /* folded: twelve cells that still show the shape of the year and still
+       switch the calendar, with nothing to edit by accident */
+    const cells = MON.map(function(nm, i){
+      const isCur = (y === curY && i === todayD.getMonth());
+      const fut = (y > curY) || (y === curY && i > todayD.getMonth());
+      const pct = tg[i] ? Math.min(100, act[i]/tg[i]*100) : (act[i] > 0 ? 100 : 0);
+      return '<button class="plx-mc' + (i === st.month ? ' sel' : '') + (isCur ? ' cur' : '') + '" data-m="' + i + '" title="' + MON_FULL[i] + ': ' + (tg[i] != null ? 'target ' + fmt(tg[i]) + ' ' + m.unit : 'no target') + (fut ? '' : ', ' + fmt(act[i]) + ' run') + '">'
+        + '<i>' + nm + '</i><b>' + (tg[i] != null ? fmt(tg[i]) : '\u2014') + '</b>'
+        + '<u><s style="width:' + (fut ? 0 : pct).toFixed(0) + '%"></s></u></button>';
+    }).join('');
+    $year.innerHTML = top + '<div class="plx-strip">' + cells + '</div>';
+    return;
+  }
+
+  $year.innerHTML = top
+    + '<div class="plx-card">'
+    +   '<div class="plx-kpis">'
+    +     '<div class="plx-k"><label>' + y + ' target</label><div class="v"><input data-fk="yt" data-yt inputmode="decimal" autocomplete="off" placeholder="set" value="' + (target != null ? fmt(target) : '') + '" title="Takes arithmetic, e.g. =' + Math.round(lastTotal) + '*1.12"><span>' + m.unit + '</span></div>'
+    +       '<small>&nbsp;</small></div>'
+    +     '<div class="plx-k"><label>vs ' + (y-1) + '</label><div class="v"><input data-fk="yy" data-yy inputmode="decimal" autocomplete="off" placeholder="—" value="' + (yoy != null ? (yoy >= 0 ? '+' : '') + (Math.round(yoy*10)/10) : '') + '"' + (lastTotal > 0 ? '' : ' disabled') + ' title="Type a percentage to set the target from last year"><span>%</span></div>'
+    +       '<small>' + (lastTotal > 0 ? fmt(lastTotal) + ' ' + m.unit + ' in ' + (y-1) : 'no ' + (y-1) + ' data') + '</small></div>'
+    +     '<div class="plx-k"><label>Done</label>' + k3 + '</div>'
+    +     '<div class="plx-k"><label>Months add up to</label>' + k4 + '</div>'
+    +     '<div class="plx-k"><label>Needed from here</label>' + k5 + '</div>'
+    +   '</div>'
+    +   '<div class="plx-tools"><i>Fill months</i>'
+    +     '<button class="plx-txt" data-act="like"' + (lastTotal > 0 && target != null ? '' : ' disabled') + ' title="Shape the months like ' + (y-1) + ', scaled to the target">Shaped like ' + (y-1) + '</button>'
+    +     '<button class="plx-txt" data-act="scale"' + (anyT && target != null && Math.round(sum) !== Math.round(target) ? '' : ' disabled') + ' title="Scale every month so they add up to the target">Scale to target</button>'
+    +     (y === curY ? '<button class="plx-txt" data-act="rebal"' + (target != null ? '' : ' disabled') + ' title="Set past months to what was run and spread the rest of the target over the months left">Rebalance what’s left</button>' : '')
+    +   '</div>'
+    +   '<div class="plx-months">' + months + '</div>'
+    +   '<div class="plx-legend"><span><u class="b"></u>target</span><span><u class="a"></u>run</span><span><u class="c"></u>' + (y-1) + '</span></div>'
+    + '</div>';
+}
+
+function fillLike(){
+  const ix = buildIndex(), y = st.year, T = yearTarget(y);
+  const last = []; let tot = 0;
+  for (let i=0;i<12;i++){ last[i] = monthActual(ix, y-1, i); tot += last[i]; }
+  if (!T || !tot) return;
+  snap();
+  writeMonths(last.map(function(v){ return v/tot*T; }), T);
+  toast('Months shaped like ' + (y-1));
+}
+function fillScale(){
+  const y = st.year, T = yearTarget(y);
+  const cur = []; let sum = 0;
+  for (let i=0;i<12;i++){ cur[i] = monthTarget(y, i) || 0; sum += cur[i]; }
+  if (!T || !sum) return;
+  snap();
+  writeMonths(cur.map(function(v){ return v/sum*T; }), T);
+  toast('Months scaled to ' + fmt(T));
+}
+function fillRebalance(){
+  const ix = buildIndex(), y = st.year, T = yearTarget(y), cm = todayD.getMonth();
+  if (!T) return;
+  const out = []; let past = 0, wsum = 0;
+  for (let i=0;i<cm;i++){ out[i] = Math.round(monthActual(ix, y, i)); past += out[i]; }
+  const w = [];
+  for (let i=cm;i<12;i++){ w[i] = monthTarget(y, i) || 0; wsum += w[i]; }
+  const rest = Math.max(0, T - past);
+  for (let i=cm;i<12;i++) out[i] = wsum > 0 ? w[i]/wsum*rest : rest/(12-cm);
+  snap();
+  writeMonths(out, T, cm);
+  toast('Rest of the year rebalanced');
+}
+/* Round to whole numbers, then put the rounding remainder on the biggest month
+   so the twelve still add up to exactly the target. */
+function writeMonths(vals, T, lockBefore){
+  const r = vals.map(function(v){ return Math.round(v); });
+  let diff = Math.round(T) - r.reduce(function(s,v){ return s+v; }, 0);
+  if (diff !== 0){
+    let bi = -1;
+    for (let i=(lockBefore||0); i<12; i++) if (bi < 0 || r[i] > r[bi]) bi = i;
+    if (bi >= 0) r[bi] += diff;
+  }
+  for (let i=0;i<12;i++) setMonthTarget(st.year, i, r[i]);
+  saveGoals(); render();
+}
+
+/* ═══ MONTH ═══ */
+function weeksOf(y, m){
+  const first = new Date(y, m, 1), last = new Date(y, m+1, 0);
+  const out = []; let d = weekStart(first);
+  while (d <= last){ out.push(new Date(d)); d = addDays(d, 7); }
+  return out;
+}
+function weekTarget(mon, metric){
+  /* A week has no stored target. It is the month's number spread per day, so a
+     week straddling two months takes its share of each. */
+  let t = 0, any = false;
+  for (let i=0;i<7;i++){
+    const d = addDays(mon, i), mt = monthTarget(d.getFullYear(), d.getMonth(), metric);
+    if (mt != null){ any = true; t += mt / new Date(d.getFullYear(), d.getMonth()+1, 0).getDate(); }
+  }
+  return any ? t : null;
+}
+function chipColor(type, session){
+  const t = normType(type);
+  if (RUNLIKE.has(type)){
+    if (session === 'race') return '#c026a0';
+    if (session === 'long') return '#f08a99';
+    if (session === 'hills') return '#8fb4dc';
+    if (session === 'tempo' || session === 'intervals' || session === 'progression' || session === 'fartlek') return 'var(--info)';
+    return 'var(--a)';
+  }
+  if (t === 'weighttraining' || t === 'workout' || t === 'crossfit') return '#8b7fc4';
+  if (t === 'hike' || t === 'walk') return '#8fb4dc';
+  if (t === 'yoga' || t === 'mobility' || t === 'pilates') return 'var(--pos)';
+  if (t === 'sauna') return 'var(--warn)';
+  return 'var(--n3)';
+}
+function planChip(w, dateISO){
+  const run = isRunW(w) || normType(w.type) === 'hike';
+  const mi = parseFloat(w.distance_mi) || 0, ft = parseFloat(w.elevation_ft) || 0, min = parseFloat(w.duration_min) || 0;
+  let val = '';
+  if (st.metric === 'elevation' && run) val = ft ? Math.round(ft).toLocaleString() : (mi ? miles(mi) + ' mi' : '');
+  else if (run && mi) val = miles(mi);
+  else if (min) val = Math.round(min) + 'm';
+  let cls = '';
+  if (dateISO <= TODAY){
+    if (isFulfilled(w)){ cls = ' done'; val = '✓' + (val ? ' ' + val : ''); }
+    else if (dateISO < TODAY) cls = ' missed';
+  }
+  if (!run && !min && normType(w.type) !== 'weighttraining') cls += ' minor';
+  else if (!run && min && min <= 15) cls += ' minor';
+  const tip = (w.time ? w.time + '  ' : '') + (w.title || w.type)
+    + (mi ? '  ·  ' + miles(mi) + ' mi' : '') + (ft ? '  ·  ' + Math.round(ft).toLocaleString() + ' ft' : '')
+    + (min ? '  ·  ' + Math.round(min) + ' min' : '') + (w.notes ? '\n' + w.notes : '');
+  return '<div class="plx-chip' + cls + '" data-id="' + E(w.id) + '" style="--c:' + chipColor(w.type, w.session) + '" title="' + E(tip) + '">'
+    + '<span class="nm">' + E(w.title || w.type) + '</span>' + (val ? '<span class="val">' + val + '</span>' : '') + '</div>';
+}
+function actChip(a){
+  const run = RUNLIKE.has(a.type) || normType(a.type) === 'hike';
+  let val = '';
+  if (st.metric === 'elevation' && run && a.elevation_ft) val = Math.round(a.elevation_ft).toLocaleString();
+  else if (run && a.distance_mi) val = miles(a.distance_mi);
+  else if (a.moving_time) val = Math.round(a.moving_time/60) + 'm';
+  return '<div class="plx-chip act' + (run ? '' : ' minor') + '" style="--c:' + chipColor(a.type, null) + '" title="' + E((a.name || a.type) + ' — logged, not planned') + '">'
+    + '<span class="nm">' + E(a.name || a.type) + '</span>' + (val ? '<span class="val">' + val + '</span>' : '') + '</div>';
+}
+function sortPlans(a, b){
+  const ta = a.time || '99', tb = b.time || '99';
+  if (ta !== tb) return ta < tb ? -1 : 1;
+  return (isRunW(b) ? 1 : 0) - (isRunW(a) ? 1 : 0);
+}
+
+function renderMonth(ix){
+  const y = st.year, mo = st.month, m = METRIC[st.metric];
+  const other = st.metric === 'distance' ? 'elevation' : 'distance';
+  const weeks = weeksOf(y, mo);
+  const mKey = y + '-' + String(mo+1).padStart(2,'0');
+
+  /* month totals */
+  let mDone = 0, mTogo = 0;
+  const dim = new Date(y, mo+1, 0).getDate();
+  for (let d=1; d<=dim; d++){
+    const r = dayRun(ix, mKey + '-' + String(d).padStart(2,'0'));
+    mDone += r.done; mTogo += r.togo;
+  }
+  const mT = monthTarget(y, mo);
+  const proj = mDone + mTogo;
+  const isPastMonth = new Date(y, mo+1, 0) < todayD;
+  let stat = '<span class="tgt">Target<input data-fk="mh" data-mth inputmode="decimal" autocomplete="off" placeholder="set" value="' + (mT != null ? fmt(mT) : '') + '" title="Target for ' + MON_FULL[mo] + ' \u2014 takes arithmetic"></span>';
+  if (isPastMonth) stat += '<span>Run<b>' + fmt1(mDone) + '</b></span>';
+  else stat += '<span>On the calendar<b>' + fmt1(proj) + '</b></span>'
+            + (mDone > 0 ? '<span>' + fmt1(mDone) + ' run + ' + fmt1(mTogo) + ' planned</span>' : '');
+  if (mT != null && !isPastMonth){
+    const gap = mT - proj;
+    stat += Math.round(gap) > 0 ? '<span class="gap">' + fmt1(gap) + ' ' + m.unit + ' still to place</span>'
+          : '<span class="gap ok">' + (Math.round(gap) === 0 ? 'target covered' : fmt1(-gap) + ' ' + m.unit + ' over target') + '</span>';
+  }
+
+  let grid = DOW.map(function(d){ return '<div class="plx-gh">' + d + '</div>'; }).join('') + '<div class="plx-gh">Week</div>';
+
+  weeks.forEach(function(mon){
+    let wDone = 0, wTogo = 0, wPlan = 0, oDone = 0, oTogo = 0;
+    const mix = {};
+    let hasToday = false;
+    for (let i=0;i<7;i++){
+      const d = addDays(mon, i), key = iso(d);
+      const plans = (ix.planDay[key] || []).slice().sort(sortPlans);
+      const acts = key <= TODAY ? (ix.actDay[key] || []) : [];
+      const r = dayRun(ix, key), ro = dayRun(ix, key, other);
+      wDone += r.done; wTogo += r.togo; wPlan += r.planned; oDone += ro.done; oTogo += ro.togo;
+      if (key === TODAY) hasToday = true;
+      plans.forEach(function(w){
+        if (isRunW(w)) return;
+        const lb = normType(w.type) === 'weighttraining' ? 'Strength' : w.type;
+        mix[lb] = (mix[lb] || 0) + 1;
+      });
+      /* logged activities nothing on the plan accounts for */
+      const extra = acts.filter(function(a){ return !plans.some(function(w){ return typesMatch(a, w); }); });
+      const races = RACES.filter(function(rc){ return rc && rc.date === key; });
+      grid += '<div class="plx-day' + (iso(addDays(mon, 6)) < TODAY ? ' old' : '') + (d.getMonth() !== mo ? ' out' : '') + (key === TODAY ? ' today' : '') + (key < TODAY ? ' past' : '') + '" data-date="' + key + '">'
+        + '<div class="dh"><span class="dnum">' + d.getDate() + '</span>'
+        +   races.map(function(rc){ return '<span class="rc" title="' + E(rc.name) + '">' + E(rc.name) + '</span>'; }).join('')
+        +   '<button class="add" data-add aria-label="Add to ' + key + '">+</button></div>'
+        + '<div class="plx-chips">' + plans.map(function(w){ return planChip(w, key); }).join('') + extra.map(actChip).join('') + '</div>'
+        + '</div>';
+    }
+    const sun = addDays(mon, 6), past = iso(sun) < TODAY, future = iso(mon) > TODAY;
+    const head = past ? wDone : (wDone + wTogo);
+    const wT = weekTarget(mon);
+    const scale = Math.max(wT || 0, head, wPlan, 1) * 1.08;
+    const pc = function(v){ return Math.min(100, Math.max(0, v/scale*100)).toFixed(1); };
+    let sub;
+    if (past) sub = 'run' + (wPlan ? ' · ' + fmt1(wPlan) + ' was planned' : '');
+    else if (future) sub = wPlan ? 'planned' : 'nothing planned yet';
+    else sub = fmt1(wDone) + ' run · ' + fmt1(wTogo) + ' to go';
+    const oHead = past ? oDone : (oDone + oTogo);
+    const oTxt = other === 'elevation' ? Math.round(oHead).toLocaleString() + ' ft' : miles(oHead) + ' mi';
+    const mixTxt = Object.keys(mix).map(function(k){ return k + ' ' + mix[k]; }).join(' · ');
+    const lbl = MON[mon.getMonth()] + ' ' + mon.getDate() + ' – ' + (sun.getMonth() !== mon.getMonth() ? MON[sun.getMonth()] + ' ' : '') + sun.getDate();
+    grid += '<div class="plx-wk' + (hasToday ? ' cur' : '') + (past ? ' old' : '') + (head > 0 ? '' : ' zero') + '" data-week="' + iso(mon) + '">'
+      + '<div class="wl">' + lbl + '</div>'
+      + '<div class="big"><b>' + fmt1(head) + '</b><span>' + m.unit + '</span></div>'
+      + '<div class="sub">' + sub + '</div>'
+      + '<div class="plx-wbar"><i class="pl" style="width:' + pc(past ? wPlan : head) + '%"></i><i class="dn" style="width:' + pc(wDone) + '%"></i>'
+      +   (wT != null ? '<em style="left:' + pc(wT) + '%" title="Week’s share of the monthly target: ' + fmt1(wT) + ' ' + m.unit + '"></em>' : '') + '</div>'
+      + '<div class="sub">' + (wT != null ? 'target ' + fmt1(wT) + ' · ' : '') + oTxt + '</div>'
+      + (mixTxt ? '<div class="mix">' + E(mixTxt) + '</div>' : '')
+      + '<div class="wa"><button data-wkcopy title="Copy every session in this week onto the next one">Copy to next</button>'
+      +   '<button data-wkclear title="Remove every planned session in this week">Clear</button></div>'
+      + '</div>';
+  });
+
+  $month.innerHTML =
+      '<div class="plx-mh">'
+    +   '<div class="ttl"><button class="plx-nav" data-act="mo-" aria-label="Previous month">‹</button><h2>' + MON_FULL[mo] + ' ' + y + '</h2>'
+    +     '<button class="plx-nav" data-act="mo+" aria-label="Next month">›</button>'
+    +     '<button class="plx-txt" data-act="today" style="margin-left:6px">Today</button></div>'
+    +   '<div class="plx-mstat">' + stat + '</div>'
+    +   '<div class="plx-sp"></div>'
+    +   '<button class="plx-txt" data-act="tsv" title="Copy this month as a table you can paste into Excel">Copy for Excel</button>'
+    + '</div>'
+    + '<div class="plx-grid">' + grid + '</div>';
+}
+
+/* ═══ QUICK ENTRY ═══
+   One typed line becomes a workout. Order of meaning: an exact match on a saved
+   template or a title used before wins outright; otherwise keywords pick the
+   type, and the numbers are read by their units. A bare number is miles for
+   anything run-shaped and minutes for everything else, because that is what he
+   would mean. */
+const KW = [
+  [/\blong\b/i,'Run','long'], [/\btempo\b/i,'Run','tempo'], [/\b(intervals?|reps|track)\b/i,'Run','intervals'],
+  [/\bhills?\b/i,'Run','hills'], [/\bprogression\b/i,'Run','progression'], [/\bfartlek\b/i,'Run','fartlek'],
+  [/\bshakeout\b/i,'Run','shakeout'], [/\brace\b/i,'Run','race'],
+  [/\b(legs?|leg day)\b/i,'Weight Training','legs'], [/\bupper\b/i,'Weight Training','upper'],
+  [/\bcore\b/i,'Weight Training','core'], [/\bfull body\b/i,'Weight Training','full'],
+  [/\b(strength|lift|lifting|weights?|gym)\b/i,'Weight Training','full'],
+  [/\bhike\b/i,'Hike',null], [/\b(yoga|foam roll(ing)?)\b/i,'Yoga',null],
+  [/\b(mobility|qi ?gong|stretch(ing)?|band ?work)\b/i,'Mobility',null], [/\bsauna\b/i,'Sauna',null],
+  [/\b(easy|recovery|jog|run|trail|miles?)\b/i,'Run','easy'],
+];
+const GENERIC = new Set(('easy run runs long tempo interval intervals reps track hill hills progression fartlek shakeout race trail jog '
+  + 'strength lift lifting weights weight gym legs leg upper core full body day hike yoga mobility sauna recovery mi mile miles and the a of').split(' '));
+function knownSessions(){
+  /* saved templates first, then titles that keep coming back */
+  const out = [], seen = {};
+  TEMPLATES.forEach(function(t){
+    const nm = t.tplName || t.title; if (!nm) return;
+    const k = nm.toLowerCase(); if (seen[k]) return; seen[k] = 1;
+    out.push({ name:nm, proto:t, n:999 });
+  });
+  const cut = iso(addDays(todayD, -120)), tally = {};
+  PLANNED.forEach(function(w){
+    if (!w || !w.title || w.date < cut) return;
+    const k = w.title.toLowerCase();
+    const o = tally[k] || (tally[k] = { name:w.title, proto:w, n:0 });
+    o.n++; if (w.date > o.proto.date) o.proto = w;
+  });
+  Object.keys(tally).filter(function(k){ return !seen[k] && tally[k].n >= 2; })
+    .sort(function(a,b){ return tally[b].n - tally[a].n; })
+    .forEach(function(k){ out.push(tally[k]); });
+  return out;
+}
+function cloneOnto(proto, dateISO){
+  const rec = Object.assign(blankWorkout(dateISO), JSON.parse(JSON.stringify(proto)), { id:newId(), date:dateISO });
+  delete rec.tplId; delete rec.tplName;
+  return rec;
+}
+function parseQuick(text, dateISO){
+  const raw = String(text || '').trim();
+  if (!raw) return null;
+  const hit = knownSessions().find(function(k){ return k.name.toLowerCase() === raw.toLowerCase(); });
+  if (hit) return cloneOnto(hit.proto, dateISO);
+
+  let s = ' ' + raw + ' ', time = null, ft = null, min = null, mi = null;
+  s = s.replace(/(?:@\s*)?\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/i, function(_, h, mm, ap){
+    let hh = (+h) % 12; if (/pm/i.test(ap)) hh += 12;
+    time = String(hh).padStart(2,'0') + ':' + (mm || '00'); return ' ';
+  });
+  if (!time) s = s.replace(/(?:@\s*)?\b(\d{1,2}):(\d{2})\b/, function(_, h, mm){ time = String(+h).padStart(2,'0') + ':' + mm; return ' '; });
+  s = s.replace(/(\d[\d,]*(?:\.\d+)?)\s*(k)?\s*(?:ft\b|feet\b|vert\b|')/i, function(_, n, k){ ft = parseFloat(n.replace(/,/g,'')) * (k ? 1000 : 1); return ' '; });
+  s = s.replace(/(\d+(?:\.\d+)?)\s*(?:hours?|hrs?|h)\b/i, function(_, n){ min = (min || 0) + parseFloat(n)*60; return ' '; });
+  s = s.replace(/(\d+(?:\.\d+)?)\s*(?:minutes?|mins?|m)\b/i, function(_, n){ min = (min || 0) + parseFloat(n); return ' '; });
+  s = s.replace(/(\d+(?:\.\d+)?)\s*(?:miles?|mi)\b/i, function(_, n){ mi = parseFloat(n); return ' '; });
+
+  let type = null, session = null;
+  for (let i=0;i<KW.length;i++){ if (KW[i][0].test(raw)){ type = KW[i][1]; session = KW[i][2]; break; } }
+
+  const bare = s.match(/(?:^|[\s(])(\d+(?:\.\d+)?)(?=[\s),.]|$)/);
+  if (bare){
+    const n = parseFloat(bare[1]);
+    const runShaped = !type || type === 'Run' || type === 'Hike';
+    if (runShaped && mi == null){ mi = n; s = s.replace(bare[1], ' '); }
+    else if (!runShaped && min == null){ min = n; s = s.replace(bare[1], ' '); }
+  }
+  if (!type){
+    if (mi != null){ type = 'Run'; session = 'easy'; }
+    else type = 'Other';
+  }
+
+  /* whatever words are left are his own name for it, unless they only restate the type */
+  const rest = s.replace(/[@]/g,' ').replace(/\s+/g,' ').trim().replace(/^[\s,.\-]+|[\s,.\-]+$/g,'');
+  const words = rest.toLowerCase().split(/[^a-z0-9']+/).filter(Boolean);
+  const onlyGeneric = !words.length || words.every(function(w){ return GENERIC.has(w); });
+
+  const rec = Object.assign(blankWorkout(dateISO), {
+    id:newId(), type:type, session: type === 'Run' || type === 'Weight Training' ? session : null,
+    time: time, distance_mi: mi, elevation_ft: ft,
+    duration_min: min != null ? Math.round(min) : null, duration_sec: min != null ? Math.round(min*60) : null });
+  if (!onlyGeneric) rec.title = rest.charAt(0).toUpperCase() + rest.slice(1);
+  else if (type === 'Run' && mi != null){
+    const lab = (RUN_SESSIONS.find(function(x){ return x.key === session; }) || {}).label || 'Easy';
+    rec.title = miles(mi) + (mi === 1 ? ' Mile ' : ' Miles ') + lab.replace(' / Vert','');
+  } else rec.title = autoTitleFor(rec);
+  return rec;
+}
+function describe(rec){
+  const bits = [rec.type === 'Weight Training' ? 'Strength' : rec.type];
+  if (rec.distance_mi) bits.push(miles(rec.distance_mi) + ' mi');
+  if (rec.elevation_ft) bits.push(Math.round(rec.elevation_ft).toLocaleString() + ' ft');
+  if (rec.duration_min) bits.push(rec.duration_min + ' min');
+  if (rec.time) bits.push(rec.time);
+  return '“' + rec.title + '” · ' + bits.join(' · ');
+}
+
+/* ═══ POPOVER ═══ */
+function placePop(){
+  if (!st.pop) return;
+  const a = st.pop.kind === 'edit'
+    ? $month.querySelector('.plx-chip[data-id="' + st.pop.id + '"]')
+    : $month.querySelector('.plx-day[data-date="' + st.pop.date + '"]');
+  if (!a){ closePop(); return; }
+  const rr = $root.getBoundingClientRect(), ar = a.getBoundingClientRect();
+  const pw = $pop.offsetWidth, ph = $pop.offsetHeight;
+  let left = ar.left - rr.left;
+  left = Math.max(0, Math.min(left, rr.width - pw));
+  let top = ar.bottom - rr.top + 6;
+  /* flip above when it would run off the bottom of the window */
+  if (ar.bottom + ph + 12 > window.innerHeight && ar.top - ph - 6 > 0) top = ar.top - rr.top - ph - 6;
+  $pop.style.left = left + 'px'; $pop.style.top = top + 'px';
+}
+function closePop(){ st.pop = null; $pop.hidden = true; $pop.innerHTML = ''; }
+
+function openQuick(dateISO){
+  st.pop = { kind:'add', date:dateISO };
+  const d = dOf(dateISO);
+  const known = knownSessions().slice(0, 9);
+  $pop.innerHTML =
+      '<div class="ph"><span>' + d.toLocaleDateString(undefined, { weekday:'long', month:'short', day:'numeric' }) + '</span><button data-x aria-label="Close">✕</button></div>'
+    + '<input class="q" data-q autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="6 easy · 12 long 2500ft · legs">'
+    + '<div class="prev" data-prev></div>'
+    + (known.length ? '<div class="tp">' + known.map(function(k, i){ return '<button data-k="' + i + '">' + E(k.name) + '</button>'; }).join('') + '</div>' : '')
+    + '<div class="pf"><button data-full>Full editor</button><span class="hint" style="margin:0">Enter adds · Tab next day</span></div>';
+  $pop._known = known;
+  $pop.hidden = false; placePop();
+  const q = $pop.querySelector('[data-q]');
+  /* focusing synchronously inside the tap that opened it scrolls iPad Safari */
+  setTimeout(function(){ try { q.focus({ preventScroll:true }); } catch(e){ q.focus(); } }, 0);
+}
+function quickAdd(text){
+  if (!st.pop || st.pop.kind !== 'add') return false;
+  const rec = parseQuick(text, st.pop.date);
+  if (!rec) return false;
+  snap(); PLANNED.push(rec);
+  commit(rec.date);
+  return true;
+}
+
+function openEdit(id){
+  const w = PLANNED.find(function(x){ return String(x.id) === String(id); });
+  if (!w) return;
+  st.pop = { kind:'edit', id:String(id), date:w.date };
+  const types = DISCIPLINES.map(function(d){ return d.key; });
+  if (types.indexOf(w.type) < 0) types.unshift(w.type);
+  const sess = sessionsFor(w.type);
+  const mon = weekStart(dOf(w.date));
+  const rep = DOW.map(function(nm, i){
+    const key = iso(addDays(mon, i));
+    const self = key === w.date;
+    const twin = !self && PLANNED.some(function(x){ return x.date === key && x.type === w.type && (x.title || '') === (w.title || ''); });
+    return '<button data-rep="' + key + '" class="' + (self ? 'self' : twin ? 'on' : '') + '">' + nm.charAt(0) + '</button>';
+  }).join('');
+  $pop.innerHTML =
+      '<div class="ph"><span>Edit session</span><button data-x aria-label="Close">✕</button></div>'
+    + '<input data-f="title" autocomplete="off" value="' + E(w.title || '') + '" placeholder="Title">'
+    + '<div class="plx-r ' + (sess ? 'c2' : '') + '">'
+    +   '<div class="fld"><select data-f="type">' + types.map(function(t){ return '<option' + (t === w.type ? ' selected' : '') + ' value="' + E(t) + '">' + E(t === 'Weight Training' ? 'Strength' : t) + '</option>'; }).join('') + '</select></div>'
+    +   (sess ? '<div class="fld"><select data-f="session">' + sess.map(function(x){ return '<option' + (x.key === w.session ? ' selected' : '') + ' value="' + x.key + '">' + E(x.label) + '</option>'; }).join('') + '</select></div>' : '')
+    + '</div>'
+    + '<div class="plx-r c3">'
+    +   '<div class="fld"><label>Miles</label><input data-f="distance_mi" data-num inputmode="decimal" autocomplete="off" value="' + (w.distance_mi != null ? w.distance_mi : '') + '"></div>'
+    +   '<div class="fld"><label>Vert ft</label><input data-f="elevation_ft" data-num inputmode="decimal" autocomplete="off" value="' + (w.elevation_ft != null ? w.elevation_ft : '') + '"></div>'
+    +   '<div class="fld"><label>Minutes</label><input data-f="duration_min" data-num inputmode="decimal" autocomplete="off" value="' + (w.duration_min != null ? w.duration_min : '') + '"></div>'
+    + '</div>'
+    + '<div class="plx-r c2">'
+    +   '<div class="fld"><label>Day</label><input data-f="date" type="date" value="' + E(w.date) + '"></div>'
+    +   '<div class="fld"><label>Time</label><input data-f="time" type="time" value="' + E(w.time || '') + '"></div>'
+    + '</div>'
+    + '<div class="plx-r"><div class="fld"><label>Notes</label><textarea data-f="notes" rows="2">' + E(w.notes || '') + '</textarea></div></div>'
+    + '<div class="plx-r"><div class="fld"><label>Also on</label><div class="rep">' + rep + '</div></div></div>'
+    + '<div class="pf"><button class="del" data-del>Delete</button><button data-full>Full editor</button><button class="ok" data-x>Done</button></div>';
+  $pop.hidden = false; placePop();
+}
+function applyField(el){
+  if (!st.pop || st.pop.kind !== 'edit') return;
+  const w = PLANNED.find(function(x){ return String(x.id) === st.pop.id; });
+  if (!w) return;
+  const f = el.dataset.f; let v = el.value;
+  if (el.hasAttribute('data-num')){
+    const n = calc(v);
+    if (v.trim() !== '' && (n == null || isNaN(n))){ el.value = w[f] != null ? w[f] : ''; toast('That is not a number'); return; }
+    v = (n == null) ? null : Math.round(n*100)/100;
+  }
+  if (f === 'date' && !/^\d{4}-\d{2}-\d{2}$/.test(v)) return;
+  if (String(w[f] == null ? '' : w[f]) === String(v == null ? '' : v)) return;
+  snap();
+  const from = w.date;
+  w[f] = (f === 'time' && !v) ? null : v;
+  if (f === 'duration_min') w.duration_sec = v ? v*60 : null;
+  if (f === 'type'){
+    const list = sessionsFor(w.type);
+    w.session = list ? list[0].key : null;
+  }
+  if (f === 'date'){
+    st.pop.date = w.date;
+    const d = dOf(w.date);
+    if (d.getFullYear() !== st.year || d.getMonth() !== st.month){ st.year = d.getFullYear(); st.month = d.getMonth(); }
+  }
+  commit(w.date);
+  /* type changes which fields exist, so the form itself has to be rebuilt */
+  if (f === 'type') openEdit(w.id);
+  void from;
+}
+function toggleRepeat(dateISO){
+  const w = PLANNED.find(function(x){ return String(x.id) === st.pop.id; });
+  if (!w || dateISO === w.date) return;
+  const twin = PLANNED.find(function(x){ return x.date === dateISO && x.type === w.type && (x.title || '') === (w.title || ''); });
+  snap();
+  if (twin) PLANNED = PLANNED.filter(function(x){ return x !== twin; });
+  else PLANNED.push(cloneOnto(w, dateISO));
+  commit(dateISO);
+  openEdit(w.id);
+}
+/* Save and repaint through the app's own door, so the phone views, the
+   overview and the cloud copy all hear about it. planChanged ends by calling
+   setPlanView, which is where this planner is asked to redraw. */
+function commit(dateISO){ planChanged(dateISO); }
+
+/* ═══ WEEK ACTIONS ═══ */
+function weekPlans(monISO){
+  const end = iso(addDays(dOf(monISO), 6));
+  return PLANNED.filter(function(w){ return w && w.date >= monISO && w.date <= end; });
+}
+function copyWeek(monISO){
+  const src = weekPlans(monISO);
+  if (!src.length){ toast('Nothing in that week to copy'); return; }
+  snap();
+  let n = 0;
+  src.forEach(function(w){
+    const to = iso(addDays(dOf(w.date), 7));
+    if (PLANNED.some(function(x){ return x.date === to && x.type === w.type && (x.title || '') === (w.title || ''); })) return;
+    PLANNED.push(cloneOnto(w, to)); n++;
+  });
+  commit(monISO);
+  toast(n ? 'Copied ' + n + ' session' + (n === 1 ? '' : 's') + ' to next week' : 'Next week already has all of these');
+}
+function clearWeek(monISO){
+  const src = weekPlans(monISO);
+  if (!src.length) return;
+  snap();
+  PLANNED = PLANNED.filter(function(w){ return src.indexOf(w) < 0; });
+  commit(monISO);
+  toast('Cleared ' + src.length + ' session' + (src.length === 1 ? '' : 's') + ' — Undo brings them back');
+}
+function copyTSV(){
+  const ix = buildIndex(), rows = [['Week of'].concat(DOW).concat(['Planned mi','Run mi','Target mi']).join('\t')];
+  weeksOf(st.year, st.month).forEach(function(mon){
+    const cells = []; let p = 0, dn = 0;
+    for (let i=0;i<7;i++){
+      const key = iso(addDays(mon, i)), r = dayRun(ix, key, 'distance');
+      p += r.planned; dn += r.done;
+      cells.push(r.planned ? miles(r.planned) : (r.done ? miles(r.done) : ''));
+    }
+    const t = weekTarget(mon, 'distance');
+    rows.push([iso(mon)].concat(cells).concat([miles(p), miles(dn), t != null ? miles(t) : '']).join('\t'));
+  });
+  const txt = rows.join('\n');
+  const done = function(){ toast('Copied — paste into Excel'); };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(done, function(){ toast('Clipboard blocked by the browser'); });
+  else toast('Clipboard not available here');
+}
+
+/* ═══ RENDER ═══ */
+function active(){ return wide.matches && host.classList.contains('on'); }
+function render(){
+  if (!active()) return;
+  /* a field that just lost focus to another field must not have that focus
+     thrown away by the redraw — find where it went and put it back */
+  const ae = document.activeElement, fk = ae && $root.contains(ae) && ae.dataset ? ae.dataset.fk : null;
+  const ix = buildIndex();
+  try { renderYear(ix); } catch(e){ console.error('[plx] year', e); $year.innerHTML = '<div class="empty">The year view hit an error — run rhErrors().</div>'; }
+  try { renderMonth(ix); } catch(e){ console.error('[plx] month', e); $month.innerHTML = '<div class="empty">The month view hit an error — run rhErrors().</div>'; }
+  if (fk){ const el = $root.querySelector('[data-fk="' + fk + '"]'); if (el){ el.focus(); if (el.select) el.select(); } }
+  if (st.pop) placePop();
+}
+window.plxRender = render;
+
+/* ═══ EVENTS ═══ */
+$year.addEventListener('click', function(e){
+  const b = e.target.closest('[data-act],[data-metric]');
+  if (b){
+    if (b.dataset.metric){ st.metric = b.dataset.metric; closePop(); render(); return; }
+    const a = b.dataset.act;
+    if (a === 'yr-' || a === 'yr+'){ st.year += (a === 'yr+' ? 1 : -1); closePop(); render(); }
+    else if (a === 'toggle'){ st.yearOpen = !st.yearOpen; lsSet(YEAR_OPEN_KEY, st.yearOpen); closePop(); render(); }
+    else if (a === 'undo') undo();
+    else if (a === 'like') fillLike();
+    else if (a === 'scale') fillScale();
+    else if (a === 'rebal') fillRebalance();
+    return;
+  }
+  if (e.target.tagName === 'INPUT') return;
+  const m = e.target.closest('.plx-m,.plx-mc');
+  if (m){ st.month = +m.dataset.m; closePop(); render(); }
+});
+$year.addEventListener('focusin', function(e){
+  const t = e.target;
+  if (t.tagName !== 'INPUT') return;
+  if (t.select && !t.dataset.mn) t.select();
+  const m = t.closest('.plx-m');
+  /* tabbing along the months should bring the calendar with it */
+  if (m && +m.dataset.m !== st.month){ st.month = +m.dataset.m; closePop(); try { renderMonth(buildIndex()); } catch(err){}
+    $year.querySelectorAll('.plx-m').forEach(function(x){ x.classList.toggle('sel', +x.dataset.m === st.month); }); }
+});
+$year.addEventListener('keydown', function(e){
+  if (e.key === 'Enter' && e.target.tagName === 'INPUT') e.target.blur();
+  if (e.key === 'Escape' && e.target.tagName === 'INPUT'){ render(); }
+});
+$year.addEventListener('change', function(e){
+  const t = e.target, y = st.year;
+  if (t.dataset.mn != null){
+    snap(); setMonthNote(y, +t.dataset.mn, t.value.trim()); saveGoals();
+    setTimeout(render, 0); return;
+  }
+  let v = calc(t.value);
+  if (t.value.trim() !== '' && (v == null || isNaN(v))){ toast('That is not a number'); setTimeout(render, 0); return; }
+  if (v != null && v < 0) v = 0;
+  if (t.hasAttribute('data-yt')){ snap(); setYearTarget(y, v == null ? null : Math.round(v)); }
+  else if (t.hasAttribute('data-yy')){
+    const ix = buildIndex(); let last = 0;
+    for (let i=0;i<12;i++) last += monthActual(ix, y-1, i);
+    if (v == null || !last){ setTimeout(render, 0); return; }
+    /* "12" and "+12" both mean 12%; calc turns a typed "12%" into 0.12 */
+    const pct = /%/.test(t.value) ? v*100 : v;
+    snap(); setYearTarget(y, Math.round(last * (1 + pct/100)));
+  }
+  else if (t.dataset.mt != null){ snap(); setMonthTarget(y, +t.dataset.mt, v == null ? null : Math.round(v)); }
+  else return;
+  saveGoals();
+  /* after the browser has moved focus, so render() can see where it went */
+  setTimeout(render, 0);
+});
+
+$month.addEventListener('click', function(e){
+  if (drag.moved){ drag.moved = false; return; }           /* that click was the end of a drag */
+  const act = e.target.closest('[data-act]');
+  if (act){
+    const a = act.dataset.act;
+    if (a === 'mo-' || a === 'mo+'){
+      st.month += (a === 'mo+' ? 1 : -1);
+      if (st.month < 0){ st.month = 11; st.year--; } else if (st.month > 11){ st.month = 0; st.year++; }
+      closePop(); render();
+    } else if (a === 'today'){ st.year = todayD.getFullYear(); st.month = todayD.getMonth(); closePop(); render(); }
+    else if (a === 'tsv') copyTSV();
+    return;
+  }
+  const wk = e.target.closest('.plx-wk');
+  if (wk){
+    if (e.target.closest('[data-wkcopy]')) copyWeek(wk.dataset.week);
+    else if (e.target.closest('[data-wkclear]')) clearWeek(wk.dataset.week);
+    return;
+  }
+  const chip = e.target.closest('.plx-chip');
+  if (chip){ if (chip.dataset.id) openEdit(chip.dataset.id); return; }
+  if (e.target.tagName === 'INPUT') return;
+  const day = e.target.closest('.plx-day');
+  if (day) openQuick(day.dataset.date);
+});
+
+$month.addEventListener('change', function(e){
+  const t = e.target;
+  if (!t.hasAttribute('data-mth')) return;
+  let v = calc(t.value);
+  if (t.value.trim() !== '' && (v == null || isNaN(v))){ toast('That is not a number'); setTimeout(render, 0); return; }
+  if (v != null && v < 0) v = 0;
+  snap(); setMonthTarget(st.year, st.month, v == null ? null : Math.round(v)); saveGoals();
+  setTimeout(render, 0);
+});
+$month.addEventListener('keydown', function(e){ if (e.key === 'Enter' && e.target.hasAttribute('data-mth')) e.target.blur(); });
+$month.addEventListener('focusin', function(e){ if (e.target.hasAttribute('data-mth')) e.target.select(); });
+
+$pop.addEventListener('click', function(e){
+  const t = e.target;
+  if (t.closest('[data-x]')){ closePop(); return; }
+  if (t.closest('[data-full]')){
+    const p = st.pop; closePop();
+    if (p) openComposer(p.date, p.kind === 'edit' ? p.id : null);
+    return;
+  }
+  if (t.closest('[data-del]')){
+    const id = st.pop && st.pop.id, w = PLANNED.find(function(x){ return String(x.id) === id; });
+    if (!w) return;
+    snap(); PLANNED = PLANNED.filter(function(x){ return x !== w; });
+    closePop(); commit(w.date); toast('Removed — Undo brings it back');
+    return;
+  }
+  const k = t.closest('[data-k]');
+  if (k && st.pop && st.pop.kind === 'add'){
+    const item = ($pop._known || [])[+k.dataset.k];
+    if (!item) return;
+    snap(); PLANNED.push(cloneOnto(item.proto, st.pop.date)); commit(st.pop.date);
+    const q = $pop.querySelector('[data-q]'); if (q) q.focus();
+    return;
+  }
+  const r = t.closest('[data-rep]');
+  if (r) toggleRepeat(r.dataset.rep);
+});
+$pop.addEventListener('input', function(e){
+  if (!e.target.hasAttribute('data-q')) return;
+  const rec = parseQuick(e.target.value, st.pop.date);
+  $pop.querySelector('[data-prev]').textContent = rec ? describe(rec) : '';
+});
+$pop.addEventListener('keydown', function(e){
+  const t = e.target;
+  if (e.key === 'Escape'){ closePop(); return; }
+  if (t.hasAttribute('data-q')){
+    if (e.key === 'Enter'){
+      e.preventDefault();
+      if (quickAdd(t.value)){ t.value = ''; $pop.querySelector('[data-prev]').textContent = ''; }
+    } else if (e.key === 'Tab'){
+      e.preventDefault();
+      if (t.value.trim()) quickAdd(t.value);
+      const next = iso(addDays(dOf(st.pop.date), e.shiftKey ? -1 : 1));
+      if ($month.querySelector('.plx-day[data-date="' + next + '"]')) openQuick(next);
+    }
+    return;
+  }
+  if (e.key === 'Enter' && t.tagName !== 'TEXTAREA'){ e.preventDefault(); t.blur(); }
+});
+$pop.addEventListener('change', function(e){ if (e.target.dataset.f) applyField(e.target); });
+
+document.addEventListener('pointerdown', function(e){
+  if (!st.pop || $pop.hidden) return;
+  if ($pop.contains(e.target)) return;
+  /* a tap on another day or chip will open its own popover; anything else closes this one */
+  if (!e.target.closest('.plx-day,.plx-chip')) closePop();
+}, true);
+document.addEventListener('keydown', function(e){
+  if (!active()) return;
+  if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key.toLowerCase() === 'z'){
+    const tg = e.target && e.target.tagName;
+    if (tg === 'INPUT' || tg === 'TEXTAREA' || tg === 'SELECT') return;   /* leave text undo alone */
+    if (document.querySelector('.sheet.on')) return;
+    if (st.undo.length){ e.preventDefault(); undo(); }
+  }
+});
+
+/* ═══ DRAG TO MOVE ═══
+   Hand-rolled on pointer events because HTML5 drag-and-drop does not fire for
+   touch on iPad. A mouse drags as soon as it moves; a finger has to rest on the
+   chip for a moment first, so that swiping over the grid still scrolls it. */
+const drag = { id:null, el:null, ghost:null, on:false, moved:false, x:0, y:0, timer:null, touch:false, over:null, pid:null };
+function dragStart(){
+  const w = PLANNED.find(function(x){ return String(x.id) === drag.id; });
+  if (!w || !drag.el) return;
+  drag.on = true; closePop();
+  const g = drag.el.cloneNode(true);
+  g.classList.add('plx-ghost'); document.body.appendChild(g);
+  drag.ghost = g; drag.el.classList.add('plx-lift');
+  dragMove(drag.x, drag.y);
+  if (drag.touch && navigator.vibrate) navigator.vibrate(8);
+}
+function dragMove(x, y){
+  if (!drag.ghost) return;
+  drag.ghost.style.left = (x + 10) + 'px'; drag.ghost.style.top = (y + 8) + 'px';
+  const under = document.elementFromPoint(x, y);
+  const day = under && under.closest ? under.closest('.plx-day') : null;
+  if (day !== drag.over){
+    if (drag.over) drag.over.classList.remove('drop');
+    drag.over = day; if (day) day.classList.add('drop');
+  }
+}
+function dragEnd(copy){
+  clearTimeout(drag.timer);
+  const was = drag.on, over = drag.over, id = drag.id;
+  if (drag.ghost) drag.ghost.remove();
+  if (drag.el) drag.el.classList.remove('plx-lift');
+  if (over) over.classList.remove('drop');
+  drag.on = false; drag.ghost = null; drag.el = null; drag.over = null; drag.id = null; drag.pid = null;
+  if (!was) return;
+  drag.moved = true;                                   /* swallow the click that follows */
+  setTimeout(function(){ drag.moved = false; }, 350);
+  const w = PLANNED.find(function(x){ return String(x.id) === id; });
+  if (!w || !over || over.dataset.date === w.date) return;
+  snap();
+  if (copy) PLANNED.push(cloneOnto(w, over.dataset.date));
+  else w.date = over.dataset.date;
+  commit(over.dataset.date);
+}
+$month.addEventListener('pointerdown', function(e){
+  const chip = e.target.closest('.plx-chip');
+  if (!chip || !chip.dataset.id || (e.button != null && e.button !== 0)) return;
+  drag.id = chip.dataset.id; drag.el = chip; drag.x = e.clientX; drag.y = e.clientY;
+  drag.touch = e.pointerType !== 'mouse'; drag.pid = e.pointerId; drag.on = false;
+  clearTimeout(drag.timer);
+  if (drag.touch) drag.timer = setTimeout(dragStart, 280);
+});
+document.addEventListener('pointermove', function(e){
+  if (drag.id == null || e.pointerId !== drag.pid) return;
+  const dx = e.clientX - drag.x, dy = e.clientY - drag.y, far = Math.abs(dx) + Math.abs(dy) > 7;
+  if (!drag.on){
+    if (!far) return;
+    if (drag.touch){ clearTimeout(drag.timer); drag.id = null; return; }    /* moved before the hold: it is a scroll */
+    drag.x = e.clientX; drag.y = e.clientY; dragStart();
+  }
+  drag.x = e.clientX; drag.y = e.clientY;
+  dragMove(e.clientX, e.clientY);
+});
+document.addEventListener('pointerup', function(e){
+  if (drag.id == null || e.pointerId !== drag.pid) return;
+  dragEnd(e.altKey || e.ctrlKey || e.metaKey);
+});
+document.addEventListener('pointercancel', function(e){
+  if (drag.id == null || e.pointerId !== drag.pid) return;
+  drag.over = null; dragEnd(false);
+});
+/* once a finger is carrying a chip, the page must not scroll underneath it */
+document.addEventListener('touchmove', function(e){ if (drag.on) e.preventDefault(); }, { passive:false });
+$month.addEventListener('contextmenu', function(e){ if (e.target.closest('.plx-chip')) e.preventDefault(); });
+
+/* ═══ WIRING ═══ */
+/* The app repaints the plan through setPlanView (which calls plxRender). The tab
+   itself can be switched to after data arrived in the background, so also draw
+   whenever the Plan tab becomes the visible one or the window crosses 760px. */
+new MutationObserver(function(){ if (host.classList.contains('on')) render(); })
+  .observe(host, { attributes:true, attributeFilter:['class'] });
+if (wide.addEventListener) wide.addEventListener('change', function(){ closePop(); render(); });
+let _rz = null;
+window.addEventListener('resize', function(){ clearTimeout(_rz); _rz = setTimeout(function(){ if (st.pop) placePop(); }, 120); });
+
+/* in the house style: one call that says what the planner thinks it is showing */
+window.rhPlan = function(){
+  const ix = buildIndex(), y = st.year;
+  let sum = 0, done = 0;
+  for (let i=0;i<12;i++){ sum += monthTarget(y, i) || 0; done += monthActual(ix, y, i); }
+  console.log('%c  planner', 'font-weight:bold');
+  console.log('  showing          : ' + MON_FULL[st.month] + ' ' + y + '  (' + st.metric + ')');
+  console.log('  wide layout      : ' + wide.matches + '   plan tab on: ' + host.classList.contains('on'));
+  console.log('  annual target    : ' + yearTarget(y) + '   months add to: ' + Math.round(sum) + '   done: ' + Math.round(done));
+  console.log('  planned sessions : ' + PLANNED.length + '   undo steps: ' + st.undo.length);
+  return 'ok';
+};
+
+render();
+})();
+</script>
+<!-- PLX:END -->
 </body>
 </html>
