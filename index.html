@@ -3750,6 +3750,8 @@ function hasBBLevel(){
   return HEALTH.some(function(r){ return bbLevel(r) != null; });
 }
 
+/* what intervals.icu does not send; see renderMetrics */
+const NOT_CARRIED = { deep_sleep_seconds:1, rem_sleep_seconds:1, light_sleep_seconds:1, body_battery_charged:1, body_battery_drained:1 };
 const BRIEF_KEYS = [
   { key:'hrv_last_night_avg',   label:'HRV',          unit:' ms', down:false, w:30,  fmt:v=>Math.round(v) },
   { key:'resting_hr',           label:'Resting HR',   unit:'',    down:true,  w:18,  fmt:v=>Math.round(v) },
@@ -6515,6 +6517,12 @@ function renderMetrics(){
        rows said "didn\u2019t come through last night" every single morning about
        something that is never coming. Two weeks without it and it is not part
        of this setup any more. */
+    /* Sleep stages and Body Battery are not carried by the current source at
+       all. The first version of this fix waited for two quiet weeks before
+       dropping a row, but deep and REM had last arrived five days earlier from
+       the source that was switched off, so the rows were still there and would
+       have been for another nine days. They are named outright instead. */
+    if (NOT_CARRIED[m.key]) return false;
     const since = iso(new Date(todayD.getTime() - 14*86400000));
     return (HEALTH || []).some(function(r){ return r.date >= since && r[m.key] > 0; });
   });
@@ -6674,7 +6682,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v133';
+const RH_BUILD = 'v134';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -12932,7 +12940,7 @@ function renderHealth(){
   const stg = stgAll.slice(-14);   // the small inline card only has room for a recent glance
   /* shown only while stage data is still arriving: the current Garmin source
      has no stages, and a chart of nights from weeks ago under a live trend reads as current */
-  const stgLive = HEALTH.slice(-14).some(function(r){ return r.deep_sleep_seconds > 0; });
+  const stgLive = HEALTH.slice(-3).some(function(r){ return r.deep_sleep_seconds > 0; });
   if (stgAll.length > 3 && stgLive){
     h += '<div class="hsec"><span>Sleep Architecture</span><i></i></div><div class="card" data-hc="sleep" style="padding:15px 16px;cursor:pointer">';
     h += '<div class="hl-stack">' + stg.map(function(r){
