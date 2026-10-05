@@ -2342,6 +2342,16 @@ body.sheet-open::after{z-index:19;}
 .sheet{background:var(--el3-bg);box-shadow:var(--el3-sh);}
 .nav-in{background:rgba(23,27,38,.86);border:1px solid var(--el3-line);box-shadow:var(--el3-sh);}
 .toast{background:var(--el3-bg);border:1px solid var(--el3-line);box-shadow:var(--el3-sh);}
+/* the "Update ready" pill sits where the toast does, just above the nav */
+.upd-bar{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 96px);transform:translate(-50%,16px);opacity:0;z-index:29;
+  display:flex;align-items:center;gap:10px;padding:10px 12px 10px 14px;border-radius:999px;font:500 13px var(--fb);color:var(--n1);
+  background:var(--el3-bg);border:1px solid var(--el3-line);box-shadow:var(--el3-sh);cursor:pointer;white-space:nowrap;
+  transition:opacity .25s ease,transform .35s cubic-bezier(.2,.8,.2,1);}
+.upd-bar.on{opacity:1;transform:translate(-50%,0);}
+.upd-bar i{width:7px;height:7px;border-radius:50%;background:var(--a-hi);flex:0 0 auto;}
+.upd-bar b{font-weight:600;color:var(--a-hi);padding:3px 10px;border-radius:999px;background:var(--el0-bg);}
+@media (prefers-reduced-motion:reduce){.upd-bar{transition:none;}}
+
 
 /* Level 0: recessed. A track or a well should read as cut into the
    surface, not laid on top of it. */
@@ -6710,7 +6720,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v144';
+const RH_BUILD = 'v145';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -17692,6 +17702,46 @@ console.log('%cRun rhGarmin() to see what the health table actually contains.', 
 console.log('%cRun rhAudit() for mileage, rhStrava() for connection diagnostics.', 'color:#8fb6f0');
 
 console.log('[RH] activities:', ACTS.length, '| planned:', PLANNED.length, '| week mi:', f1(wkMilesNow()));
+
+/* ── "Update ready" ──
+   The service worker opens the app from its saved copy and downloads the new
+   one underneath, so a deploy only shows on the launch AFTER the one that
+   fetched it. That is the right trade for speed, but it meant never knowing
+   whether you were looking at the new build. So: once that download has
+   landed, read the build number out of the saved copy; if it is newer than
+   the one running, say so and offer a tap. The tap is a plain reload, which
+   the worker answers from the copy it just saved.
+   Nothing is downloaded for this check. It only reads what is already on the
+   device, so it costs no data. */
+const _bn = function(v){ const m = /v(\d+)/.exec(String(v || '')); return m ? +m[1] : 0; };
+let _updShown = false;
+async function checkForUpdate(){
+  if (_updShown || !('caches' in window)) return null;
+  let waiting = null;
+  try {
+    const res = await caches.match(location.href.split('#')[0], { ignoreSearch:true });
+    if (!res) return null;
+    const txt = await res.text();
+    const m = /const RH_BUILD = '(v\d+)'/.exec(txt);
+    waiting = m ? m[1] : null;
+  } catch(e){ return null; }
+  if (!waiting || _bn(waiting) <= _bn(RH_BUILD)) return waiting;
+  _updShown = true;
+  const b = document.createElement('button');
+  b.className = 'upd-bar';
+  b.innerHTML = '<i></i><span>Update ready</span><b>Refresh</b>';
+  b.title = 'You are on ' + RH_BUILD + '; ' + waiting + ' is downloaded';
+  b.addEventListener('click', function(){ b.disabled = true; location.reload(); });
+  document.body.appendChild(b);
+  requestAnimationFrame(function(){ b.classList.add('on'); });
+  const bt = document.getElementById('rhBuildTag'); if (bt) bt.textContent = 'Build ' + RH_BUILD + ' · ' + waiting + ' ready';
+  return waiting;
+}
+/* the background download usually lands a few seconds in; look then, and again
+   whenever the app comes back to the front */
+setTimeout(checkForUpdate, 6000); setTimeout(checkForUpdate, 20000);
+document.addEventListener('visibilitychange', function(){ if (!document.hidden) setTimeout(checkForUpdate, 1500); });
+window.rhUpdate = function(){ return checkForUpdate().then(function(w){ console.log('[update] running ' + RH_BUILD + ', saved copy is ' + (w || 'not found (no service worker cache yet)')); return w; }); };
 
 /* offline app shell — see sw.js. Registered last, after everything else has
    had first crack at the main thread, and it never blocks first paint. */
