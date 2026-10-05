@@ -6721,7 +6721,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v148';
+const RH_BUILD = 'v149';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -20133,6 +20133,8 @@ render();
   #dskHome{display:flex;flex-direction:column;gap:12px;}
   #dskHome .hm-row,#dskHome .hm-side{display:contents;}
   #dskHome .hm-weekcard,#dskHome .hm-tiles{display:none;}
+  /* the day-by-day heatmap needs width to read; on the phone it was a sideways-scrolling strip */
+  .dk-grid:has(> .dk-heatcard:only-child){display:none;}
   #dskHome .hm-head{order:0;margin:2px 2px 0;}
   #dskHome .hm-ready{order:1;}
   #dskHome #hmVolSlot{order:2;}
@@ -20548,7 +20550,7 @@ function renderTrain(){
     +   '<div class="dk-chart" id="dkWk"></div>'
     +   '<div class="dk-note">Biggest week: <b>' + M.fine(wkVals[peak]) + ' ' + M.unit + '</b>, the week of ' + wkDate(peak).toLocaleDateString(undefined, { month:'short', day:'numeric' }) + '.</div></div></div>'
     + '<div class="dk-grid">'
-    +   '<div class="dk-card"><div class="dk-h"><h3>Every day</h3><span>' + active + ' days run · longest streak ' + best + '</span>'
+    +   '<div class="dk-card dk-heatcard"><div class="dk-h"><h3>Every day</h3><span>' + active + ' days run · longest streak ' + best + '</span>'
     +     '<span class="dk-scale">less<i style="background:var(--n6)"></i><i style="background:color-mix(in srgb,var(--a) 26%,transparent)"></i><i style="background:color-mix(in srgb,var(--a) 46%,transparent)"></i>'
     +       '<i style="background:color-mix(in srgb,var(--a) 68%,transparent)"></i><i style="background:color-mix(in srgb,var(--a) 88%,transparent)"></i><i style="background:var(--a-hi)"></i>more</span></div>'
     +     '<div class="dk-scroll" id="dkHeatScroll"><div class="dk-heat" id="dkHeat">' + heat + '</div><div class="dk-heatx">' + heatX + '</div></div></div>'
