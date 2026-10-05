@@ -463,8 +463,7 @@ a,button,.set,.lrow,.row,.dayrow,.ycard,.food-row,.sup-row,.vdot,.seg button,
 .actions{display:flex;gap:8px;justify-content:center;margin-top:14px;}
 .pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--ink2);background:var(--card2);border:1px solid var(--line);padding:8px 15px;border-radius:999px;}
 .pill .dot{width:8px;height:8px;border-radius:50%;background:var(--honey);box-shadow:0 0 6px var(--honey);}
-/* minimal overview hero (no readiness ring, no brief — e.g. overnight paused
-   for Oura): hide the empty greeting and sit the actions flush under the date
+/* minimal overview hero (no readiness ring, no brief): hide the empty greeting and sit the actions flush under the date
    as a tidy toolbar rather than floating in the void. */
 .ov-brief.minimal .greet{display:none;}
 /* pills now live on the date line (in .hero-head), so they lose the standalone
@@ -3872,67 +3871,6 @@ window.rhSleepSources = function(){
   return 'raw device figures; the app scales Apple stages to the Garmin baseline at read time';
 };
 
-/* ══ HEALTH SYNC BUTTON ══
-   Honest about what it can and cannot do. Two apps stand between the watch and
-   this dashboard, and only one of them can be reached from here:
-
-     HRV Sync           has no URL scheme and no background mode, so nothing in
-                        a web app can make it run. This opens it for you \u2014 a
-                        tap instead of hunting for the icon \u2014 and that is the
-                        whole of what is possible. Pretending otherwise would
-                        just mean failing silently every morning.
-     Health Auto Export runs its own schedule and pushes to Supabase without
-                        being asked, so the useful thing here is to re-read what
-                        has arrived rather than to trigger anything.
-
-   So: nudge, reload, and say plainly what happened. */
-async function runHealthSync(){
-  const btn = document.getElementById('healthSync');
-  const note = document.getElementById('healthSyncNote');
-  const say = function(m){ if (note){ note.style.display = 'block'; note.innerHTML = m; } };
-
-  const before = (HEALTH && HEALTH.length) ? HEALTH[HEALTH.length-1] : null;
-  const beforeKey = before ? (before.date + ':' + (before.hrv_last_night_avg||'') + ':' + (before.sleep_seconds||'')) : '';
-
-  if (btn){ btn.disabled = true; btn.textContent = '\u2026'; }
-  say('Checking for new data\u2026');
-
-  try { await loadHealth(); } catch(e){}
-
-  const after = (HEALTH && HEALTH.length) ? HEALTH[HEALTH.length-1] : null;
-  const afterKey = after ? (after.date + ':' + (after.hrv_last_night_avg||'') + ':' + (after.sleep_seconds||'')) : '';
-
-  if (btn){ btn.disabled = false; btn.textContent = 'Sync'; }
-
-  if (afterKey && afterKey !== beforeKey){
-    say('Updated \u2014 latest night is ' + after.date + '.');
-    renderMetrics(); renderHealth(); renderGreeting();
-    return;
-  }
-
-  /* Nothing new. Say which link is likely at fault rather than a shrug: the
-     answer is almost always that HRV Sync has not been tapped today. */
-  const days = after ? Math.floor((todayD - new Date(after.date+'T00:00:00'))/86400000) : null;
-  const stale = days !== null && days >= 1;
-  say((stale
-      ? 'Still nothing past <b>' + after.date + '</b>. '
-      : 'Already up to date. ')
-    + 'Health Auto Export pushes on its own; HRV Sync has to be opened by hand '
-    + 'and cannot be triggered from here.'
-    + '<br><button class="lnk" id="openHrvSync" style="margin-top:7px">Open HRV Sync</button>');
-
-  const open = document.getElementById('openHrvSync');
-  if (open) open.onclick = function(){
-    /* No published scheme, so try the likely one and fall back to the store.
-       A dead link is worse than an honest one. */
-    const t = Date.now();
-    window.location.href = 'hrvsync://';
-    setTimeout(function(){
-      if (Date.now() - t < 1500) say('Couldn\u2019t open it automatically \u2014 tap HRV Sync on your home screen, then hit Sync here again.');
-    }, 1000);
-  };
-}
-
 /* An error that reaches here has already broken something visible. Logging it
    with context beats a blank panel and no explanation \u2014 and rhErrors() makes it
    answerable when something looks wrong hours later. */
@@ -3978,25 +3916,21 @@ function paintAll(){
   });
 }
 
-/* Overnight recovery is back on. The token/API pipelines (direct scraper, Apple
-   Health bridge, Terra broker) all re-broke on their own schedule, so recovery
-   now comes from an on-demand browser read of your own logged-in Garmin Connect
-   session — nothing Garmin can revoke — written straight into garmin_daily
-   (source 'garmin-web'). The Apple sync still fills steps/calories but never sent
-   HRV, which is why readiness was blank; the Garmin read supplies it. Oura can
-   take over as the always-on source later. */
-const HEALTH_PAUSED = false;
+/* Overnight data has ONE source: intervals.icu, which holds Garmin data through
+   Garmin's own partner connection. A Supabase function (intervals-sync) copies
+   it into garmin_daily every 15 minutes, so this app only ever reads the table.
+
+   Everything that came before is gone on purpose \u2014 the unofficial Garmin
+   login script, Health Auto Export / HRV Sync, the Terra webhook and the
+   on-demand browser read. Each depended on a login or a phone app staying
+   alive, and each broke on its own schedule. Do not add a second writer:
+   two sources sharing one table is how steps ended up overwritten.
+
+   What intervals.icu does not carry: sleep stages, Body Battery and calories.
+   Nights after 2026-10 have those columns empty, and the stage views skip them. */
 async function loadHealth(){
   const c = syncCfg();
   const st = document.getElementById('setHealthStatus'), sub = document.getElementById('setHealthSub');
-  if (HEALTH_PAUSED){
-    HEALTH = [];
-    if (st){ st.className = 'conn'; st.textContent = '● Paused'; }
-    if (sub) sub.textContent = 'overnight sync paused until Oura';
-    const hsb = document.getElementById('healthSync'); if (hsb) hsb.style.display = 'none';
-    try { renderMetrics(); } catch(e){}
-    return;
-  }
   if (!c){ if(st){st.className='conn no';st.textContent='\u25cf Not configured';} if(sub) sub.textContent='no Supabase config found'; renderMetrics(); return; }
   try {
     /* PostgREST caps a response at 1,000 rows unless told otherwise, and does
@@ -4024,18 +3958,17 @@ async function loadHealth(){
       console.warn('[health] hit the row ceiling \u2014 raise the Range header');
     }
     if(sub){
-      /* Name the real source and say how fresh it is. "Garmin health" was
-         misleading once the feed moved to Apple Health, and a bare date does
-         not tell you whether the pipeline is alive. */
+      /* Say how fresh it is. A bare date does not tell you whether the
+         pipeline is alive. */
       const last = HEALTH[HEALTH.length-1];
       if (!last){ sub.textContent = 'Garmin \u00b7 no rows yet'; }
       else {
         const days = Math.floor((todayD - new Date(last.date+'T00:00:00')) / 86400000);
         sub.textContent = 'Garmin \u00b7 '
           + (days <= 0 ? 'up to date' : days === 1 ? 'through last night'
-             : days + ' days behind \u2014 pull Garmin to refresh');
-        /* Naming the chain matters when it breaks: the failure is almost always
-           one specific app not having been opened, not "sync is down". */
+             : days + ' days behind \u2014 open Garmin Connect so the watch syncs');
+        /* The only step this pipeline cannot do for him is watch -> phone. When
+           it is behind, that is almost always the step that has not happened. */
       }
     }
   } catch(e){
@@ -4184,7 +4117,7 @@ function readinessGap(R){
      the only inputs it was written to handle. */
   if (!R) return null;
   if (R.stale) return 'No overnight data since ' + R.date + '. '
-    + 'Open Garmin Connect and pull to refresh, then run HRV Sync.';
+    + 'Open Garmin Connect on your phone so the watch syncs. It lands here within about 15 minutes.';
   if (R.incomplete) return 'Last night is missing '
     + R.missing.map(function(k){
         return k === 'hrv_last_night_avg' ? 'HRV' : k === 'resting_hr' ? 'resting HR' : k;
@@ -6482,14 +6415,9 @@ function renderPortal(){
 
   /* No overnight data → no readiness section at all. An empty ring reading
      "no data" is worse than nothing, so the ring and its "Readiness" label
-     stay hidden until a real score exists — they return the moment Oura is
-     feeding overnight metrics. */
+     stay hidden until a real score exists. */
   const R = computeReadiness();
-  /* While overnight is paused for Oura, hide readiness even if stale rows from
-     before the pause could still compute a score — a number off week-old data
-     is worse than no number. */
-  const paused = (typeof HEALTH_PAUSED !== 'undefined' && HEALTH_PAUSED);
-  const hasScore = !paused && !!(R && !R.partial && typeof R.score === 'number' && isFinite(R.score));
+  const hasScore = !!(R && !R.partial && typeof R.score === 'number' && isFinite(R.score));
   const portalEl = document.querySelector('#s-overview .portal');
   const rLabel   = document.querySelector('#s-overview .hero-head .r');
   if (portalEl) portalEl.style.display = hasScore ? '' : 'none';
@@ -6544,10 +6472,6 @@ function devWords(x){
 
 function renderMetrics(){
   const host = document.getElementById('metrics');
-  if (HEALTH_PAUSED){
-    host.innerHTML = '<div class="empty">Overnight recovery is paused.<br>It resumes when your Oura ring is set up.</div>';
-    return;
-  }
   const R = computeReadiness();
   if (!scored(R)){
     /* Say WHY there is no score. A blank panel and a missing number look the
@@ -6556,7 +6480,7 @@ function renderMetrics(){
     const why = readinessGap(R);
     host.innerHTML = '<div class="empty">' + (why
       ? why.replace(' \u2014 ', '<br>').replace('. ', '.<br>')
-      : 'No overnight data yet.<br>Ask to pull your Garmin and last night will appear here.')
+      : 'No overnight data yet.<br>Last night appears here once your watch syncs to Garmin Connect.')
       + '</div>';
     return;
   }
@@ -6733,7 +6657,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v110';
+const RH_BUILD = 'v111';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -6806,17 +6730,12 @@ window.rhSleepModel = function(){
 };
 
 /* ══ STALENESS ══
-   Apple Health writes to Supabase from the phone, and that link has already
-   failed once silently — it stopped on 22 July and went unnoticed for a
-   fortnight, because missing data looks exactly like a quiet week. A pipeline
+   An overnight feed has already failed silently once \u2014 it stopped on 22 July
+   and went unnoticed for a fortnight, because missing data looks exactly like a
+   quiet week. A pipeline
    that fails loudly is worth more than one that rarely fails, so this checks
    how old the newest overnight row is and says something when it stops moving. */
 function healthStaleness(){
-  /* Overnight is intentionally paused until Oura. A "your Apple Health / Garmin
-     link dropped" warning is wrong and nagging in that state — the pipeline is
-     off on purpose. Stay silent while paused; the warning returns when a live
-     source is expected again. */
-  if (typeof HEALTH_PAUSED !== 'undefined' && HEALTH_PAUSED) return { days: null, msg: null };
   if (!Array.isArray(HEALTH) || !HEALTH.length) return { days: null, msg: null };  /* no data at all (paused / first run) is not a staleness warning */
   const last = HEALTH[HEALTH.length-1];
   if (!last || !last.date) return { days: null, msg: null };  /* no data at all (paused / first run) is not a staleness warning */
@@ -6825,7 +6744,7 @@ function healthStaleness(){
   return {
     days: days,
     msg: 'No overnight data since ' + last.date + ' (' + days + ' days). '
-       + 'Open Garmin Connect and pull to refresh \u2014 the Apple Health link has probably dropped.'
+       + 'Open Garmin Connect on your phone so the watch syncs. If that does not bring it back, the Garmin link in intervals.icu needs reconnecting.'
   };
 }
 
@@ -6848,13 +6767,12 @@ function renderGreeting(){
     warn.textContent = stale.msg;
   } else if (warn){ warn.remove(); }
 
-  /* Minimal hero: no cached brief AND no readiness ring (e.g. overnight paused
-     for Oura). Drop the greeting filler and sit the actions as a tidy toolbar
+  /* Minimal hero: no cached brief AND no readiness ring. Drop the greeting filler and sit the actions as a tidy toolbar
      under the date rather than floating in an empty hero. */
   (function(){
     let hasBrief=false, hasReadiness=false;
     try { const c = loadAI(); hasBrief = !!(c && c.text); } catch(e){}
-    try { const R = computeReadiness(); const paused=(typeof HEALTH_PAUSED!=='undefined'&&HEALTH_PAUSED); hasReadiness = !paused && !!(R && !R.partial && typeof R.score==='number' && isFinite(R.score)); } catch(e){}
+    try { const R = computeReadiness(); hasReadiness = !!(R && !R.partial && typeof R.score==='number' && isFinite(R.score)); } catch(e){}
     const ovb = document.querySelector('#s-overview .ov-brief');
     if (ovb) ovb.classList.toggle('minimal', !hasBrief && !hasReadiness && !!syncCfg());
   })();
@@ -7072,7 +6990,7 @@ function stat(l,v,u){ return '<div class="s"><div class="l">'+l+'</div><div clas
 function renderRecent(){
   const host = document.getElementById('recent');
   const list = ACTS.slice(0,6);
-  if (!list.length){ host.innerHTML='<div class="empty">No activities yet.<br>Connect Garmin or Strava sync in Profile.</div>'; return; }
+  if (!list.length){ host.innerHTML='<div class="empty">No activities yet.<br>Connect Strava in Profile.</div>'; return; }
   host.innerHTML = list.map(a => {
     const day = a._date.toLocaleDateString(undefined,{month:'short',day:'numeric'});
     const meta = [a.type, a.elevation_ft?Math.round(a.elevation_ft)+' ft':null].filter(Boolean).join(' · ');
@@ -8143,13 +8061,6 @@ function deleteWorkout(id){
   toast('Workout removed');
 }
 
-/* ═══════════ GARMIN SYNC TRIGGER ═══════════
-   Removed. It fired a GitHub workflow that logged into Garmin Connect through
-   an unofficial library; Garmin now requires MFA, so an unattended login can
-   never complete and the button could only ever fail. Health data now arrives
-   from Apple Health via Health Auto Export, which pushes on its own schedule
-   and needs nothing in this app to trigger it. */
-
 /* wiring */
 document.getElementById('dayClose').addEventListener('click', closeDay);
 document.getElementById('dayBd').addEventListener('click', closeDay);
@@ -8204,9 +8115,7 @@ function refreshConnStatus(){
     else { st.className='conn no'; st.textContent='\u25cf Not connected'; sub.textContent='press Sync to connect (one time)'; }
   }).catch(e => { st.className='conn no'; st.textContent='\u25cf Unavailable'; sub.textContent=String(e.message||e); });
   const hs = document.getElementById('setHealthStatus'), hsub = document.getElementById('setHealthSub');
-  const hsb = document.getElementById('healthSync'); if (hsb) hsb.style.display = HEALTH_PAUSED ? 'none' : '';
-  if (HEALTH_PAUSED){ if(hs){ hs.className='conn'; hs.textContent='\u25cf Paused'; } if(hsub) hsub.textContent='overnight sync paused until Oura'; }
-  else if (HEALTH.length){ hs.className='conn ok'; hs.textContent='\u25cf Connected'; hsub.textContent='last night ' + HEALTH[HEALTH.length-1].date; }
+  if (HEALTH.length){ hs.className='conn ok'; hs.textContent='\u25cf Connected'; hsub.textContent='last night ' + HEALTH[HEALTH.length-1].date; }
   else { hs.className='conn no'; hs.textContent='\u25cf No data'; hsub.textContent='check Supabase config'; }
 }
 
@@ -11589,7 +11498,7 @@ function aiCacheKey(){
       .map(function(a){ return a.id; }).sort().join(',');
     /* The readiness score belongs in the key, so a briefing written before the
        overnight data landed does not keep quoting a stale number. But the exact
-       score was far too sensitive: Health Auto Export pushes hourly, every push
+       score was far too sensitive: the overnight feed re-syncs through the day, every push
        can nudge HRV or sleep by a decimal, the score moves a point, the key
        changes, and a fresh briefing is written. That turned one call a day into
        roughly eighteen.
@@ -12776,14 +12685,9 @@ function hlSleepSeries(days){
   return rows;
 }
 function renderHealth(){
-  if (HEALTH_PAUSED){
-    document.getElementById('hlBody').innerHTML =
-      '<div class="card"><div class="empty">Overnight tracking is paused.<br>It resumes when your Oura ring is set up.</div></div>';
-    return;
-  }
   if (!HEALTH.length){
     document.getElementById('hlBody').innerHTML =
-      '<div class="card"><div class="empty">No health data yet.<br>Connect Garmin sync in Profile.</div></div>';
+      '<div class="card"><div class="empty">No health data yet.<br>It appears once your watch syncs to Garmin Connect.</div></div>';
     return;
   }
   const m = BRIEF_KEYS.find(function(x){ return x.key===hlMetric; }) || BRIEF_KEYS[0];
@@ -12967,7 +12871,7 @@ function renderHealth(){
   const sub = document.getElementById('hlSub');
   if (sub) sub.textContent = HEALTH.length
     ? HEALTH.length.toLocaleString() + ' nights recorded \u00b7 through ' + HEALTH[HEALTH.length-1].date
-    : 'connect Garmin sync in Profile';
+    : 'waiting on the first overnight sync';
 }
 function renderHlControls(){
   document.getElementById('hlMetric').innerHTML = BRIEF_KEYS.map(function(m){
@@ -17516,9 +17420,9 @@ window.rhGarmin = function(){
   console.log('  active calories or steps gets picked up whatever the sync named it.');
   if (!cal.length){
     console.log('%cNo calorie columns are populated for this day.', 'color:#8fb6f0');
-    console.log('Active energy comes from Apple Health via Health Auto Export, so if');
-    console.log('this is blank the export either has not run or does not have Active');
-    console.log('Energy selected among its metrics.');
+    console.log('intervals.icu does not carry Garmin calories, so this is expected for');
+    console.log('any day after the move to it. Resting and movement burn fall back to');
+    console.log('the Body stats estimates.');
   }
   return keys.length + ' columns';
 };
