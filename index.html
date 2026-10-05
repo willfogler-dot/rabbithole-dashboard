@@ -687,6 +687,8 @@ select.fi{appearance:none;background-image:linear-gradient(45deg,transparent 50%
 .vm.lead .vm-v{color:var(--honey);} .vm.lead{border-color:rgba(143,154,232,.32);background:rgba(143,154,232,.07);}
 /* the chart runs the full width of the card — the negative margin cancels the
    card's own padding, so only the text elements stay inset */
+.vol-note{display:flex;gap:6px 16px;flex-wrap:wrap;font-size:12px;color:var(--n3);margin:8px 0 2px;font-variant-numeric:tabular-nums;}
+.vol-note b{color:var(--n1);font-weight:600;font-family:var(--fd);}
 .vol-svg{display:block;height:200px;overflow:visible;margin:2px -6px 0;width:calc(100% + 12px);}
 .vdot{cursor:pointer;}
 .ovbar-row{display:flex;justify-content:space-between;align-items:baseline;margin:2px 0 7px;}
@@ -6686,7 +6688,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v139';
+const RH_BUILD = 'v140';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -7223,10 +7225,11 @@ function paintVolHeader(data, meta){
   document.getElementById('volRange').textContent =
     isCurrent ? ({week:'This week',month:'This month',year:'This year'})[volGran] : d.label;
 
+  let wkPlanMi = null; try { wkPlanMi = (volGran === 'week' && volType === 'Run') ? weekPlanGoal('distance') : null; } catch(e){}
   /* the three metric boxes double as the chart filter */
   const u = function(t){ return '<span class="u">'+t+'</span>'; };
   const val = function(m){
-    if (m === 'distance')  return d.mi  > 0 ? f1(d.mi)+u('mi') : '\u2014';
+    if (m === 'distance')  return d.mi  > 0 ? f1(d.mi)+u('mi') : (isCurrent && wkPlanMi ? '0'+u('\u00a0of '+(Math.round(wkPlanMi*10)/10)+' mi') : '\u2014');
     if (m === 'elevation') return d.ft  > 0 ? fmtK(d.ft)+u('ft') : '\u2014';
     if (m === 'count')     return d.n   > 0 ? String(d.n) : '\u2014';
     return d.hrs > 0 ? (d.hrs >= 10 ? Math.round(d.hrs) : Math.round(d.hrs*10)/10)+u('h') : '\u2014';
@@ -7273,8 +7276,20 @@ function renderVolChart(){
      so nothing clips against the card edge. */
   const padL=20, padR=16, padT=18, padB=26;
   const plotW = W-padL-padR, plotH = H-padT-padB;
-  const max = Math.max(...data.map(d=>d.v), 1);
   const n = data.length;
+  /* THE PLAN ON THE CHART. On the weekly view of running, the current week also
+     shows where the plan would take it: a dashed rise from what has been run to
+     what is planned. A week in progress otherwise always looks like a collapse
+     on a Monday, which is the opposite of what the chart is for. */
+  let planV = null;
+  if (volGran === 'week' && volType === 'Run' && meta.metric !== 'count'){
+    try { planV = weekPlanGoal(meta.metric); } catch(e){ planV = null; }
+    if (!(planV > data[n-1].v + 0.05)) planV = null;
+  }
+  /* the average of the finished periods on screen: the line consistency is judged against */
+  const done = data.slice(0, n-1).map(d=>d.v);
+  const avgV = done.length >= 3 ? done.reduce((s,v)=>s+v,0)/done.length : null;
+  const max = Math.max(...data.map(d=>d.v), planV || 0, 1) * 1.06;
   const x = i => padL + (n===1 ? plotW/2 : i*plotW/(n-1));
   const y = v => padT + (1 - v/max)*plotH;
 
@@ -7291,8 +7306,36 @@ function renderVolChart(){
   }
 
   const pts = data.map((d,i)=>[x(i), y(d.v)]);
+  /* A smooth curve through the points rather than straight segments. Monotone
+     interpolation (Fritsch–Carlson): it never overshoots, so the line cannot
+     dip below zero or bulge above a peak that was not there. */
   let line = 'M '+pts[0][0].toFixed(1)+' '+pts[0][1].toFixed(1);
-  for (let i=1;i<pts.length;i++) line += ' L '+pts[i][0].toFixed(1)+' '+pts[i][1].toFixed(1);
+  if (pts.length > 2){
+    const dx = [], dy = [], m = [], t = [];
+    for (let i=0;i<pts.length-1;i++){ dx[i] = pts[i+1][0]-pts[i][0]; dy[i] = pts[i+1][1]-pts[i][1]; m[i] = dy[i]/dx[i]; }
+    t[0] = m[0]; t[pts.length-1] = m[pts.length-2];
+    for (let i=1;i<pts.length-1;i++) t[i] = (m[i-1]*m[i] <= 0) ? 0 : 3*(dx[i-1]+dx[i]) / ((2*dx[i]+dx[i-1])/m[i-1] + (dx[i]+2*dx[i-1])/m[i]);
+    for (let i=0;i<pts.length-1;i++){
+      line += ' C '+(pts[i][0]+dx[i]/3).toFixed(1)+' '+(pts[i][1]+t[i]*dx[i]/3).toFixed(1)
+            + ' '+(pts[i+1][0]-dx[i]/3).toFixed(1)+' '+(pts[i+1][1]-t[i+1]*dx[i]/3).toFixed(1)
+            + ' '+pts[i+1][0].toFixed(1)+' '+pts[i+1][1].toFixed(1);
+    }
+  } else {
+    for (let i=1;i<pts.length;i++) line += ' L '+pts[i][0].toFixed(1)+' '+pts[i][1].toFixed(1);
+  }
+  const fmtV = function(v){ return meta.metric==='elevation' ? fmtK(v) : (meta.metric==='distance' || meta.metric==='count') ? String(Math.round(v)) : String(Math.round(v*10)/10); };
+  let extras = '';
+  if (avgV != null && avgV > 0){
+    const ay = y(avgV).toFixed(1);
+    extras += '<line x1="'+padL+'" y1="'+ay+'" x2="'+(W-padR)+'" y2="'+ay+'" stroke="var(--n3)" stroke-width="1" stroke-dasharray="2 5" opacity=".8"/>'
+            + '<text x="'+(W-padR)+'" y="'+(y(avgV)-6).toFixed(1)+'" text-anchor="end" font-size="11" fill="var(--n2)" font-family="var(--fd)">avg '+fmtV(avgV)+'</text>';
+  }
+  if (planV != null){
+    const lp = pts[n-1], py = y(planV);
+    extras += '<line x1="'+lp[0].toFixed(1)+'" y1="'+lp[1].toFixed(1)+'" x2="'+lp[0].toFixed(1)+'" y2="'+py.toFixed(1)+'" stroke="var(--a-hi)" stroke-width="2" stroke-dasharray="3 4" stroke-linecap="round"/>'
+            + '<circle cx="'+lp[0].toFixed(1)+'" cy="'+py.toFixed(1)+'" r="5" fill="var(--bg-mid)" stroke="var(--a-hi)" stroke-width="2"/>'
+            + '<text x="'+(lp[0]-10).toFixed(1)+'" y="'+(py+4).toFixed(1)+'" text-anchor="end" font-size="11" font-weight="600" fill="var(--n1)" font-family="var(--fd)">plan '+fmtV(planV)+'</text>';
+  }
   const area = line + ' L '+pts[n-1][0].toFixed(1)+' '+(padT+plotH)+' L '+pts[0][0].toFixed(1)+' '+(padT+plotH)+' Z';
 
   const selX = pts[volSel][0];
@@ -7357,7 +7400,7 @@ function renderVolChart(){
     +   '<stop offset="1"    stop-color="var(--a-hi)"/>'
     + '</linearGradient>'
     + '<linearGradient id="volFill" gradientUnits="userSpaceOnUse" x1="0" y1="'+gTop+'" x2="0" y2="'+gBot+'">'
-    +   '<stop offset="0"   stop-color="var(--a)" stop-opacity=".22"/>'
+    +   '<stop offset="0"   stop-color="var(--a)" stop-opacity=".38"/>'
     +   '<stop offset="1"   stop-color="var(--a)" stop-opacity="0"/>'
     + '</linearGradient>'
     + '<filter id="volGlow" x="-50%" y="-50%" width="200%" height="200%">'
@@ -7366,7 +7409,7 @@ function renderVolChart(){
     + '</defs>';
 
   document.getElementById('volChart').innerHTML =
-      defs + g + marker
+      defs + g + marker + extras
     + '<path d="'+area+'" fill="url(#volFill)"/>'
     + '<path d="'+line+'" fill="none" stroke="url(#volStroke)" stroke-width="2.6" '
     +   'stroke-linejoin="round" stroke-linecap="round" filter="url(#volGlow)" opacity=".34"/>'
@@ -7374,6 +7417,18 @@ function renderVolChart(){
     +   'stroke-linejoin="round" stroke-linecap="round"/>'
     + dots + xlabels + hits;
 
+  /* the sentence people actually read this chart for: is the volume steady */
+  (function(){
+    const svg = document.getElementById('volChart');
+    let note = document.getElementById('volNote');
+    if (!note && svg && svg.parentNode){ note = document.createElement('div'); note.id = 'volNote'; note.className = 'vol-note'; svg.parentNode.insertBefore(note, svg.nextSibling); }
+    if (!note) return;
+    if (avgV == null || volGran === 'year'){ note.textContent = ''; return; }
+    const per = volGran === 'week' ? 'week' : 'month', unit = ({distance:' mi', elevation:' ft', time:' h', count:''})[meta.metric] || '';
+    const active = done.filter(function(v){ return v > 0; }).length, hi = Math.max.apply(null, done);
+    note.innerHTML = '<span><b>' + fmtV(avgV) + unit + '</b> average a ' + per + '</span><span><b>' + fmtV(hi) + unit + '</b> biggest</span>'
+      + '<span><b>' + active + ' of ' + done.length + '</b> ' + per + 's active</span>';
+  })();
   paintVolHeader(data, meta);
   document.getElementById('volChart').querySelectorAll('.vdot').forEach(el =>
     el.addEventListener('click', ()=>{ volSel = +el.dataset.i; renderVolChart(); }));
