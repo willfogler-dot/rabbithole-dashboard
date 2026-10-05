@@ -6686,7 +6686,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v136';
+const RH_BUILD = 'v137';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -19560,17 +19560,20 @@ render();
 /* Phone is where the app is read; iPad and desktop are where it is studied. At
    760px and up a tab's phone column is replaced by a dashboard built for the
    width. Below that these containers do not exist as far as layout goes. */
-.dsk{display:none;}
 @media (min-width:760px){
   .app:has(#s-progress.on),.app:has(#s-health.on){max-width:1380px;padding-left:28px;padding-right:28px;}
-  #s-progress > *:not(.dsk){display:none !important;}
-  /* Health keeps its two panes; only the phone's header and the Recovery pane's
-     phone content step aside. Fuel stays as it is, held to a readable column. */
-  #s-health > *:not(.dsk):not(#recoveryPane):not(#fuelPane){display:none !important;}
-  #recoveryPane > *:not(.dsk){display:none !important;}
   #fuelPane{max-width:560px;margin:0 auto;}
-  .dsk{display:block;position:relative;padding-top:20px;}
+  .dsk{padding-top:20px;}
 }
+/* These dashboards run at every width now. They were built for iPad and desktop
+   and the phone kept its older tabs, which left the phone a generation behind.
+   On a phone the same cards stack in one column (rules at the end of this sheet). */
+#s-progress > *:not(.dsk){display:none !important;}
+/* Health keeps its two panes; only the old header and the Recovery pane's old
+   content step aside. Fuel stays exactly as it is. */
+#s-health > *:not(.dsk):not(#recoveryPane):not(#fuelPane){display:none !important;}
+#recoveryPane > *:not(.dsk){display:none !important;}
+.dsk{display:block;position:relative;padding-top:6px;}
 .dsk{--g1:#7fd9bd;--g2:#8f9ae8;--g3:#b39ae8;
   --grad:linear-gradient(112deg,var(--g1),var(--g2) 46%,var(--g3));
   --glass:linear-gradient(180deg,rgba(143,154,232,.10),rgba(143,154,232,.035));
@@ -19726,7 +19729,6 @@ render();
    column on a phone. So the old phone blocks are hidden everywhere, not just
    at 760px and up. */
 #s-overview > *:not(.dsk){display:none !important;}
-#dskHome{display:block;position:relative;padding-top:6px;}
 @media (min-width:760px){
   /* Overview is its own page at width, like Progress and Health. A first pass
      kept the phone's blocks and only moved them into a grid; they were built
@@ -19829,6 +19831,23 @@ render();
 
 /* ═══ PHONE ═══ kept last so it wins over the wide rules above without !important */
 @media (max-width:759px){
+  .dsk .dk-card{padding:15px 15px 14px;border-radius:16px;}
+  .dk-top{gap:10px;margin-bottom:12px;}
+  .dk-yr b{font-size:24px;min-width:66px;}
+  .dk-top .dk-sp{display:none;}
+  .dk-seg button{padding:7px 11px;}
+  .dk-grid{gap:12px;margin-bottom:12px;}
+  .dk-g4,.dk-g5{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .dk-g21,.dk-g32,.dk-g11{grid-template-columns:minmax(0,1fr);}
+  .dk-stat .v b,.dk-g5 .dk-stat .v b{font-size:27px;}
+  .dk-two{grid-template-columns:minmax(0,1fr);gap:18px;}
+  .dk-yrow{grid-template-columns:74px minmax(0,1fr);}
+  .dk-card.tall .dk-facts{gap:12px;}
+  /* a year of days does not fit across a phone at a readable size: it scrolls
+     sideways instead, and opens at the right-hand end where today is */
+  .dk-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -15px;padding:0 15px 4px;}
+  .dk-scroll .dk-heat,.dk-scroll .dk-heatx{width:700px;}
+  #fuelPane{max-width:none;}
   #dskHome .dk-card{padding:15px 15px 14px;border-radius:16px;}
   .hm-head{margin:2px 2px 12px;}
   .hm-head h2{font-size:22px;}
@@ -20082,7 +20101,7 @@ function delta(now, then){
 }
 
 function renderTrain(){
-  if (!$train || !wide.matches || !host.classList.contains('on')) return;
+  if (!$train || !host.classList.contains('on')) return;
   const y = st.year, M = MET[st.metric], R = runs();
   const years = Array.from(new Set(R.map(function(a){ return a._date.getFullYear(); }))).sort();
   const minY = years.length ? years[0] : curY;
@@ -20236,7 +20255,7 @@ function renderTrain(){
     +   '<div class="dk-card"><div class="dk-h"><h3>Every day</h3><span>' + active + ' days run · longest streak ' + best + '</span>'
     +     '<span class="dk-scale">less<i style="background:var(--n6)"></i><i style="background:color-mix(in srgb,var(--a) 26%,transparent)"></i><i style="background:color-mix(in srgb,var(--a) 46%,transparent)"></i>'
     +       '<i style="background:color-mix(in srgb,var(--a) 68%,transparent)"></i><i style="background:color-mix(in srgb,var(--a) 88%,transparent)"></i><i style="background:var(--a-hi)"></i>more</span></div>'
-    +     '<div class="dk-heat" id="dkHeat">' + heat + '</div><div class="dk-heatx">' + heatX + '</div></div>'
+    +     '<div class="dk-scroll" id="dkHeatScroll"><div class="dk-heat" id="dkHeat">' + heat + '</div><div class="dk-heatx">' + heatX + '</div></div></div>'
     + '</div>'
     + '<div class="dk-grid dk-g11">'
     +   '<div class="dk-card"><div class="dk-h"><h3>Biggest days</h3><span>' + y + ', by ' + M.label.toLowerCase() + '</span></div><div class="dk-list">' + bigHTML + '</div></div>'
@@ -20295,6 +20314,7 @@ function renderTrain(){
     tipRows:function(i){ return [{ color:'var(--a)', val:M.fmt(dow[i]) + ' ' + M.unit, label:Math.round(dow[i]/dowTot*100) + '% of the year' }]; } });
 
   /* heatmap hover: one handler for all 364 cells */
+  const $hs = document.getElementById('dkHeatScroll'); if ($hs) $hs.scrollLeft = $hs.scrollWidth;
   const $heat = document.getElementById('dkHeat');
   let hov = null;
   bindHover($heat, function(e){
@@ -20459,7 +20479,7 @@ function med(a){ const b = a.slice().sort(function(x,y){ return x - y; }); retur
 function mean(a){ return a.length ? a.reduce(function(s,v){ return s + v; }, 0)/a.length : null; }
 
 function renderRec(){
-  if (!$rec || !wide.matches || !hHost.classList.contains('on')) return;
+  if (!$rec || !hHost.classList.contains('on')) return;
   const fuelOn = $recPane.style.display === 'none';
   $hTop.innerHTML = '<div class="dk-top" style="margin-bottom:16px"><div class="dk-yr"><b style="min-width:0;text-align:left">' + (fuelOn ? 'Fuel' : 'Recovery') + '</b></div>'
     + '<div class="dk-seg"><button data-pane="recovery"' + (fuelOn ? '' : ' class="on"') + '>Recovery</button><button data-pane="fuel"' + (fuelOn ? ' class="on"' : '') + '>Fuel</button></div>'
@@ -20817,7 +20837,7 @@ if (pHost){
   if (top){ top.insertAdjacentHTML('afterend', '<div class="dsk nolight" id="dskLife"></div>'); $life = document.getElementById('dskLife'); }
 }
 function renderLife(){
-  if (!$life || !wide.matches || !pHost.classList.contains('on')) return;
+  if (!$life || !pHost.classList.contains('on')) return;
   const R = runs().filter(function(a){ return a.distance_mi > 0; });
   if (!R.length){ $life.innerHTML = ''; return; }
   const mi = R.reduce(function(s,a){ return s + a.distance_mi; }, 0), ft = R.reduce(function(s,a){ return s + (a.elevation_ft || 0); }, 0);
