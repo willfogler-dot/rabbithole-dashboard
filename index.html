@@ -6665,7 +6665,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v122';
+const RH_BUILD = 'v123';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -17770,7 +17770,7 @@ if ('serviceWorker' in navigator){
 @media (prefers-reduced-motion:reduce){ .plx-pop{animation:none;} .plx-chip:hover{transform:none;} }
 .plx-pop::before{content:'';position:absolute;left:16px;right:16px;top:-1px;height:1px;background:linear-gradient(90deg,transparent,rgba(127,217,189,.6),rgba(143,154,232,.8),rgba(179,154,232,.6),transparent);}
 .plx-pop[hidden]{display:none;}
-.plx-pop{max-height:calc(100vh - 16px);overflow-y:auto;overscroll-behavior:contain;}
+.plx-pop{max-height:calc(100vh - 100px);overflow-y:auto;overscroll-behavior:contain;}
 .plx-pop .ph{font-family:var(--fd);font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--n3);margin-bottom:9px;display:flex;justify-content:space-between;align-items:center;}
 .plx-pop .ph button{border:none;background:none;color:var(--n3);font-size:14px;padding:0 2px;}
 .plx-pop input,.plx-pop select,.plx-pop textarea{width:100%;min-width:0;background:rgba(0,0,0,.3);border:1px solid var(--line);border-radius:10px;color:var(--n1);font-size:13px;padding:8px 10px;outline:none;-webkit-appearance:none;appearance:none;box-shadow:var(--el0-sh);}
@@ -17797,6 +17797,7 @@ if ('serviceWorker' in navigator){
 .plx-pop .evr small{display:block;font-size:11.5px;font-weight:400;color:var(--n3);margin-top:1px;}
 .plx-pop .scope{display:flex;background:rgba(0,0,0,.3);border:1px solid var(--line);border-radius:10px;padding:2px;gap:2px;margin-bottom:8px;}
 .plx-pop .scope button{flex:1;border:none;background:none;color:var(--n3);font-size:12px;font-weight:600;padding:6px 4px;border-radius:8px;}
+.plx-pop .scope-h{margin:-2px 2px 9px;color:var(--n3);}
 .plx-pop .scope button.on{background:var(--card2);color:var(--n1);box-shadow:var(--el1-sh);}
 .plx-pop .pf{display:flex;justify-content:space-between;align-items:center;margin-top:11px;}
 .plx-pop .pf button{border:none;background:none;font-size:12px;font-weight:600;padding:6px 8px;border-radius:8px;color:var(--n2);}
@@ -18021,6 +18022,24 @@ function ruleOf(w){ return (w && w.rep != null) ? REPEATS.find(function(r){ retu
 function ruleLive(r, dateISO){ return !!r && (!r.until || r.until >= dateISO); }
 function protoOf(w){ const p = JSON.parse(JSON.stringify(w)); delete p.id; delete p.date; delete p.rep; delete p._days; return p; }
 function saveReps(){ lsSet(REPEATS_KEY, REPEATS); }
+/* A series can differ by weekday: Qi Gong at 5:30 Monday to Friday, 7:00 at the
+   weekend. That is one series, not two — two rules with the same title would
+   fight over the same sessions. So the rule keeps its shared details in proto
+   and anything that differs on a given weekday in byDay[dow], laid over proto
+   whenever that weekday is written. */
+function protoFor(rule, dw){
+  return Object.assign(JSON.parse(JSON.stringify(rule.proto)), (rule.byDay && rule.byDay[dw]) ? JSON.parse(JSON.stringify(rule.byDay[dw])) : {});
+}
+/* The part of a series a weekday belongs to: its weekdays or its weekend days. */
+function groupOf(rule, dw){
+  return (dw >= 5 ? [5,6] : [0,1,2,3,4]).filter(function(d){ return rule.days.indexOf(d) >= 0; });
+}
+function groupLabel(g){
+  if (g.join() === '5,6') return 'Weekends';
+  if (g.join() === '0,1,2,3,4') return 'Weekdays';
+  if (g.length === 1) return 'Every ' + DOW[g[0]];
+  return g.map(function(i){ return DOW[i]; }).join(', ');
+}
 function repFill(rule, fromISO, toISO, onlyDow){
   let n = 0, d = dOf(fromISO); const end = dOf(toISO);
   while (d <= end){
@@ -18031,8 +18050,8 @@ function repFill(rule, fromISO, toISO, onlyDow){
         || (x.rep == null && x.type === rule.proto.type && (x.title || '') === (rule.proto.title || ''))); });
       /* …and takes the series' details: "Qi Gong at 5:30 every morning" has to
          move the 6:00 ones already on the calendar, or it has not done what was asked */
-      if (ex){ if (ex.rep == null){ Object.assign(ex, JSON.parse(JSON.stringify(rule.proto)), { rep:rule.id }); } }
-      else { PLANNED.push(Object.assign(blankWorkout(key), JSON.parse(JSON.stringify(rule.proto)), { id:newId(), date:key, rep:rule.id })); n++; }
+      if (ex){ if (ex.rep == null){ Object.assign(ex, protoFor(rule, dw), { rep:rule.id }); } }
+      else { PLANNED.push(Object.assign(blankWorkout(key), protoFor(rule, dw), { id:newId(), date:key, rep:rule.id })); n++; }
     }
     d = addDays(d, 1);
   }
@@ -18735,11 +18754,14 @@ function placePop(){
      fits, above if that fits, and otherwise beside it and pinned inside the
      window — on an iPad in landscape the form is taller than the space under
      most rows, and a form you have to scroll to reach is a form you fight. */
+  /* the floating tab bar sits over the bottom of the window; a form that runs
+     under it has its Done button hidden, so that strip counts as off-screen */
+  const floor = vh - 86;
   let x = ar.left, y = ar.bottom + 6;
-  if (y + ph > vh - 8){
+  if (y + ph > floor){
     if (ar.top - ph - 6 >= 8) y = ar.top - ph - 6;
     else {
-      y = Math.max(8, vh - ph - 8);
+      y = Math.max(8, floor - ph);
       x = (ar.right + 8 + pw <= vw - 8) ? ar.right + 8 : ar.left - pw - 8;
     }
   }
@@ -18783,11 +18805,20 @@ function quickAdd(text){
   return true;
 }
 
+function scopeHint(scope, grp){
+  if (scope === 'grp' && grp) return 'Changes here apply to ' + groupLabel(grp).toLowerCase().replace(/^every /, 'every ') + ' from this date on. Other days keep their own details.';
+  if (scope === 'all') return 'Changes here apply to every day in the series from this date on.';
+  return 'Changes here apply to this one day only.';
+}
 function openEdit(id, keepScope){
   const w = PLANNED.find(function(x){ return String(x.id) === String(id); });
   if (!w) return;
   const rule = ruleOf(w), live = ruleLive(rule, w.date);
   st.pop = { kind:'edit', id:String(id), date:w.date, scope: (keepScope && live) ? keepScope : 'one' };
+  /* the middle choice only exists when it means something different from "all days" */
+  let grp = live ? groupOf(rule, dowOf(w.date)) : null;
+  if (grp && (grp.length === rule.days.length || !grp.length)) grp = null;
+  if (st.pop.scope === 'grp' && !grp) st.pop.scope = 'one';
   const types = DISCIPLINES.map(function(d){ return d.key; });
   if (types.indexOf(w.type) < 0) types.unshift(w.type);
   const sess = sessionsFor(w.type);
@@ -18800,8 +18831,10 @@ function openEdit(id, keepScope){
   }).join('');
   $pop.innerHTML =
       '<div class="ph"><span>' + (live ? 'Repeating session' : 'Edit session') + '</span><button data-x aria-label="Close">✕</button></div>'
-    + (live ? '<div class="scope"><button data-scope="one"' + (st.pop.scope === 'one' ? ' class="on"' : '') + '>Change this day</button>'
-        + '<button data-scope="all"' + (st.pop.scope === 'all' ? ' class="on"' : '') + '>This and all after</button></div>' : '')
+    + (live ? '<div class="scope"><button data-scope="one"' + (st.pop.scope === 'one' ? ' class="on"' : '') + '>This day</button>'
+        + (grp ? '<button data-scope="grp"' + (st.pop.scope === 'grp' ? ' class="on"' : '') + '>' + groupLabel(grp) + '</button>' : '')
+        + '<button data-scope="all"' + (st.pop.scope === 'all' ? ' class="on"' : '') + '>' + (rule.days.length === 7 ? 'Every day' : 'All days') + '</button></div>'
+        + '<div class="hint scope-h" data-scope-h>' + scopeHint(st.pop.scope, grp) + '</div>' : '')
     + '<input data-f="title" autocomplete="off" value="' + E(w.title || '') + '" placeholder="Title">'
     + '<div class="plx-r ' + (sess ? 'c2' : '') + '">'
     +   '<div class="fld"><select data-f="type">' + types.map(function(t){ return '<option' + (t === w.type ? ' selected' : '') + ' value="' + E(t) + '">' + E(t === 'Weight Training' ? 'Strength' : t) + '</option>'; }).join('') + '</select></div>'
@@ -18837,16 +18870,29 @@ function applyField(el){
   if (f === 'time' && !v) v = null;
   if (String(w[f] == null ? '' : w[f]) === String(v == null ? '' : v)) return;
   snap();
-  const rule = ruleOf(w), series = st.pop.scope === 'all' && f !== 'date' && ruleLive(rule, w.date);
-  /* one day, or this day and every later one in the series (and the rule, so new weeks match) */
-  const targets = series ? PLANNED.filter(function(x){ return String(x.rep) === String(rule.id) && x.date >= w.date; }) : [w];
+  const rule = ruleOf(w), series = st.pop.scope !== 'one' && f !== 'date' && ruleLive(rule, w.date);
+  /* which weekdays this edit covers: null = all of them, otherwise the weekday or weekend part of the series */
+  const grp = (series && st.pop.scope === 'grp') ? groupOf(rule, dowOf(w.date)) : null;
+  /* one day, or this day and every later matching one in the series (and the rule, so new weeks match) */
+  const targets = series ? PLANNED.filter(function(x){ return String(x.rep) === String(rule.id) && x.date >= w.date && (!grp || grp.indexOf(dowOf(x.date)) >= 0); }) : [w];
   const setOn = function(o){
     o[f] = v;
     if (f === 'duration_min') o.duration_sec = v ? v*60 : null;
     if (f === 'type'){ const list = sessionsFor(o.type); o.session = list ? list[0].key : null; }
   };
   targets.forEach(setOn);
-  if (series){ setOn(rule.proto); saveReps(); }
+  if (series){
+    if (grp){
+      /* only these weekdays differ: recorded as an override on each, so the rest of the series is untouched */
+      rule.byDay = rule.byDay || {};
+      grp.forEach(function(d){ rule.byDay[d] = rule.byDay[d] || {}; setOn(rule.byDay[d]); });
+    } else {
+      /* all days: the shared details change, and any weekday that had its own value for this field gives it up */
+      setOn(rule.proto);
+      if (rule.byDay) Object.keys(rule.byDay).forEach(function(d){ delete rule.byDay[d][f]; if (f === 'duration_min') delete rule.byDay[d].duration_sec; if (f === 'type') delete rule.byDay[d].session; });
+    }
+    saveReps();
+  }
   if (f === 'date'){
     st.pop.date = w.date;
     const d = dOf(w.date);
@@ -19163,6 +19209,8 @@ $pop.addEventListener('click', function(e){
   if (sc && st.pop){
     st.pop.scope = sc.dataset.scope;
     $pop.querySelectorAll('[data-scope]').forEach(function(b){ b.classList.toggle('on', b.dataset.scope === st.pop.scope); });
+    const sh = $pop.querySelector('[data-scope-h]'), pw = PLANNED.find(function(x){ return String(x.id) === st.pop.id; }), pr = pw && ruleOf(pw);
+    if (sh && pr) sh.textContent = scopeHint(st.pop.scope, groupOf(pr, dowOf(pw.date)));
     return;
   }
   const k = t.closest('[data-k]');
