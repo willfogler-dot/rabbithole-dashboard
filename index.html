@@ -6665,7 +6665,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v124';
+const RH_BUILD = 'v125';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -7240,7 +7240,13 @@ function renderVolChart(){
   const data = volSeries();
   if (!data.length) return;
   const meta = volMeta();
-  const W=400, H=190;
+  /* Drawn in a 400x190 box on the phone, as it always was. On the wide
+     Overview the same card sits in a column twice that width, and a fixed
+     400-unit drawing was letterboxed into the middle of it — so there the box
+     is the element's real width. Everything below is laid out from W and H. */
+  const _vs = document.getElementById('volChart'), _vw = (_vs && _vs.clientWidth) || 0;
+  const W = _vw > 520 ? Math.round(_vw) : 400, H = _vw > 520 ? 260 : 190;
+  if (_vs) _vs.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
   /* Y labels float just above their gridline rather than sitting in a reserved
      gutter. The side padding only needs to clear the dot radius plus its stroke,
      so nothing clips against the card edge. */
@@ -19561,11 +19567,13 @@ render();
 .hm-r1{grid-template-columns:minmax(0,1fr) minmax(0,1.5fr);}
 .hm-r3{grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);}
 .hm-ready{display:flex;gap:24px;align-items:center;}
-.hm-ring{position:relative;flex:0 0 132px;width:132px;height:132px;border:none;background:none;padding:0;}
-.hm-ring svg{display:block;transform:rotate(-90deg);}
-.hm-ring .n{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
-.hm-ring .n b{font-family:var(--fd);font-size:44px;font-weight:600;letter-spacing:-.03em;line-height:1;color:var(--n1);font-variant-numeric:tabular-nums;}
-.hm-ring .n span{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--n2);margin-top:5px;font-weight:600;}
+.hm-ringslot{flex:0 0 auto;}
+/* the portal is 212px on the phone; here it sits beside text, a little smaller */
+.hm-ringslot .portal{margin:0;zoom:.74;}
+#hmVolSlot{min-width:0;}
+/* its own "Volume" rule is dropped so the controls line up with the top of the Recent card */
+#hmVolSlot .ov-volume > .hsec{display:none;}
+#hmVolSlot .vol-svg{height:260px;}
 .hm-rtxt{min-width:0;flex:1;}
 .hm-rtxt h3{font-family:var(--fd);font-size:15px;font-weight:600;color:var(--n1);margin:0 0 6px;}
 .hm-rtxt p{font-size:13px;line-height:1.55;color:var(--n2);margin:0 0 8px;}
@@ -20388,6 +20396,31 @@ if (oHost){
   const brief = oHost.querySelector('.ov-brief');
   if (brief){ brief.insertAdjacentHTML('afterend', '<div class="dsk nolight" id="dskHome"></div>'); $home = document.getElementById('dskHome'); }
 }
+/* Two pieces of the phone view are used as they are rather than redrawn: the
+   readiness portal (its breathing rings are a dozen animated layers the app
+   already keeps up to date) and the Volume card (the Strava-style chart with
+   its sport, period and metric controls). Rebuilding either would mean a
+   second copy to keep in step. So the real elements are moved into this page
+   while it is wide, and put back where they came from when it is not. A
+   comment node marks each one's original place. */
+const borrowed = [];
+if (oHost) [['.ov-brief .portal', 'hmRingSlot'], ['.ov-volume', 'hmVolSlot']].forEach(function(p){
+  const node = oHost.querySelector(p[0]);
+  if (!node) return;
+  const mark = document.createComment('dsk: ' + p[0] + ' lives here on the phone');
+  node.parentNode.insertBefore(mark, node);
+  borrowed.push({ node:node, mark:mark, slot:p[1] });
+});
+function lend(){
+  borrowed.forEach(function(b){ const s = document.getElementById(b.slot); if (s && b.node.parentNode !== s) s.appendChild(b.node); });
+  /* the chart measures its box when drawn, and the box just changed */
+  try { if (typeof renderVolChart === 'function') renderVolChart(); } catch(e){}
+}
+function giveBack(){
+  borrowed.forEach(function(b){ if (b.mark.parentNode && b.node.previousSibling !== b.mark) b.mark.parentNode.insertBefore(b.node, b.mark.nextSibling); });
+  /* back in the phone column, the chart goes back to its phone drawing */
+  try { if (typeof renderVolChart === 'function') renderVolChart(); } catch(e){}
+}
 function valOf(mi, sec, min){
   if (mi > 0) return MET.distance.fine(mi) + ' mi';
   const m = min || (sec ? Math.round(sec/60) : 0);
@@ -20469,12 +20502,7 @@ function renderHome(){
   /* ── today: readiness, and the night behind it ── */
   let Rd = null, L = null; try { Rd = computeReadiness(); } catch(e){} try { L = trainingLoad(); } catch(e){}
   const hasScore = Rd && !Rd.partial && typeof Rd.score === 'number' && isFinite(Rd.score);
-  const C = 2*Math.PI*58, frac = hasScore ? Rd.score/100 : 0;
-  const ring = '<button class="hm-ring" data-go="ready" title="What is behind this score"><svg width="132" height="132" viewBox="0 0 132 132">'
-    + '<defs><linearGradient id="hmRg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7fd9bd"/><stop offset=".5" stop-color="#8f9ae8"/><stop offset="1" stop-color="#b39ae8"/></linearGradient></defs>'
-    + '<circle cx="66" cy="66" r="58" fill="none" stroke="var(--n5)" stroke-width="7"/>'
-    + (hasScore ? '<circle cx="66" cy="66" r="58" fill="none" stroke="url(#hmRg)" stroke-width="7" stroke-linecap="round" stroke-dasharray="' + (C*frac).toFixed(1) + ' ' + C.toFixed(1) + '"/>' : '')
-    + '</svg><span class="n"><b>' + (hasScore ? Rd.score : '—') + '</b><span>' + E(hasScore ? Rd.label : (Rd ? 'Partial' : 'No data')) + '</span></span></button>';
+  const ring = '<div class="hm-ringslot" id="hmRingSlot"></div>';
   /* the briefing is whatever the phone view is showing — same text, same cache */
   const gEl = document.getElementById('greet'), sEl = document.getElementById('healthStale');
   const brief = gEl ? gEl.innerHTML.trim() : '';
@@ -20507,10 +20535,7 @@ function renderHome(){
     : '<div class="dk-empty">No overnight data yet. It arrives after your watch syncs in the morning.</div>';
   const nDate = last ? new Date(last.date + 'T00:00:00') : null;
 
-  /* ── last 12 weeks, and what was done lately ── */
-  const wk = []; const R12 = runs();
-  for (let i=11;i>=0;i--){ const a = addDays(mon, -7*i), b = addDays(a, 7); wk.push({ a:a, mi:R12.reduce(function(s,x){ return s + (x._date >= a && x._date < b ? (x.distance_mi || 0) : 0); }, 0),
-    ft:R12.reduce(function(s,x){ return s + (x._date >= a && x._date < b ? (x.elevation_ft || 0) : 0); }, 0) }); }
+  /* ── what was done lately ── */
   const recent = ACTS.slice(0, 6).map(function(a){
     const run = RUNLIKE.has(a.type), bits = [a._date.toLocaleDateString(undefined, { weekday:'short', month:'short', day:'numeric' }), run ? 'Run' : a.type];
     if (run && a.elevation_ft) bits.push(Math.round(a.elevation_ft).toLocaleString() + ' ft');
@@ -20519,6 +20544,7 @@ function renderHome(){
     return '<button class="dk-row" data-act="' + E(a.id) + '"><span class="nm">' + E(a.name || a.type) + '</span><span class="vv">' + v + '</span><span class="mt">' + E(bits.join(' · ')) + '</span></button>';
   }).join('');
 
+  borrowed.forEach(function(b){ if (b.node.parentNode) b.node.parentNode.removeChild(b.node); });
   $home.innerHTML = '<div class="hm-head"><h2>' + todayD.toLocaleDateString(undefined, { weekday:'long' }) + ' <span>' + MON[todayD.getMonth()] + ' ' + todayD.getDate() + '</span></h2><span class="dk-sp"></span>'
     + '<button class="dk-txt" data-go="jarvis">Ask Jarvis</button></div>'
     + '<div class="hm-row hm-r1"><div class="dk-card hm-ready">' + ring + '<div class="hm-rtxt">' + rt + '</div></div>'
@@ -20526,13 +20552,9 @@ function renderHome(){
     + '<div class="dk-card"><div class="dk-h"><h3>This week</h3><span>' + MON[mon.getMonth()] + ' ' + mon.getDate() + ' – ' + (sun.getMonth() !== mon.getMonth() ? MON[sun.getMonth()] + ' ' : '') + sun.getDate() + '</span>'
     + '<span class="dk-sp"></span><button class="dk-txt" data-go="plan">Open planner</button></div><div class="hm-days">' + days + '</div></div>'
     + '<div class="hm-tiles">' + tiles + '</div>'
-    + '<div class="hm-row hm-r3"><div class="dk-card"><div class="dk-h"><h3>Weekly miles</h3><span>last 12 weeks</span></div><div class="dk-chart" id="hmWk"></div></div>'
+    + '<div class="hm-row hm-r3"><div id="hmVolSlot"></div>'
     + '<div class="dk-card"><div class="dk-h"><h3>Recent</h3><span class="dk-sp"></span><button class="dk-txt" data-go="acts" style="margin:-6px -6px 0 0">All activities</button></div><div class="dk-list hm-recent">' + (recent || '<div class="dk-empty">No activities yet.</div>') + '</div></div></div>';
-  chartCols(document.getElementById('hmWk'), { h:250, vals:wk.map(function(w){ return w.mi; }), hi:11, barMax:44,
-    cap:function(v){ return String(Math.round(v)); },
-    tick:function(i){ return (wk[i].a.getMonth() + 1) + '/' + wk[i].a.getDate(); },
-    tipTitle:function(i){ return 'Week of ' + wk[i].a.toLocaleDateString(undefined, { month:'short', day:'numeric' }); },
-    tipRows:function(i){ return [{ color:'var(--a)', val:fine(wk[i].mi) + ' mi' }, { val:Math.round(wk[i].ft).toLocaleString() + ' ft', label:'climbed' }]; } });
+  lend();
 }
 if ($home){
   $home.addEventListener('click', function(e){
@@ -20611,7 +20633,7 @@ if (host) new MutationObserver(function(){ if (host.classList.contains('on')) sa
 /* charts are drawn at real pixel size, so they are redrawn when that changes */
 let _rz = null;
 window.addEventListener('resize', function(){ clearTimeout(_rz); _rz = setTimeout(renderAll, 160); });
-if (wide.addEventListener) wide.addEventListener('change', renderAll);
+if (wide.addEventListener) wide.addEventListener('change', function(){ if (!wide.matches) giveBack(); renderAll(); });
 window.addEventListener('scroll', tipHide, { passive:true });
 renderAll();
 })();
