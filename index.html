@@ -58,6 +58,22 @@
   --n5:rgba(150,170,220,.13);  /* hairline */
   --n6:rgba(150,170,220,.06);  /* divider, faint fills */
 
+  /* ── sport colours ────────────────────────────────────────
+     One fixed colour per kind of training, used everywhere a session or an
+     activity is drawn: week strip, planner chips, recent lists, hours by sport.
+     Before this each view picked its own, and running, strength and yoga were
+     three near-identical lavenders, so a week could not be read by colour.
+     The four were checked as a set for colour-blind separation and contrast on
+     this surface (worst pair, sauna against mobility under deuteranopia, is in
+     the warning band, which is acceptable only because every use also carries
+     the session's name). Minor sports share the neutral rather than getting a
+     fifth and sixth hue that would not hold apart. */
+  --sp-run:#9085e9;   /* running and anything on foot */
+  --sp-str:#c98500;   /* strength */
+  --sp-mob:#199e70;   /* mobility, yoga, Qi Gong */
+  --sp-sau:#b83a6e;   /* sauna */
+  --sp-oth:#8891a6;   /* everything else */
+
   /* ── accent ────────────────────────────────────────────────
      ONE hue. The previous palette carried two — a green for interactive
      things and a gold for hero figures — and the moment both landed in the
@@ -144,6 +160,7 @@
   --n4:#737b8d;   /* quaternary */
   --n5:rgba(22,26,36,.11);
   --n6:rgba(22,26,36,.05);
+  --sp-run:#5a4fc0; --sp-str:#a86f00; --sp-mob:#1a9a6e; --sp-sau:#8a2857; --sp-oth:#6b7387;
 
   --a-hi:#3f4a9c;   /* hero figures — deepest, most contrast */
   --a:#5a66c4;      /* signature */
@@ -6693,7 +6710,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v142';
+const RH_BUILD = 'v143';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -7039,6 +7056,15 @@ function renderRecent(){
   });
 }
 
+/* the one place a sport is turned into a colour (tokens are in :root) */
+function sportColor(type){
+  const t = normType(type);
+  if (RUNLIKE.has(type) || t === 'hike' || t === 'walk') return 'var(--sp-run)';
+  if (t === 'weighttraining' || t === 'workout' || t === 'crossfit' || t === 'hiit' || t === 'strength') return 'var(--sp-str)';
+  if (t === 'yoga' || t === 'mobility' || t === 'pilates' || t === 'stretching') return 'var(--sp-mob)';
+  if (t === 'sauna') return 'var(--sp-sau)';
+  return 'var(--sp-oth)';
+}
 const TYPE_COLOR = { 'Run':'#8f9ae8','Weight Training':'#b39ae8','Yoga':'#a894dc','Sauna':'#f08a99','Hike':'#7fd9bd','Alpine Ski':'#9ac8e0','Golf':'#6a7285','Ride':'#8fb4dc' };
 
 /* ── year-level stats, computed once per year ── */
@@ -7106,7 +7132,7 @@ function renderProgress(){
   const mixTot = Object.values(S.mix).reduce((s,v)=>s+v,0) || 1;
   const order = Object.keys(S.mix).sort((a,b)=>S.mix[b]-S.mix[a]).slice(0,7);
   document.getElementById('mixCard').innerHTML = order.map(t => {
-    const h = S.mix[t], p = h/mixTot*100, c = TYPE_COLOR[t] || '#6a7285';
+    const h = S.mix[t], p = h/mixTot*100, c = sportColor(t);
     return '<div><div class="mixrow"><span class="mk" style="background:'+c+'"></span>'
       + '<span class="mn">'+t+'</span><span class="mv">'+(Math.round(h))+'<span style="font-size:10px;color:var(--ink3)">h</span> '
       + '<span style="font-size:11px;color:var(--ink3)">'+Math.round(p)+'%</span></span></div>'
@@ -7575,7 +7601,7 @@ function openYear(y){
   const mixTot = Object.values(S.mix).reduce((s,v)=>s+v,0) || 1;
   const order = Object.keys(S.mix).sort((a,b)=>S.mix[b]-S.mix[a]).slice(0,8);
   h += '<div class="hsec" style="margin:20px 0 10px"><span>How the time was spent</span><i></i></div>'
-    + order.map(t=>{ const hh=S.mix[t], p=hh/mixTot*100, c=TYPE_COLOR[t]||'#6a7285';
+    + order.map(t=>{ const hh=S.mix[t], p=hh/mixTot*100, c=sportColor(t);
       return '<div><div class="mixrow"><span class="mk" style="background:'+c+'"></span><span class="mn">'+t+'</span>'
         + '<span class="mv">'+Math.round(hh)+'<span style="font-size:10px;color:var(--ink3)">h</span></span></div>'
         + '<div class="mixbar"><i style="display:block;height:100%;width:'+p+'%;background:'+c+';border-radius:99px"></i></div></div>'; }).join('<div style="height:11px"></div>');
@@ -18562,20 +18588,14 @@ function monthLine(ix, d){
   return MON_FULL[mo] + ' target ' + fmt(T) + ' ' + m.unit + ' · ' + fmt1(done) + ' run · ' + fmt1(togo) + ' more planned · '
     + (gap > 0 ? '<b class="gap">' + fmt(gap) + ' still to place</b>' : gap === 0 ? '<b class="ok">covered</b>' : '<b class="ok">' + fmt(-gap) + ' over</b>');
 }
+/* A session's colour is its sport's colour, the same one every other view uses
+   (sportColor, in the main script). It used to vary by the kind of run as well
+   — long, hills, tempo each had a hue — which made six colours for one sport and
+   none left over to tell sports apart. The kind of run is in the chip's label.
+   A race keeps its own magenta: it is not a training day. */
 function chipColor(type, session){
-  const t = normType(type);
-  if (RUNLIKE.has(type)){
-    if (session === 'race') return '#c026a0';
-    if (session === 'long') return '#f08a99';
-    if (session === 'hills') return '#8fb4dc';
-    if (session === 'tempo' || session === 'intervals' || session === 'progression' || session === 'fartlek') return 'var(--info)';
-    return 'var(--a)';
-  }
-  if (t === 'weighttraining' || t === 'workout' || t === 'crossfit') return '#8b7fc4';
-  if (t === 'hike' || t === 'walk') return '#8fb4dc';
-  if (t === 'yoga' || t === 'mobility' || t === 'pilates') return 'var(--pos)';
-  if (t === 'sauna') return 'var(--warn)';
-  return 'var(--n3)';
+  if (RUNLIKE.has(type) && session === 'race') return '#c026a0';
+  return sportColor(type);
 }
 function sessLabel(w){
   const list = sessionsFor(w.type);
@@ -19759,7 +19779,8 @@ render();
 .dk-row .vv small{font-size:11px;color:var(--n3);font-weight:400;margin-left:2px;}
 .dk-row .mt{font-size:11.5px;color:var(--n3);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .dk-row .br{grid-column:1 / -1;height:3px;border-radius:2px;background:var(--el0-bg);margin-top:5px;overflow:hidden;}
-.dk-row .br i{display:block;height:100%;border-radius:2px;background:var(--a);}
+.dk-row .br i{display:block;height:100%;border-radius:2px;background:var(--k,var(--a));}
+.dk-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--k,var(--sp-oth));margin-right:8px;vertical-align:1px;}
 
 /* small multiples: one row per year */
 .dk-yrs{display:flex;flex-direction:column;gap:10px;margin-top:10px;}
@@ -20391,7 +20412,7 @@ function renderTrain(){
     + '</div>'
     + '<div class="dk-grid dk-g11">'
     +   '<div class="dk-card"><div class="dk-h"><h3>Where the hours went</h3><span>' + y + ', all activity</span></div><div class="dk-list">'
-    +     (mixKeys.length ? mixKeys.map(function(k){ return '<div class="dk-row" style="cursor:default"><span class="nm">' + E(k) + '</span><span class="vv">' + Math.round(mix[k]) + '<small>h</small></span>'
+    +     (mixKeys.length ? mixKeys.map(function(k){ return '<div class="dk-row" style="cursor:default;--k:' + kOf(k) + '"><span class="nm"><i class="dk-dot"></i>' + E(k) + '</span><span class="vv">' + Math.round(mix[k]) + '<small>h</small></span>'
             + '<span class="mt">' + Math.round(mix[k]/mixTot*100) + '% of the year’s training time</span><span></span><span class="br"><i style="width:' + (mix[k]/mixMax*100).toFixed(1) + '%"></i></span></div>'; }).join('')
           : '<div class="dk-empty">Nothing logged in ' + y + ' yet.</div>') + '</div></div>'
     +   '<div class="dk-card"><div class="dk-h"><h3>Which days carry the load</h3><span>' + y + ' running ' + M.label.toLowerCase() + ' by weekday</span></div>'
@@ -20786,7 +20807,7 @@ function valOf(mi, sec, min){
   return m ? (m >= 90 ? (Math.round(m/6)/10) + 'h' : m + 'm') : '';
 }
 function kOf(type){
-  try { return TYPE_COLOR[RUNLIKE.has(type) ? 'Run' : type] || TYPE_COLOR[normType(type)] || ''; } catch(e){ return ''; }
+  try { return sportColor(type); } catch(e){ return ''; }
 }
 function progBar(done, target, paceFrac){
   if (!(target > 0)) return '';
@@ -20943,7 +20964,7 @@ function renderHome(){
     if (run && a.elevation_ft) bits.push(Math.round(a.elevation_ft).toLocaleString() + ' ft');
     if (a.moving_time && a.distance_mi > 0) bits.push(hhmm(a.moving_time));
     const v = a.distance_mi > 0 ? fine(a.distance_mi) + '<small>mi</small>' : Math.round((a.moving_time || 0)/60) + '<small>min</small>';
-    return '<button class="dk-row" data-act="' + E(a.id) + '"><span class="nm">' + E(a.name || a.type) + '</span><span class="vv">' + v + '</span><span class="mt">' + E(bits.join(' · ')) + '</span></button>';
+    return '<button class="dk-row" data-act="' + E(a.id) + '" style="--k:' + kOf(a.type) + '"><span class="nm"><i class="dk-dot"></i>' + E(a.name || a.type) + '</span><span class="vv">' + v + '</span><span class="mt">' + E(bits.join(' · ')) + '</span></button>';
   }).join('');
 
   borrowed.forEach(function(b){ if (b.node.parentNode) b.node.parentNode.removeChild(b.node); });
