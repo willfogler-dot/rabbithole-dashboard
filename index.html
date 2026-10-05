@@ -3436,6 +3436,90 @@ function savePlanLocal(){
   lsSet(RACES_KEY, RACES);
   lsSet(GOALS_KEY, GOALS);
 }
+/* ── WHY SYNC MERGES NOW (v152) ──
+   The plan used to sync as one blob with a timestamp: whichever device saved
+   last replaced the whole thing. On Oct 5 that cost two weeks of runs planned
+   on the iPad, because a device still holding an older copy saved afterwards
+   and its copy became "the newest".
+
+   The fix is to remember what this device last agreed on with the cloud (the
+   BASE: one small fingerprint per session, race and repeat rule, and one per
+   settings block). With that, three copies can be compared (base, this device,
+   cloud) and every difference has an owner:
+     in the cloud, not here, not in base   -> added on another device: take it
+     here, not in the cloud, not in base   -> added here: keep it
+     in base, missing here                 -> deleted here: stays deleted
+     in base, missing from the cloud       -> deleted elsewhere: stays deleted
+     in both, changed here since base      -> this device's edit wins
+     in both, unchanged here               -> the cloud's version wins
+   A device never overwrites the cloud without doing this first. */
+const PLAN_BASE_KEY = 'rh2_plan_base_v1';
+const SYNC_LISTS = ['planned', 'races', 'repeats'];
+const SYNC_WHOLE = ['goals', 'routes', 'nutrition', 'body', 'recipes', 'customFoods', 'templates'];
+let _loadBase = null;      /* this device's plan as it stood at launch; only used the first time this build runs */
+function _fp(v){ const t = JSON.stringify(v === undefined ? null : v) || 'null'; let h = 5381; for (let i = 0; i < t.length; i++) h = ((h << 5) + h + t.charCodeAt(i)) | 0; return h + ':' + t.length; }
+function _sid(x){ return (x && x.id != null) ? String(x.id) : 'j' + _fp(x); }
+function planLocalState(){
+  return { planned: PLANNED, races: RACES, repeats: REPEATS, goals: GOALS, routes: lsGet(ROUTES_KEY, []),
+           nutrition: NUTRI, body: BODY, recipes: RECIPES, customFoods: CUSTOM, templates: TEMPLATES };
+}
+function planSnapshot(ts){
+  const st = planLocalState(), b = { ts: ts, lists: {}, whole: {} };
+  SYNC_LISTS.forEach(function(k){ const m = {}; (st[k] || []).forEach(function(x){ m[_sid(x)] = _fp(x); }); b.lists[k] = m; });
+  SYNC_WHOLE.forEach(function(k){ b.whole[k] = _fp(st[k]); });
+  return b;
+}
+function getBase(p){
+  const b = lsGet(PLAN_BASE_KEY, null);
+  if (b && b.lists && b.whole) return b;
+  /* First run of this build: there is no recorded base. If the cloud is at or
+     past this device's last write, assume the device was in step as of launch.
+     If the device claims to be newer than the cloud, trust nothing: with an
+     empty base the merge keeps everything from both sides and deletes nothing. */
+  if (_loadBase && _loadBase.ts && p && p.ts >= _loadBase.ts) return _loadBase;
+  return { ts: 0, lists: {}, whole: {}, empty: true };
+}
+/* named setPlanBase because setBase already exists (it switches the map's base layer) */
+function setPlanBase(ts){ lsSet(PLAN_BASE_KEY, planSnapshot(ts)); }
+function planDirty(base){
+  if (base.empty) return true;
+  const cur = planSnapshot(0);
+  return SYNC_WHOLE.some(function(k){ return cur.whole[k] !== base.whole[k]; })
+      || SYNC_LISTS.some(function(k){ const a = cur.lists[k] || {}, b = base.lists[k] || {}, ka = Object.keys(a);
+           return ka.length !== Object.keys(b).length || ka.some(function(id){ return a[id] !== b[id]; }); });
+}
+function mergePlan(p, base){
+  const loc = planLocalState(), out = {};
+  SYNC_LISTS.forEach(function(k){
+    const L = loc[k] || [], C = Array.isArray(p[k]) ? p[k] : null, B = (base.lists && base.lists[k]) || {};
+    if (!C){ out[k] = L; return; }                 /* saved by an older build that did not carry this list */
+    const lm = new Map(L.map(function(x){ return [_sid(x), x]; })), seen = new Set(), res = [];
+    C.forEach(function(c){
+      const id = _sid(c); seen.add(id);
+      if (!lm.has(id)){ if (!(id in B)) res.push(c); return; }           /* in base but gone here = deleted here */
+      const l = lm.get(id);
+      res.push((id in B) && _fp(l) !== B[id] ? l : c);
+    });
+    L.forEach(function(l){ const id = _sid(l); if (!seen.has(id) && !(id in B)) res.push(l); });   /* in base but gone from the cloud = deleted elsewhere */
+    out[k] = res;
+  });
+  /* two devices each top up the same repeat rule and mint their own ids for the
+     same day; keep one instance per rule per day */
+  const reps = new Set();
+  out.planned = out.planned.filter(function(w){
+    if (!w || w.rep == null) return true;
+    const key = w.rep + '|' + w.date; if (reps.has(key)) return false; reps.add(key); return true; });
+  SYNC_WHOLE.forEach(function(k){
+    const changedHere = base.whole && (k in base.whole) && _fp(loc[k]) !== base.whole[k];
+    out[k] = (changedHere || p[k] == null) ? loc[k] : p[k];
+  });
+  return out;
+}
+function planRerender(){
+  ['renderCal', 'renderGreeting', 'renderRaceCard', 'renderRaceList', 'renderGoals', 'renderWeek', 'renderProgress', 'refreshProfileRows', 'renderSavedRoutes']
+    .forEach(function(n){ try { if (typeof window[n] === 'function') window[n](); } catch(e){ console.warn('[sync] ' + n, e); } });
+  try { setPlanView(planView); } catch(e){}
+}
 async function pushPlan(force){
   /* refuse to publish an empty plan unless it was an explicit action */
   if (!force && !(PLANNED && PLANNED.length)){
@@ -3444,6 +3528,29 @@ async function pushPlan(force){
       console.warn('[cloud] refusing to push an empty plan over ' + bak.planned.length
         + ' known workouts — run rhRestorePlan() if this device lost them');
       return false;
+    }
+  }
+  const note = function(ok){ const el = document.getElementById('syncNote');
+    if (el){ el.textContent = ok ? 'synced' : 'saved on this device only'; el.className = 'sync-note' + (ok ? ' ok' : ''); } };
+  /* Look before writing. If the cloud cannot be read, do not write: writing
+     blind is exactly how one device erased another's work. The change stays on
+     this device and goes up on the next save or the next time the app opens. */
+  const pulled = await cloudPullStrict();
+  if (!pulled.ok){ note(false); return false; }
+  const existing = pulled.data || {}, p = existing[CLOUD_PLAN_KEY];
+  if (!force && p && p.ts && Array.isArray(p.planned) && p.planned.length){
+    const base = getBase(p);
+    if (p.ts !== base.ts){
+      /* another device has saved since this one last synced: fold its changes in first */
+      const m = mergePlan(p, base);
+      if (m.planned.length || !PLANNED.length){
+        const before = PLANNED.length;
+        adoptPlan(Object.assign({}, p, m), p);
+        savePlanLocal();
+        console.log('[cloud] merged with a save from another device (' + new Date(p.ts).toLocaleString() + '): '
+          + before + ' sessions here, ' + p.planned.length + ' there, ' + PLANNED.length + ' after');
+        planRerender();
+      }
     }
   }
   const ts = Date.now();
@@ -3464,9 +3571,9 @@ async function pushPlan(force){
                             stravaActs: stravaActs,
                             stravaSyncedAt: lsGet(STRAVA_SYNCED, null),
                             ts: ts };
-  const ok = await cloudPush(patch);
-  const el = document.getElementById('syncNote');
-  if (el){ el.textContent = ok ? 'synced' : 'saved on this device only'; el.className = 'sync-note' + (ok?' ok':''); }
+  const ok = await cloudPush(patch, existing);
+  if (ok) setPlanBase(ts);      /* the cloud now holds exactly what this device holds */
+  note(ok);
   return ok;
 }
 /* debounced, so editing several workouts in a row is one write */
@@ -3482,7 +3589,6 @@ function queuePush(){
 async function reconcilePlan(){
   const d = await cloudPull();
   const p = d && d[CLOUD_PLAN_KEY];
-  const localTs = lsGet(PLAN_TS_KEY, 0);
   const localHas = (PLANNED && PLANNED.length) || (RACES && RACES.length)
                 || Object.keys(GOALS || {}).length || (lsGet(ROUTES_KEY, []) || []).length
                 || Object.keys(NUTRI || {}).length || Object.keys(BODY || {}).length;
@@ -3495,9 +3601,13 @@ async function reconcilePlan(){
     }
     return false;
   }
-  if (p.ts <= localTs){
-    /* cloud is not newer — but if this device has work it never received, send it */
-    if (localTs > p.ts && localHas) pushPlan();
+  /* Not "whose timestamp is bigger" any more (that is what lost work). Two
+     plain questions instead: has the cloud changed since this device last
+     synced, and has this device changed since then? */
+  const base = getBase(p);
+  const moved = p.ts !== base.ts, dirty = planDirty(base);
+  if (!moved){
+    if (dirty && localHas) pushPlan();           /* only this device changed: send it */
     return false;
   }
 
@@ -3522,19 +3632,40 @@ async function reconcilePlan(){
     return false;
   }
 
+  /* Both changed: merge and send the result back. Only the cloud changed: take it as it is. */
+  const src = dirty ? Object.assign({}, p, mergePlan(p, base)) : p;
+  if (dirty && !(src.planned && src.planned.length) && PLANNED.length){
+    console.warn('[cloud] merge came out empty; keeping this device\u2019s plan'); return false; }
   snapshotPlan();                 /* keep what we had before adopting the remote copy */
-  if (Array.isArray(p.planned)) PLANNED = p.planned;
-  if (Array.isArray(p.races))   RACES   = p.races;
-  if (p.goals && typeof p.goals === 'object') GOALS = p.goals;
-  if (Array.isArray(p.routes)) lsSet(ROUTES_KEY, p.routes);
-  if (p.nutrition && typeof p.nutrition === 'object'){ NUTRI = p.nutrition; lsSet(NUTRI_KEY, NUTRI); }
-  if (p.body && typeof p.body === 'object'){ BODY = p.body; lsSet(BODY_KEY, BODY); }
-  if (Array.isArray(p.recipes)){ RECIPES = p.recipes; lsSet(RECIPE_KEY, RECIPES); }
-  if (Array.isArray(p.customFoods)){ CUSTOM = p.customFoods; lsSet(CUSTOM_KEY, CUSTOM); }
-  if (Array.isArray(p.templates)){ TEMPLATES = p.templates; lsSet(TPL_KEY, TEMPLATES); }
+  adoptPlan(src, p);
+  savePlanLocal();
+  if (dirty){
+    console.log('[cloud] both this device and another changed the plan; merged to ' + PLANNED.length + ' sessions');
+    await pushPlan();             /* re-checks the cloud, then records the new base on success */
+  } else {
+    lsSet(PLAN_TS_KEY, p.ts);
+    setPlanBase(p.ts);
+    console.log('[cloud] pulled from ' + new Date(p.ts).toLocaleString()
+      + ' \u2014 ' + PLANNED.length + ' workouts, ' + RACES.length + ' races');
+  }
+  return true;
+}
+/* Put a plan into this device. `src` supplies the things that are merged
+   item by item or taken whole (sessions, races, rules, goals, food, body);
+   `p` is the raw cloud copy, used for the caches that are always unioned. */
+function adoptPlan(src, p){
+  if (Array.isArray(src.planned)) PLANNED = src.planned;
+  if (Array.isArray(src.races))   RACES   = src.races;
+  if (src.goals && typeof src.goals === 'object') GOALS = src.goals;
+  if (Array.isArray(src.routes)) lsSet(ROUTES_KEY, src.routes);
+  if (src.nutrition && typeof src.nutrition === 'object'){ NUTRI = src.nutrition; lsSet(NUTRI_KEY, NUTRI); }
+  if (src.body && typeof src.body === 'object'){ BODY = src.body; lsSet(BODY_KEY, BODY); }
+  if (Array.isArray(src.recipes)){ RECIPES = src.recipes; lsSet(RECIPE_KEY, RECIPES); }
+  if (Array.isArray(src.customFoods)){ CUSTOM = src.customFoods; lsSet(CUSTOM_KEY, CUSTOM); }
+  if (Array.isArray(src.templates)){ TEMPLATES = src.templates; lsSet(TPL_KEY, TEMPLATES); }
   /* Only adopted when the cloud copy carries the key at all: a device still on
      an older build pushes a plan without it, and that must not erase the rules. */
-  if (Array.isArray(p.repeats)){ REPEATS = p.repeats; lsSet(REPEATS_KEY, REPEATS); }
+  if (Array.isArray(src.repeats)){ REPEATS = src.repeats; lsSet(REPEATS_KEY, REPEATS); }
   if (Array.isArray(p.stravaActs) && p.stravaActs.length){
     const local = lsGet(STRAVA_ACTS_KEY, []) || [];
     const byId = {};
@@ -3569,12 +3700,6 @@ async function reconcilePlan(){
     const byDay = {};
     p.jarvisFeedback.concat(lsGet(FB_KEY, []) || []).forEach(function(f){ if (f && f.d) byDay[f.d] = f; });
     lsSet(FB_KEY, Object.keys(byDay).sort().map(function(k){ return byDay[k]; }).slice(-20)); }
-  savePlanLocal();
-  lsSet(PLAN_TS_KEY, p.ts);
-  console.log('[cloud] pulled from ' + new Date(p.ts).toLocaleString()
-    + ' \u2014 ' + PLANNED.length + ' workouts, ' + RACES.length + ' races, '
-    + (Array.isArray(p.routes) ? p.routes.length : 0) + ' routes');
-  return true;
 }
 const pullPlan = reconcilePlan;
 
@@ -6721,7 +6846,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v151';
+const RH_BUILD = 'v152';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -12712,11 +12837,24 @@ async function cloudPull(){
     return (rows && rows[0] && rows[0].data) || null;
   } catch(e){ console.warn('[cloud pull]', e.message||e); return null; }
 }
-async function cloudPush(patch){
+/* like cloudPull, but tells "could not reach it" apart from "nothing there yet" */
+async function cloudPullStrict(){
+  const c = syncCfg();
+  if (!c || !c.userId) return { ok:false };
+  try {
+    const url = c.url.replace(/\/$/,'') + '/rest/v1/dashboard_data?user_id=eq.'
+      + encodeURIComponent(c.userId) + '&select=data';
+    const res = await fetch(url, { headers:{ apikey:c.key, Authorization:'Bearer '+c.key } });
+    if (!res.ok) throw new Error('HTTP '+res.status);
+    const rows = await res.json();
+    return { ok:true, data: (rows && rows[0] && rows[0].data) || null };
+  } catch(e){ console.warn('[cloud pull]', e.message||e); return { ok:false }; }
+}
+async function cloudPush(patch, known){
   const c = syncCfg();
   if (!c || !c.userId) return false;
   try {
-    const existing = (await cloudPull()) || {};
+    const existing = known || (await cloudPull()) || {};
     const body = Object.assign({}, existing, patch);
     const url = c.url.replace(/\/$/,'') + '/rest/v1/dashboard_data?on_conflict=user_id';
     const res = await fetch(url, {
@@ -17480,6 +17618,8 @@ renderPortal(); renderGreeting(); renderOvChips(); renderWeek(); renderRecent();
 })();
 loadHealth();
 stravaCallback();
+/* first run of the merging sync: note where this device stood at launch (see getBase) */
+try { if (!lsGet(PLAN_BASE_KEY, null)) _loadBase = planSnapshot(lsGet(PLAN_TS_KEY, 0)); } catch(e){ console.warn('[sync] base', e); }
 /* plans made on another device */
 pullPlan().then(function(changed){
   if (!changed) return;
