@@ -6665,7 +6665,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v123';
+const RH_BUILD = 'v124';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -19536,30 +19536,14 @@ render();
    These two keep the phone's own content — it is already the right content —
    and only change how it is arranged, plus one panel each that the phone has
    no room for: the week at a glance on Home, lifetime totals on Profile. */
-#dskHome,#dskLife{padding-top:0;}
+#dskLife{padding-top:0;}
 @media (min-width:760px){
-  .app:has(#s-overview.on){max-width:920px;padding-left:28px;padding-right:28px;}
-  #s-overview.on{display:grid;gap:4px 24px;align-items:start;
-    grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);
-    grid-template-areas:"brief brief" "home home" "vol night" "recent recent";}
-  #s-overview > .ov-brief{grid-area:brief;min-width:0;}
-  #s-overview > #dskHome{grid-area:home;min-width:0;margin-top:18px;}
-  #s-overview > .ov-volume{grid-area:vol;min-width:0;}
-  #s-overview > .ov-overnight{grid-area:night;min-width:0;}
-  #s-overview > .ov-recent{grid-area:recent;min-width:0;}
-  /* portal beside the briefing rather than above it: a paragraph reads better
-     at a column's width than centred under a ring */
-  #s-overview > .ov-brief{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:30px;align-items:center;}
-  #s-overview > .ov-brief > *{grid-column:1 / -1;}
-  #s-overview > .ov-brief > .portal{grid-column:1;margin:10px 0 0;}
-  #s-overview > .ov-brief > .greet{grid-column:2;text-align:left;margin:10px 0 0;max-width:62ch;}
-  #s-overview > .ov-brief.minimal > .portal,#s-overview > .ov-brief:has(> .greet:empty) > .portal{grid-column:1 / -1;margin:10px auto 0;}
-  /* Recent is a list you scroll past on the phone, so it starts closed there.
-     Here there is room, so it is always open and the toggle is just a heading. */
-  #s-overview #recentToggle{pointer-events:none;}
-  #s-overview #recentToggle .hsec-chev{display:none;}
-  #s-overview #recent.survey,#s-overview #recent.survey.collapsed{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));}
-  #s-overview #recent .lrow{min-width:0;}
+  /* Overview is its own page at width, like Progress and Health. A first pass
+     kept the phone's blocks and only moved them into a grid; they were built
+     for a 390px column, so they came out at three different heights with holes
+     between them. */
+  .app:has(#s-overview.on){max-width:1380px;padding-left:28px;padding-right:28px;}
+  #s-overview > *:not(.dsk){display:none !important;}
 
   .app:has(#s-profile.on){max-width:1080px;padding-left:28px;padding-right:28px;}
   #s-profile.on{column-count:2;column-gap:28px;}
@@ -19569,20 +19553,44 @@ render();
   #s-profile > .hsec{break-after:avoid;margin-top:0;padding-top:26px;}
   #s-profile > .survey,#s-profile > #routePanel,#s-profile > #stvAuth{break-inside:avoid;}
 }
-@media (min-width:1024px){
-  .app:has(#s-overview.on){max-width:1380px;}
-  /* Left: readiness and the overnight numbers behind it. Right: the week,
-     then volume beside the recent list. A long briefing makes the first row
-     taller, so the week panel stretches to match instead of leaving a hole. */
-  #s-overview.on{grid-template-columns:330px minmax(0,1.5fr) minmax(0,1fr);
-    grid-template-areas:"brief home home" "night vol recent";}
-  #s-overview > #dskHome{margin-top:6px;align-self:stretch;display:flex;flex-direction:column;}
-  #dskHome > .dk-card.lead{flex:1;display:flex;flex-direction:column;}
-  #dskHome .hm-days{flex:1;}
-  #s-overview > .ov-brief{display:block;}
-  #s-overview > .ov-brief > .portal{margin:10px auto 0;}
-  #s-overview > .ov-brief > .greet{margin:16px 2px 0;max-width:none;}
-  #s-overview #recent.survey,#s-overview #recent.survey.collapsed{grid-template-columns:minmax(0,1fr);}
+/* Home: every row is a full-width band, and cards in a row share one height */
+.hm-head{display:flex;align-items:center;gap:10px;margin:0 2px 16px;}
+.hm-head h2{font-family:var(--fd);font-size:26px;font-weight:600;color:var(--n1);letter-spacing:-.02em;margin:0;line-height:1.15;}
+.hm-head h2 span{color:var(--n3);font-weight:500;}
+.hm-row{display:grid;gap:14px;margin-bottom:14px;align-items:stretch;}
+.hm-r1{grid-template-columns:minmax(0,1fr) minmax(0,1.5fr);}
+.hm-r3{grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);}
+.hm-ready{display:flex;gap:24px;align-items:center;}
+.hm-ring{position:relative;flex:0 0 132px;width:132px;height:132px;border:none;background:none;padding:0;}
+.hm-ring svg{display:block;transform:rotate(-90deg);}
+.hm-ring .n{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.hm-ring .n b{font-family:var(--fd);font-size:44px;font-weight:600;letter-spacing:-.03em;line-height:1;color:var(--n1);font-variant-numeric:tabular-nums;}
+.hm-ring .n span{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--n2);margin-top:5px;font-weight:600;}
+.hm-rtxt{min-width:0;flex:1;}
+.hm-rtxt h3{font-family:var(--fd);font-size:15px;font-weight:600;color:var(--n1);margin:0 0 6px;}
+.hm-rtxt p{font-size:13px;line-height:1.55;color:var(--n2);margin:0 0 8px;}
+.hm-rtxt p b{color:var(--n1);font-weight:600;}
+.hm-rtxt .brief{display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden;}
+.hm-rtxt .warn{color:var(--warn);}
+.hm-night{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;flex:1;}
+.hm-r1 > .dk-card{display:flex;flex-direction:column;}
+.hm-r1 > .dk-card.hm-ready{flex-direction:row;}
+.hm-nt{padding:2px 18px;border-left:1px solid var(--line);min-width:0;display:flex;flex-direction:column;border-top:none;border-right:none;border-bottom:none;background:none;text-align:left;color:inherit;font:inherit;}
+.hm-nt:first-child{border-left:none;padding-left:2px;}
+.hm-nt label{font-size:12px;color:var(--n3);margin-bottom:8px;cursor:inherit;}
+.hm-nt .v{display:flex;align-items:baseline;gap:5px;}
+.hm-nt .v b{font-family:var(--fd);font-size:32px;font-weight:600;letter-spacing:-.03em;line-height:1;color:var(--n1);font-variant-numeric:tabular-nums;}
+.hm-nt .v span{font-size:12.5px;color:var(--n3);}
+.hm-nt .d{font-size:12px;color:var(--n3);margin-top:8px;font-variant-numeric:tabular-nums;}
+.hm-nt .d b{color:var(--n1);font-weight:600;}
+.hm-nt .sp{margin-top:auto;padding-top:10px;}
+.hm-nt .sp svg{width:100%;height:34px;}
+.hm-recent{margin-top:6px;}
+@media (min-width:760px) and (max-width:1023px){
+  .hm-tiles{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .hm-r1,.hm-r3{grid-template-columns:minmax(0,1fr);}
+  .hm-night{grid-template-columns:repeat(2,minmax(0,1fr));row-gap:18px;}
+  .hm-nt:nth-child(3){border-left:none;padding-left:2px;}
 }
 
 /* the week at a glance */
@@ -19604,7 +19612,7 @@ render();
 .hm-it.miss{background:none;color:var(--n4);}
 .hm-it.miss .t{text-decoration:line-through;font-weight:400;} .hm-it.miss .v{color:var(--n4);}
 .hm-none{font-size:11.5px;color:var(--n4);padding:4px 3px;}
-.hm-tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:14px 0 0;}
+.hm-tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:14px 0;}
 /* a button centres its content by default, which left the shorter tile floating */
 .hm-tiles .dk-card{padding:15px 17px 14px;text-align:left;width:100%;color:inherit;font:inherit;display:flex;flex-direction:column;justify-content:flex-start;align-items:stretch;}
 .hm-tiles button.dk-card{transition:transform .12s,border-color .15s;}
@@ -19613,7 +19621,6 @@ render();
 .hm-tiles .dk-stat .d{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .hm-race{font-family:var(--fd);font-size:14px;font-weight:600;color:var(--n1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:6px;}
 @media (min-width:760px) and (max-width:1199px){
-  .hm-tiles{grid-template-columns:repeat(2,minmax(0,1fr));}
   /* seven columns across an iPad leave ~90px each: wrap the name onto two
      lines with the number under it rather than cutting it to "Qi G…" */
   .hm-it{flex-wrap:wrap;gap:1px 5px;}
@@ -20458,14 +20465,84 @@ function renderHome(){
     tiles += '<button class="dk-card dk-stat" data-go="plan"><label>Next race</label><div class="v"><b>—</b></div><div class="d">Nothing on the calendar. Add one in Plan.</div></button>';
   }
   const sun = addDays(mon, 6);
-  $home.innerHTML = '<div class="dk-card lead"><div class="dk-h"><h3>This week</h3><span>' + MON[mon.getMonth()] + ' ' + mon.getDate() + ' – ' + (sun.getMonth() !== mon.getMonth() ? MON[sun.getMonth()] + ' ' : '') + sun.getDate() + '</span>'
+
+  /* ── today: readiness, and the night behind it ── */
+  let Rd = null, L = null; try { Rd = computeReadiness(); } catch(e){} try { L = trainingLoad(); } catch(e){}
+  const hasScore = Rd && !Rd.partial && typeof Rd.score === 'number' && isFinite(Rd.score);
+  const C = 2*Math.PI*58, frac = hasScore ? Rd.score/100 : 0;
+  const ring = '<button class="hm-ring" data-go="ready" title="What is behind this score"><svg width="132" height="132" viewBox="0 0 132 132">'
+    + '<defs><linearGradient id="hmRg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7fd9bd"/><stop offset=".5" stop-color="#8f9ae8"/><stop offset="1" stop-color="#b39ae8"/></linearGradient></defs>'
+    + '<circle cx="66" cy="66" r="58" fill="none" stroke="var(--n5)" stroke-width="7"/>'
+    + (hasScore ? '<circle cx="66" cy="66" r="58" fill="none" stroke="url(#hmRg)" stroke-width="7" stroke-linecap="round" stroke-dasharray="' + (C*frac).toFixed(1) + ' ' + C.toFixed(1) + '"/>' : '')
+    + '</svg><span class="n"><b>' + (hasScore ? Rd.score : '—') + '</b><span>' + E(hasScore ? Rd.label : (Rd ? 'Partial' : 'No data')) + '</span></span></button>';
+  /* the briefing is whatever the phone view is showing — same text, same cache */
+  const gEl = document.getElementById('greet'), sEl = document.getElementById('healthStale');
+  const brief = gEl ? gEl.innerHTML.trim() : '';
+  const todays = plans.filter(function(w){ return w && w.date === tIso; }).sort(function(a,b){ return String(a.time || '99').localeCompare(String(b.time || '99')); });
+  let rt = '<h3>' + (hasScore ? 'Readiness' : 'Readiness is waiting on last night') + '</h3>';
+  if (sEl && sEl.textContent) rt += '<p class="warn">' + E(sEl.textContent) + '</p>';
+  if (brief) rt += '<p class="brief">' + brief.replace(/<\/?p[^>]*>/g, ' ') + '</p>';
+  else {
+    rt += '<p>' + (todays.length ? '<b>Today:</b> ' + todays.map(function(w){ return E(w.title || w.type) + (w.distance_mi ? ' ' + fine(parseFloat(w.distance_mi)) + ' mi' : ''); }).join(' · ') : 'Nothing planned today.') + '</p>';
+    if (L) rt += '<p>Training load is <b>' + L.ratio.toFixed(1) + '×</b> a usual week (' + E(L.state) + ').</p>';
+  }
+  const nights = (HEALTH || []).filter(function(r){ return r && r.date && (r.hrv_last_night_avg > 0 || r.sleep_seconds > 0 || r.resting_hr > 0); })
+                               .sort(function(a,b){ return a.date < b.date ? -1 : 1; });
+  const last = nights[nights.length - 1];
+  const nt = function(label, key, fmtv, unit){
+    const series = nights.slice(-15).map(function(r){ return r[key] > 0 ? r[key] : null; });
+    const v = last && last[key] > 0 ? last[key] : null;
+    const base = med(nights.slice(-29, -1).map(function(r){ return r[key]; }).filter(function(x){ return x > 0; }));
+    let dl = '&nbsp;';
+    if (v != null && base){ const p = Math.round((v/base - 1)*100); dl = (p === 0 ? '<b>even</b> with' : '<b>' + (p > 0 ? '+' : '−') + Math.abs(p) + '%</b> vs') + ' usual ' + fmtv(base); }
+    else if (v == null) dl = 'not in last night’s sync';
+    return '<button class="hm-nt" data-go="health"><label>' + label + '</label><div class="v"><b>' + (v != null ? fmtv(v) : '—') + '</b><span>' + (v != null ? unit : '') + '</span></div>'
+      + '<div class="d">' + dl + '</div><div class="sp">' + spark(series, 160, 34)/* stretched to the cell's width, so the round end marker is dropped: stretched, it is an oval */
+        .replace('width="160" height="34"', 'preserveAspectRatio="none"').replace(/<circle[^>]*\/>/, '') + '</div></button>';
+  };
+  const hm = function(sec){ const m = Math.round(sec/60); return Math.floor(m/60) + ':' + String(m % 60).padStart(2, '0'); };
+  const nightCard = nights.length
+    ? '<div class="hm-night">' + nt('HRV', 'hrv_last_night_avg', function(x){ return String(Math.round(x)); }, 'ms') + nt('Resting HR', 'resting_hr', function(x){ return String(Math.round(x)); }, 'bpm')
+      + nt('Sleep', 'sleep_seconds', hm, '') + nt('Sleep score', 'sleep_score', function(x){ return String(Math.round(x)); }, '') + '</div>'
+    : '<div class="dk-empty">No overnight data yet. It arrives after your watch syncs in the morning.</div>';
+  const nDate = last ? new Date(last.date + 'T00:00:00') : null;
+
+  /* ── last 12 weeks, and what was done lately ── */
+  const wk = []; const R12 = runs();
+  for (let i=11;i>=0;i--){ const a = addDays(mon, -7*i), b = addDays(a, 7); wk.push({ a:a, mi:R12.reduce(function(s,x){ return s + (x._date >= a && x._date < b ? (x.distance_mi || 0) : 0); }, 0),
+    ft:R12.reduce(function(s,x){ return s + (x._date >= a && x._date < b ? (x.elevation_ft || 0) : 0); }, 0) }); }
+  const recent = ACTS.slice(0, 6).map(function(a){
+    const run = RUNLIKE.has(a.type), bits = [a._date.toLocaleDateString(undefined, { weekday:'short', month:'short', day:'numeric' }), run ? 'Run' : a.type];
+    if (run && a.elevation_ft) bits.push(Math.round(a.elevation_ft).toLocaleString() + ' ft');
+    if (a.moving_time && a.distance_mi > 0) bits.push(hhmm(a.moving_time));
+    const v = a.distance_mi > 0 ? fine(a.distance_mi) + '<small>mi</small>' : Math.round((a.moving_time || 0)/60) + '<small>min</small>';
+    return '<button class="dk-row" data-act="' + E(a.id) + '"><span class="nm">' + E(a.name || a.type) + '</span><span class="vv">' + v + '</span><span class="mt">' + E(bits.join(' · ')) + '</span></button>';
+  }).join('');
+
+  $home.innerHTML = '<div class="hm-head"><h2>' + todayD.toLocaleDateString(undefined, { weekday:'long' }) + ' <span>' + MON[todayD.getMonth()] + ' ' + todayD.getDate() + '</span></h2><span class="dk-sp"></span>'
+    + '<button class="dk-txt" data-go="jarvis">Ask Jarvis</button></div>'
+    + '<div class="hm-row hm-r1"><div class="dk-card hm-ready">' + ring + '<div class="hm-rtxt">' + rt + '</div></div>'
+    + '<div class="dk-card"><div class="dk-h" style="margin-bottom:14px"><h3>Last night</h3><span>' + (nDate ? nDate.toLocaleDateString(undefined, { weekday:'short', month:'short', day:'numeric' }) + ' · against your last 4 weeks' : '') + '</span></div>' + nightCard + '</div></div>'
+    + '<div class="dk-card"><div class="dk-h"><h3>This week</h3><span>' + MON[mon.getMonth()] + ' ' + mon.getDate() + ' – ' + (sun.getMonth() !== mon.getMonth() ? MON[sun.getMonth()] + ' ' : '') + sun.getDate() + '</span>'
     + '<span class="dk-sp"></span><button class="dk-txt" data-go="plan">Open planner</button></div><div class="hm-days">' + days + '</div></div>'
-    + '<div class="hm-tiles">' + tiles + '</div>';
+    + '<div class="hm-tiles">' + tiles + '</div>'
+    + '<div class="hm-row hm-r3"><div class="dk-card"><div class="dk-h"><h3>Weekly miles</h3><span>last 12 weeks</span></div><div class="dk-chart" id="hmWk"></div></div>'
+    + '<div class="dk-card"><div class="dk-h"><h3>Recent</h3><span class="dk-sp"></span><button class="dk-txt" data-go="acts" style="margin:-6px -6px 0 0">All activities</button></div><div class="dk-list hm-recent">' + (recent || '<div class="dk-empty">No activities yet.</div>') + '</div></div></div>';
+  chartCols(document.getElementById('hmWk'), { h:250, vals:wk.map(function(w){ return w.mi; }), hi:11, barMax:44,
+    cap:function(v){ return String(Math.round(v)); },
+    tick:function(i){ return (wk[i].a.getMonth() + 1) + '/' + wk[i].a.getDate(); },
+    tipTitle:function(i){ return 'Week of ' + wk[i].a.toLocaleDateString(undefined, { month:'short', day:'numeric' }); },
+    tipRows:function(i){ return [{ color:'var(--a)', val:fine(wk[i].mi) + ' mi' }, { val:Math.round(wk[i].ft).toLocaleString() + ' ft', label:'climbed' }]; } });
 }
 if ($home){
   $home.addEventListener('click', function(e){
     const a = e.target.closest('[data-act]'); if (a){ openActDetail(a.dataset.act); return; }
-    const g = e.target.closest('[data-go]'); if (g) showTab(g.dataset.go);
+    const g = e.target.closest('[data-go]'); if (!g) return;
+    const k = g.dataset.go;
+    if (k === 'ready') openReadiness();
+    else if (k === 'jarvis') openJarvis();
+    else if (k === 'acts') openActivities();
+    else showTab(k);
   });
 }
 
@@ -20519,6 +20596,10 @@ if (typeof renderRecent === 'function'){
   const _rr = renderRecent;
   renderRecent = function(){ const r = _rr.apply(this, arguments); safe(renderHome, 'home'); return r; };
 }
+['renderGreeting', 'renderMetrics', 'renderPortal'].forEach(function(nm){
+  /* the briefing and overnight numbers arrive after first paint; these are the app's own redraws for them */
+  try { const f = window[nm]; if (typeof f === 'function'){ window[nm] = function(){ const r = f.apply(this, arguments); clearTimeout(renderHome._t); renderHome._t = setTimeout(function(){ safe(renderHome, 'home'); }, 60); return r; }; } } catch(e){}
+});
 if (oHost) new MutationObserver(function(){ if (oHost.classList.contains('on')) safe(renderHome, 'home'); })
   .observe(oHost, { attributes:true, attributeFilter:['class'] });
 if (pHost) new MutationObserver(function(){ if (pHost.classList.contains('on')) safe(renderLife, 'lifetime'); })
