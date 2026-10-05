@@ -6674,7 +6674,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v131';
+const RH_BUILD = 'v132';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -19695,7 +19695,11 @@ render();
 .hm-ringslot{flex:0 0 auto;}
 /* the portal is 212px on the phone; here it sits beside text, a little smaller */
 .hm-ringslot .portal{margin:0;zoom:.74;}
-#hmVolSlot{min-width:0;}
+/* the volume card fills its column so both columns end on the same line */
+#hmVolSlot{min-width:0;display:flex;}
+#hmVolSlot > .ov-volume{flex:1;display:flex;flex-direction:column;min-width:0;}
+#hmVolSlot #volCardMain{flex:1;display:flex;flex-direction:column;}
+#hmVolSlot #loadCard{margin-top:auto;}
 /* its own "Volume" rule is dropped so the controls line up with the top of the Recent card */
 #hmVolSlot .ov-volume > .hsec{display:none;}
 #hmVolSlot .vol-svg{height:260px;}
@@ -19719,6 +19723,11 @@ render();
 .hm-nt .sp{margin-top:auto;padding-top:10px;}
 .hm-nt .sp svg{width:100%;height:34px;}
 .hm-recent{margin-top:6px;}
+/* right column: two cards stacked, the second taking whatever height is left so the column ends level with the chart */
+.hm-side{display:flex;flex-direction:column;gap:14px;min-width:0;}
+.hm-side > .dk-card:last-child{flex:1;}
+.hm-ins{gap:11px;margin-top:10px;}
+.hm-ins .dk-fact b{font-size:15.5px;}
 @media (min-width:760px) and (max-width:1023px){
   .hm-tiles{grid-template-columns:repeat(2,minmax(0,1fr));}
   .hm-r1,.hm-r3{grid-template-columns:minmax(0,1fr);}
@@ -20661,7 +20670,25 @@ function renderHome(){
   const nDate = last ? new Date(last.date + 'T00:00:00') : null;
 
   /* ── what was done lately ── */
-  const recent = ACTS.slice(0, 6).map(function(a){
+  /* ── insights: the few comparisons worth a glance, each against his own recent normal ── */
+  const dayMs = 86400000, t0 = +todayD + dayMs;
+  const miIn = function(fromDays, toDays){ return R.reduce(function(s,a){ const age = (t0 - a._date)/dayMs; return s + (age > toDays && age <= fromDays ? (a.distance_mi || 0) : 0); }, 0); };
+  const pctTxt = function(now, then){ if (!(then > 0)) return ''; const p = Math.round((now/then - 1)*100); return (p >= 0 ? '+' : '−') + Math.abs(p) + '%'; };
+  const avgOf = function(rows, key){ const v = rows.map(function(r){ return r[key]; }).filter(function(x){ return x > 0; }); return v.length ? mean(v) : null; };
+  const ins = [];
+  const w4 = miIn(28, 0)/4, p4 = miIn(56, 28)/4;
+  ins.push(['Last 4 weeks', fine(w4) + ' mi / wk', p4 > 0 ? pctTxt(w4, p4) + ' vs the 4 weeks before (' + fine(p4) + ')' : 'no running in the 4 weeks before']);
+  /* training load and the month's target are not repeated here: both are already on this page */
+  const lastRun = R.slice().sort(function(a,b){ return b._date - a._date; })[0];
+  if (lastRun){ const ago = Math.round((+todayD - new Date(lastRun._date.getFullYear(), lastRun._date.getMonth(), lastRun._date.getDate()))/dayMs);
+    ins.push(['Last run', ago <= 0 ? 'Today' : ago === 1 ? 'Yesterday' : ago + ' days ago', E(lastRun.name || 'Run') + ' · ' + fine(lastRun.distance_mi || 0) + ' mi']); }
+  const h7 = avgOf(nights.slice(-7), 'hrv_last_night_avg'), h28 = avgOf(nights.slice(-35, -7), 'hrv_last_night_avg');
+  if (h7 != null) ins.push(['HRV, 7-night average', Math.round(h7) + ' ms', h28 ? pctTxt(h7, h28) + ' vs the 4 weeks before (' + Math.round(h28) + ')' : '']);
+  const s7 = avgOf(nights.slice(-7), 'sleep_seconds'), s28 = avgOf(nights.slice(-35, -7), 'sleep_seconds');
+  if (s7 != null) ins.push(['Sleep, 7-night average', hm(s7), s28 ? 'usually ' + hm(s28) : '']);
+  const insights = ins.map(function(x){ return '<div class="dk-fact"><span>' + x[0] + '</span><b>' + x[1] + (x[2] ? '<small>' + x[2] + '</small>' : '') + '</b></div>'; }).join('');
+
+  const recent = ACTS.slice(0, 5).map(function(a){
     const run = RUNLIKE.has(a.type), bits = [a._date.toLocaleDateString(undefined, { weekday:'short', month:'short', day:'numeric' }), run ? 'Run' : a.type];
     if (run && a.elevation_ft) bits.push(Math.round(a.elevation_ft).toLocaleString() + ' ft');
     if (a.moving_time && a.distance_mi > 0) bits.push(hhmm(a.moving_time));
@@ -20678,7 +20705,8 @@ function renderHome(){
     + '<span class="dk-sp"></span><button class="dk-txt" data-go="plan">Open planner</button></div><div class="hm-days">' + days + '</div></div>'
     + '<div class="hm-tiles">' + tiles + '</div>'
     + '<div class="hm-row hm-r3"><div id="hmVolSlot"></div>'
-    + '<div class="dk-card"><div class="dk-h"><h3>Recent</h3><span class="dk-sp"></span><button class="dk-txt" data-go="acts" style="margin:-6px -6px 0 0">All activities</button></div><div class="dk-list hm-recent">' + (recent || '<div class="dk-empty">No activities yet.</div>') + '</div></div></div>';
+    + '<div class="hm-side"><div class="dk-card"><div class="dk-h"><h3>Insights</h3></div><div class="dk-facts hm-ins">' + insights + '</div></div>'
+    + '<div class="dk-card"><div class="dk-h"><h3>Recent</h3><span class="dk-sp"></span><button class="dk-txt" data-go="acts" style="margin:-6px -6px 0 0">All activities</button></div><div class="dk-list hm-recent">' + (recent || '<div class="dk-empty">No activities yet.</div>') + '</div></div></div></div>';
   lend();
 }
 if ($home){
