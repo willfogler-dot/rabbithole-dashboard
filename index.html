@@ -6686,7 +6686,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v138';
+const RH_BUILD = 'v139';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -12035,12 +12035,16 @@ function renderWeekSheet(){
   h += '</div>';
 
   /* ═══ THIS WEEK ═══ */
+  /* This week goes first: on the phone this sheet is opened to see what is
+     coming, and last week is the context under it. Last week is built above
+     (it was written first) and simply placed second. */
+  const hLast = h; h = '';
   h += '<div class="wk-card">';
   h += '<div class="wk-h">This week</div>';
 
   if (!plan.sessions){
     h += '<div class="wk-empty">Nothing on the board yet.</div></div>';
-    host.innerHTML = h;
+    host.innerHTML = h + hLast;
     return;
   }
 
@@ -12079,7 +12083,7 @@ function renderWeekSheet(){
   }).join('') + '</div>';
   h += '</div>';
 
-  host.innerHTML = h;
+  host.innerHTML = h + hLast;
 }
 
 async function askJarvis(){
