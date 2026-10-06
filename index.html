@@ -6896,7 +6896,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v167';
+const RH_BUILD = 'v168';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -20394,6 +20394,31 @@ render();
 .dsk .dk-card.tall{background:none;border-color:transparent;box-shadow:none;padding-left:14px;padding-right:8px;}
 #dskHome .hm-tiles .dk-card.dk-stat.lead{background:none;border-color:transparent;box-shadow:none;border-left:none;}
 .dsk .dk-fact > span{white-space:nowrap;}
+
+/* ═══ FEWER CARDS (v168) ═══ a second pass at the same idea. After v165-v167
+   there was still a box around nearly everything. Now a box is kept only for
+   the hero and for charts (a chart needs a frame to hold its axes and legend).
+   Numbers and lists sit on the page: every row of stat tiles is a bare row
+   with hairline dividers, and on the Overview "Last night" and "Recent" lose
+   their boxes as the totals and Insights already had. */
+.dsk .dk-g4,.dsk .dk-g5{gap:0;margin:10px 0 28px;}
+.dsk .dk-g4 > .dk-card.dk-stat,.dsk .dk-g5 > .dk-card.dk-stat,
+.dsk .dk-g4 > .dk-card.dk-stat.lead,.dsk .dk-g5 > .dk-card.dk-stat.lead{background:none;border:none;border-radius:0;box-shadow:none;padding:2px 24px;border-left:1px solid var(--line);}
+.dsk .dk-g4 > .dk-card.dk-stat:first-child,.dsk .dk-g5 > .dk-card.dk-stat:first-child{border-left:none;padding-left:4px;}
+#dskHome .hm-r1 > .dk-card:not(.hm-ready){background:none;border-color:transparent;box-shadow:none;}
+#dskHome .hm-side > .dk-card{background:none;border-color:transparent;box-shadow:none;padding:4px 6px 8px;}
+@media (min-width:760px) and (max-width:1023px){
+  .dsk .dk-g4,.dsk .dk-g5{row-gap:24px;}
+  .dsk .dk-g4 > .dk-card.dk-stat:nth-child(odd){border-left:none;padding-left:4px;}
+  .dsk .dk-g5 > .dk-card.dk-stat:nth-child(3){border-left:none;padding-left:4px;}
+}
+@media (max-width:759px){
+  .dsk .dk-g4,.dsk .dk-g5{row-gap:22px;margin:8px 0 24px;}
+  .dsk .dk-g4 > .dk-card.dk-stat,.dsk .dk-g5 > .dk-card.dk-stat,.dsk .dk-g5 > .dk-card.dk-stat.lead{padding:2px 14px;}
+  .dsk .dk-g4 > .dk-card.dk-stat:nth-child(odd){border-left:none;padding-left:4px;}
+  .dsk .dk-g5 > .dk-card.dk-stat:nth-child(even),.dsk .dk-g5 > .dk-card.dk-stat.lead{border-left:none;padding-left:4px;}
+  #dskHome .hm-r1 > .dk-card:not(.hm-ready),#dskHome .hm-side > .dk-card{padding:6px 4px 8px;}
+}
 
 /* ═══ PHONE ═══ kept last so it wins over the wide rules above without !important */
 @media (max-width:759px){
