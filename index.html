@@ -6846,7 +6846,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v152';
+const RH_BUILD = 'v153';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -19985,6 +19985,16 @@ render();
 .dk-txt{border:1px solid var(--el2-line);background:var(--glass);color:var(--n2);font-size:12px;font-weight:600;padding:8px 13px;border-radius:11px;
   box-shadow:inset 0 1px 0 rgba(230,236,255,.08),0 2px 6px rgba(3,5,10,.25);transition:color .15s;}
 .dk-txt:hover{color:var(--n1);}
+.dk-more{position:relative;}
+.dk-morebtn{display:flex;align-items:center;gap:6px;padding-right:10px;}
+.dk-morebtn svg{width:13px;height:13px;transition:transform .15s;}
+.dk-morebtn.on{color:var(--n1);} .dk-morebtn.on svg{transform:rotate(180deg);}
+.dk-menu{position:absolute;right:0;top:calc(100% + 6px);z-index:45;width:250px;padding:6px;border-radius:14px;border:1px solid var(--el2-line);
+  background:color-mix(in srgb,var(--bg-lift) 94%,transparent);box-shadow:0 18px 44px rgba(0,0,0,.5);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);}
+.dk-menu button{display:block;width:100%;text-align:left;border:none;background:none;padding:9px 10px;border-radius:9px;font-family:inherit;cursor:pointer;}
+.dk-menu button:hover{background:var(--n6);}
+.dk-menu button b{display:block;font-size:13px;font-weight:600;color:var(--n1);}
+.dk-menu button span{display:block;font-size:12px;color:var(--n3);margin-top:1px;}
 
 .dk-grid{display:grid;gap:14px;margin-bottom:14px;}
 .dk-g4{grid-template-columns:repeat(4,minmax(0,1fr));}
@@ -20254,6 +20264,7 @@ render();
   .dk-top{gap:10px;margin-bottom:12px;}
   .dk-yr b{font-size:24px;min-width:66px;}
   .dk-top .dk-sp{display:none;}
+  .dk-top .dk-more{margin-left:auto;}
   .dk-seg button{padding:7px 11px;}
   .dk-grid{gap:12px;margin-bottom:12px;}
   .dk-g4,.dk-g5{grid-template-columns:repeat(2,minmax(0,1fr));}
@@ -20680,8 +20691,13 @@ function renderTrain(){
     +     '<button class="dk-nav" data-yr="1"' + (y >= curY ? ' disabled' : '') + ' aria-label="Next year">›</button></div>'
     +   '<div class="dk-seg">' + Object.keys(MET).map(function(k){ return '<button data-metric="' + k + '"' + (k === st.metric ? ' class="on"' : '') + '>' + MET[k].label + '</button>'; }).join('') + '</div>'
     +   '<div class="dk-sp"></div>'
-    +   '<button class="dk-txt" data-go="goals">Goals</button><button class="dk-txt" data-go="records">Records</button>'
-    +   '<button class="dk-txt" data-go="recap">' + y + ' recap</button><button class="dk-txt" data-go="acts">All activities</button>'
+    /* Four buttons in a row were the widest thing in this header and, on the
+       phone, a whole extra line. They are places to go, not controls for this
+       page, so they sit behind one button (v153). */
+    +   '<div class="dk-more"><button class="dk-txt dk-morebtn' + (st.menu ? ' on' : '') + '" data-go="menu" aria-label="More" aria-expanded="' + !!st.menu + '">Options<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>'
+    +     (st.menu ? '<div class="dk-menu" role="menu"><button data-go="goals"><b>Goals</b><span>Annual and monthly targets</span></button><button data-go="records"><b>Records</b><span>Fastest and biggest efforts</span></button>'
+    +       '<button data-go="recap"><b>' + y + ' recap</b><span>The year in one page</span></button><button data-go="acts"><b>All activities</b><span>Search and edit every activity</span></button></div>' : '')
+    +   '</div>'
     + '</div>'
     + '<div class="dk-grid dk-g4">' + tiles + '</div>'
     + '<div class="dk-grid dk-g21">'
@@ -20781,11 +20797,22 @@ if ($train){
     else if (b.dataset.metric){ st.metric = b.dataset.metric; tipHide(); renderTrain(); }
     else if (b.dataset.act){ tipHide(); try { openActDetail(isNaN(+b.dataset.act) ? b.dataset.act : +b.dataset.act); } catch(err){ console.error('[dsk] open activity', err); } }
     else if (b.dataset.recap){ tipHide(); openYear(+b.dataset.recap); }
-    else if (b.dataset.go === 'goals') openGoalPlanner();
-    else if (b.dataset.go === 'records') openRecordsPage();
-    else if (b.dataset.go === 'recap') openYear(st.year);
-    else if (b.dataset.go === 'acts') openActivities();
+    else if (b.dataset.go === 'menu'){ st.menu = !st.menu; tipHide(); renderTrain(); }
+    else if (b.dataset.go){
+      const go = b.dataset.go;
+      if (st.menu){ st.menu = false; renderTrain(); }
+      if (go === 'goals') openGoalPlanner();
+      else if (go === 'records') openRecordsPage();
+      else if (go === 'recap') openYear(st.year);
+      else if (go === 'acts') openActivities();
+    }
   });
+  /* a tap anywhere else closes the menu */
+  document.addEventListener('pointerdown', function(e){
+    if (!st.menu || (e.target.closest && e.target.closest('.dk-more'))) return;
+    st.menu = false; renderTrain();
+  }, true);
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && st.menu){ st.menu = false; renderTrain(); } });
 }
 
 /* stacked panels on one time axis: each keeps its own scale (they are separate
