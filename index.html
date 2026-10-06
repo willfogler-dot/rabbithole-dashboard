@@ -6896,7 +6896,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v171';
+const RH_BUILD = 'v172';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -18351,13 +18351,25 @@ if ('serviceWorker' in navigator){
    BARE  the twelve-month strip: it is navigation, so it loses its box. */
 .plx-hero{background:radial-gradient(90% 120% at 10% 0%,rgba(143,154,232,.20),transparent 60%),linear-gradient(180deg,rgba(143,154,232,.10),rgba(143,154,232,.035));border-color:rgba(170,180,255,.28);}
 .plx-strip{background:none;border-color:transparent;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none;padding:0 0 4px;}
-/* v169: a day is a column under its heading, not a box around boxes. The
-   sessions are already cards, so the day's own box only doubled every edge.
-   Today keeps a soft wash so it can still be found at a glance. */
-.plx-day.plx-wd:not(.today),.plx-day.plx-wd.past:not(.today){background:none;border-color:transparent;box-shadow:none;}
-.plx-day.plx-wd.today{background:linear-gradient(180deg,rgba(143,154,232,.14),transparent 62%);border-color:transparent;box-shadow:none;}
+/* v172: PANELS, the same rule as the dashboards: a panel is a section. The
+   seven days are one panel with hairlines between the columns, instead of
+   seven boxes (v167) or no boxes at all (v169). Sessions inside are the only
+   cards, because they are the things you pick up and move. Today keeps a soft
+   wash down its column. */
+.plx-week{gap:0;border:1px solid var(--el2-line);border-radius:20px;background:var(--glass);
+  box-shadow:inset 0 1px 0 rgba(230,236,255,.08),0 2px 3px rgba(3,5,10,.4),0 22px 44px -22px rgba(3,5,10,.75);}
+.plx-day.plx-wd,.plx-day.plx-wd:not(.today),.plx-day.plx-wd.past:not(.today){background:none;border:none;border-radius:0;box-shadow:none;padding:13px 10px 10px;}
+.plx-day.plx-wd + .plx-day.plx-wd{border-left:1px solid var(--line);}
+.plx-day.plx-wd:first-child{border-radius:19px 0 0 19px;} .plx-day.plx-wd:last-child{border-radius:0 19px 19px 0;}
+.plx-day.plx-wd.today{background:linear-gradient(180deg,rgba(143,154,232,.15),transparent 62%);}
+.plx-day.plx-wd.past:not(.today){background:rgba(0,0,0,.10);}
 .plx-day.plx-wd .plx-wadd{margin-top:2px;}
-.plx-day.plx-wd:hover{filter:none;} .plx-day.plx-wd:not(.today):hover{background:rgba(143,154,232,.04);}
+.plx-day.plx-wd:hover{filter:none;} .plx-day.plx-wd:not(.today):not(.past):hover{background:rgba(143,154,232,.04);}
+@media (max-width:1023px){
+  /* days are stacked rows here, so the hairline runs across */
+  .plx-day.plx-wd + .plx-day.plx-wd{border-left:none;border-top:1px solid var(--line);}
+  .plx-day.plx-wd:first-child{border-radius:19px 19px 0 0;} .plx-day.plx-wd:last-child{border-radius:0 0 19px 19px;}
+}
 
 /* ═══ PHONE ═══
    Kept LAST so it wins over the base rules above without !important wars.
@@ -18392,9 +18404,8 @@ if ('serviceWorker' in navigator){
   .plx-fact small{display:block;margin-top:1px;}
   .plx-fact b.mixv{white-space:normal;}   /* two columns on a phone: this one line is allowed to wrap rather than be cut */
   .plx-week{grid-template-columns:minmax(0,1fr);gap:8px;}
-  .plx-day.plx-wd{min-height:0;padding:6px 2px 6px;}
-  .plx-day.plx-wd.today{padding:10px 9px 9px;}
-  .plx-week{gap:10px;}
+  .plx-day.plx-wd,.plx-day.plx-wd:not(.today),.plx-day.plx-wd.past:not(.today){min-height:0;padding:12px 11px 11px;}
+  .plx-week{gap:0;border-radius:18px;}
   .plx-wdh{padding-bottom:4px;}
   .plx-wdh .dw{font-size:12px;}
   .plx-chip.plx-card{font-size:14px;padding:11px 12px;}
