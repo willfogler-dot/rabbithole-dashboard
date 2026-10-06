@@ -6896,7 +6896,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v161';
+const RH_BUILD = 'v162';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -18211,7 +18211,7 @@ if ('serviceWorker' in navigator){
 .plx-hx-s{font-size:12.5px;color:var(--n2);margin-top:9px;font-variant-numeric:tabular-nums;}
 .plx-hero .plx-wbar{height:7px;border-radius:4px;margin-top:13px;} .plx-hero .plx-wbar i{border-radius:4px;}
 .plx-hx-t b{font-weight:600;color:var(--n1);} .plx-hx-t b.gap{color:var(--warn);} .plx-hx-t b.ok{color:var(--pos);}
-.plx-hx-t{font-size:12px;color:var(--n3);margin-top:8px;font-variant-numeric:tabular-nums;}
+.plx-hx-t{font-size:12px;color:var(--n3);margin-top:8px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .plx-cols{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;align-items:end;height:118px;margin-top:10px;}
 .plx-col{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;min-width:0;}
 .plx-col .cv{font-family:var(--fd);font-size:12px;font-weight:600;color:var(--n2);font-variant-numeric:tabular-nums;margin-bottom:5px;height:14px;}
@@ -18233,7 +18233,12 @@ if ('serviceWorker' in navigator){
 .plx-fact{display:flex;align-items:baseline;justify-content:space-between;gap:12px;font-size:13px;color:var(--n2);}
 .plx-fact b{font-family:var(--fd);font-size:14.5px;font-weight:600;color:var(--n1);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap;}
 .plx-fact b.warn{color:var(--warn);} .plx-fact b.ok{color:var(--pos);}
-.plx-fact small{display:block;font-size:11.5px;color:var(--n3);font-weight:400;font-family:var(--fb);margin-top:1px;}
+/* One line per fact: the detail sits to the left of the value instead of
+   under it, and is cut with an ellipsis before it is ever allowed to wrap. */
+.plx-fact > span{flex:0 0 auto;white-space:nowrap;}
+.plx-fact b.mixv{display:block;font-family:var(--fb);font-size:12.5px;font-weight:500;overflow:hidden;text-overflow:ellipsis;}
+.plx-fact b{display:flex;flex-direction:row-reverse;align-items:baseline;gap:9px;min-width:0;}
+.plx-fact small{font-size:11.5px;color:var(--n3);font-weight:400;font-family:var(--fb);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 
 .plx-week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:10px;align-items:stretch;}
 .plx-day.plx-wd{min-height:340px;border-radius:16px;border:1px solid var(--el2-line);padding:11px 9px 9px;gap:7px;
@@ -18369,7 +18374,9 @@ if ('serviceWorker' in navigator){
   .plx-hx-n b{font-size:50px;}
   .plx-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 16px;}
   .plx-fact{flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:3px;}
-  .plx-fact b{text-align:left;}
+  .plx-fact b{text-align:left;display:block;}
+  .plx-fact small{display:block;margin-top:1px;}
+  .plx-fact b.mixv{white-space:normal;}   /* two columns on a phone: this one line is allowed to wrap rather than be cut */
   .plx-week{grid-template-columns:minmax(0,1fr);gap:8px;}
   .plx-day.plx-wd{min-height:0;padding:11px 11px 10px;}
   .plx-wdh{padding-bottom:4px;}
@@ -18384,7 +18391,7 @@ if ('serviceWorker' in navigator){
   .plx-wadd::before{content:'+';font-size:21px;font-weight:400;line-height:36px;}
   .plx-day.plx-wd.past .plx-wadd{display:none;}
   .plx-day.plx-wd.past .plx-wdh{padding-right:2px;}
-  .plx-fact small{white-space:normal;}
+
 
   /* month: seven columns of dots and run miles, each week's total on its own line under it */
   .plx-grid{grid-template-columns:repeat(7,minmax(0,1fr));border-width:1px;border-radius:16px;}
@@ -18909,9 +18916,10 @@ function monthLine(ix, d){
   const key = y + '-' + String(mo+1).padStart(2,'0'), dim = new Date(y, mo+1, 0).getDate();
   let done = 0, togo = 0;
   for (let i=1;i<=dim;i++){ const r = dayRun(ix, key + '-' + String(i).padStart(2,'0')); done += r.done; togo += r.togo; }
-  if (new Date(y, mo+1, 0) < todayD) return MON_FULL[mo] + ': ' + fmt1(done) + ' run of a ' + fmt(T) + ' ' + m.unit + ' target';
+  /* kept short enough to sit on one line under the bar: it wrapped at the old length */
+  if (new Date(y, mo+1, 0) < todayD) return MON[mo] + ': ' + fmt1(done) + ' run of ' + fmt(T) + ' ' + m.unit;
   const gap = Math.round(T - done - togo);
-  return MON_FULL[mo] + ' target ' + fmt(T) + ' ' + m.unit + ' · ' + fmt1(done) + ' run · ' + fmt1(togo) + ' more planned · '
+  return MON[mo] + ' target ' + fmt(T) + ' · ' + fmt1(done) + ' run · ' + fmt1(togo) + ' planned · '
     + (gap > 0 ? '<b class="gap">' + fmt(gap) + ' still to place</b>' : gap === 0 ? '<b class="ok">covered</b>' : '<b class="ok">' + fmt(-gap) + ' over</b>');
 }
 /* A session's colour is its sport's colour, the same one every other view uses
@@ -19160,7 +19168,7 @@ function renderWeekView(ix){
     ramp = (pct >= 0 ? '+' : '') + Math.round(pct) + '%';
     /* a jump only matters once the base is big enough for a percentage to mean something */
     rampCls = (pct > 15 && W.head >= 15) ? 'warn' : (pct >= -40 ? 'ok' : '');
-    rampSub = fmt1(P.head) + ' ' + m.unit + ' the week before';
+    rampSub = 'from ' + fmt1(P.head) + ' ' + m.unit;
   }
   const oTxt = other === 'elevation' ? feet(O.head) + ' ft' : miles(O.head) + ' mi';
   const mixKeys = Object.keys(mix);
@@ -19168,8 +19176,8 @@ function renderWeekView(ix){
       '<div class="plx-fact"><span>' + (other === 'elevation' ? 'Vert' : 'Miles') + '</span><b>' + oTxt + '</b></div>'
     + '<div class="plx-fact"><span>Longest run</span><b>' + (longest ? miles(longest.mi) + ' mi<small>' + longest.day + '</small>' : '—') + '</b></div>'
     + '<div class="plx-fact"><span>vs week before</span><b class="' + rampCls + '">' + ramp + '<small>' + rampSub + '</small></b></div>'
-    + '<div class="plx-fact"><span>Other sessions</span><b>' + (mixKeys.length ? mixKeys.reduce(function(s,k){ return s + mix[k]; }, 0) : '—')
-    +   (mixKeys.length ? '<small>' + E(mixKeys.map(function(k){ return k + ' ' + mix[k]; }).join(' · ')) + '</small>' : '') + '</b></div>';
+    /* the breakdown is the value: a total in front of it ("12") said less and cost the room that made it wrap */
+    + '<div class="plx-fact"><span>Other sessions</span><b class="mixv">' + (mixKeys.length ? E(mixKeys.map(function(k){ return k + ' ' + mix[k]; }).join(' · ')) : '—') + '</b></div>';
 
   const hero = '<div class="plx-hero">'
     + '<div><div class="plx-hx-l">' + rel + '</div>'
