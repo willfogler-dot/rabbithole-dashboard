@@ -6896,7 +6896,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v172';
+const RH_BUILD = 'v173';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -20408,6 +20408,18 @@ render();
   .dsk .dk-g4:not(:last-child),.dsk .dk-g5:not(:last-child){border-radius:18px 18px 0 0;margin-bottom:0;}
   .dsk .dk-g4 + .dk-grid,.dsk .dk-g5 + .dk-grid{border-radius:0 0 18px 18px;}
 }
+
+/* v173: NO SEAM IN A JOINED PANEL. The stat row and the row under it are two
+   elements drawn as one panel. Each had the full top-to-bottom shading, so it
+   restarted at the join and the panel read as two bands; the lower piece also
+   drew its top highlight line across the middle. Now the shading runs once
+   across both (the upper piece hands off at the tone the lower one starts on)
+   and only the upper piece has the highlight. Dark theme only: the light
+   theme's panels are flat white and never had the seam. */
+:root:not([data-theme="light"]) .dsk .dk-g4:not(:last-child),:root:not([data-theme="light"]) .dsk .dk-g5:not(:last-child){
+  background:linear-gradient(180deg,rgba(143,154,232,.10),rgba(143,154,232,.086));box-shadow:inset 0 1px 0 rgba(230,236,255,.07);}
+:root:not([data-theme="light"]) .dsk .dk-g4 + .dk-grid,:root:not([data-theme="light"]) .dsk .dk-g5 + .dk-grid{
+  background:linear-gradient(180deg,rgba(143,154,232,.086),rgba(143,154,232,.035));box-shadow:0 2px 3px rgba(3,5,10,.42),0 10px 24px -8px rgba(3,5,10,.52);}
 
 /* ═══ PANELS (v170, Overview) ═══
    One rule for what gets a box: A PANEL IS A SECTION. The page is a few large
