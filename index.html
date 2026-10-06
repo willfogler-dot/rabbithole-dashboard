@@ -6846,7 +6846,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v154';
+const RH_BUILD = 'v155';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -20964,7 +20964,7 @@ function renderRec(){
   $hTop.innerHTML = '<div class="dk-top" style="margin-bottom:16px"><div class="dk-yr"><b style="min-width:0;text-align:left">' + (fuelOn ? 'Fuel' : 'Recovery') + '</b></div>'
     + '<div class="dk-seg"><button data-pane="recovery"' + (fuelOn ? '' : ' class="on"') + '>Recovery</button><button data-pane="fuel"' + (fuelOn ? ' class="on"' : '') + '>Fuel</button></div>'
     + (fuelOn ? '' : '<div class="dk-seg plain">' + [[30,'30 days'],[90,'90 days'],[180,'6 months'],[365,'1 year']].map(function(o){ return '<button data-range="' + o[0] + '"' + (hs.range === o[0] ? ' class="on"' : '') + '>' + o[1] + '</button>'; }).join('') + '</div>')
-    + '<div class="dk-sp"></div>' + (fuelOn ? '' : '<button class="dk-txt" data-go="ask">Ask Jarvis about recovery</button>') + '</div>';
+    + '</div>';   /* "Ask Jarvis about recovery" lived here until v155; questions go to the Claude project now */
   if (fuelOn) return;
 
   const rows = (HEALTH || []).filter(function(r){ return r && r.date; });
@@ -21314,7 +21314,7 @@ function renderHome(){
 
   borrowed.forEach(function(b){ if (b.node.parentNode) b.node.parentNode.removeChild(b.node); });
   $home.innerHTML = '<div class="hm-head"><h2>' + todayD.toLocaleDateString(undefined, { weekday:'long' }) + ' <span>' + MON[todayD.getMonth()] + ' ' + todayD.getDate() + '</span></h2><span class="dk-sp"></span>'
-    + '<button class="dk-txt hm-wkbtn" data-go="week">Week</button><button class="dk-txt" data-go="jarvis">Ask Jarvis</button></div>'
+    + '<button class="dk-txt hm-wkbtn" data-go="week">Week</button></div>'
     + '<div class="hm-row hm-r1"><div class="dk-card hm-ready">' + ring + '<div class="hm-rtxt">' + rt + '</div></div>'
     + '<div class="dk-card"><div class="dk-h" style="margin-bottom:14px"><h3>Last night</h3><span>' + (nDate ? nDate.toLocaleDateString(undefined, { weekday:'short', month:'short', day:'numeric' }) + ' · against your last 4 weeks' : '') + '</span></div>' + nightCard + '</div></div>'
     /* totals first, then the days that make them up (v150; the phone hides both) */
