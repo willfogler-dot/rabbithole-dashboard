@@ -6896,7 +6896,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v166';
+const RH_BUILD = 'v167';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -18186,7 +18186,7 @@ if ('serviceWorker' in navigator){
 .plx-wbar .pl{background:color-mix(in srgb,var(--data) 34%,transparent);}
 .plx-wbar .dn{background:var(--data);}
 .plx-wbar em{position:absolute;top:-3px;bottom:-3px;width:2px;border-radius:1px;background:var(--n1);box-shadow:0 0 5px rgba(230,236,255,.5);}
-.plx-wk .mix{font-size:11.5px;color:var(--n3);margin-top:8px;line-height:1.5;}
+.plx-wk .mix{font-size:11.5px;color:var(--n3);margin-top:8px;line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .plx-wk.old .mix,.plx-wk.old .plx-wbar,.plx-wk.old .sub + .plx-wbar + .sub,.plx-wk.old .wa{display:none;}
 .plx-wk.old{padding-top:9px;padding-bottom:9px;}
 .plx-wk.old .big b{font-size:21px;}
@@ -18345,6 +18345,15 @@ if ('serviceWorker' in navigator){
   .plx-day.plx-wd .plx-chip.plx-card{flex:0 1 calc(33.333% - 5px);font-size:12px;padding:8px 9px;}
   .plx-day.plx-wd .plx-wadd{margin-top:0;flex:0 0 auto;padding:8px 14px;align-self:stretch;}
 }
+/* ═══ HIERARCHY (v167) ═══ the same three levels as the dashboards.
+   HERO  the week summary: the goal number is what this page is for.
+   CARD  the day columns, flat and quiet, with today the only lit one.
+   BARE  the twelve-month strip: it is navigation, so it loses its box. */
+.plx-hero{background:radial-gradient(90% 120% at 10% 0%,rgba(143,154,232,.20),transparent 60%),linear-gradient(180deg,rgba(143,154,232,.10),rgba(143,154,232,.035));border-color:rgba(170,180,255,.28);}
+.plx-strip{background:none;border-color:transparent;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none;padding:0 0 4px;}
+.plx-day.plx-wd:not(.today){background:linear-gradient(180deg,rgba(143,154,232,.04),rgba(143,154,232,.012));border-color:rgba(170,196,226,.10);box-shadow:none;}
+.plx-day.plx-wd.past:not(.today){background:rgba(0,0,0,.14);}
+
 /* ═══ PHONE ═══
    Kept LAST so it wins over the base rules above without !important wars.
    The phone is for looking at the plan, with the odd edit, so it keeps the
