@@ -5,13 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <link rel="apple-touch-icon" href="rabbit-hole-icon.png">
 <link rel="icon" type="image/png" href="rabbit-hole-icon.png">
-<link rel="manifest" href="data:application/manifest+json,{&quot;name&quot;:&quot;The Rabbit Hole&quot;,&quot;short_name&quot;:&quot;Rabbit Hole&quot;,&quot;display&quot;:&quot;standalone&quot;,&quot;background_color&quot;:&quot;%2308090c&quot;,&quot;theme_color&quot;:&quot;%2308090c&quot;,&quot;icons&quot;:[{&quot;src&quot;:&quot;rabbit-hole-icon.png&quot;,&quot;sizes&quot;:&quot;1024x1024&quot;,&quot;type&quot;:&quot;image/png&quot;,&quot;purpose&quot;:&quot;any&quot;},{&quot;src&quot;:&quot;rabbit-hole-icon-maskable.png&quot;,&quot;sizes&quot;:&quot;1024x1024&quot;,&quot;type&quot;:&quot;image/png&quot;,&quot;purpose&quot;:&quot;maskable&quot;}]}">
+<link rel="manifest" href="data:application/manifest+json,{&quot;name&quot;:&quot;The Rabbit Hole&quot;,&quot;short_name&quot;:&quot;Rabbit Hole&quot;,&quot;display&quot;:&quot;standalone&quot;,&quot;background_color&quot;:&quot;%23070910&quot;,&quot;theme_color&quot;:&quot;%23070910&quot;,&quot;icons&quot;:[{&quot;src&quot;:&quot;rabbit-hole-icon.png&quot;,&quot;sizes&quot;:&quot;1024x1024&quot;,&quot;type&quot;:&quot;image/png&quot;,&quot;purpose&quot;:&quot;any&quot;},{&quot;src&quot;:&quot;rabbit-hole-icon-maskable.png&quot;,&quot;sizes&quot;:&quot;1024x1024&quot;,&quot;type&quot;:&quot;image/png&quot;,&quot;purpose&quot;:&quot;maskable&quot;}]}">
 
 <meta name="apple-mobile-web-app-title" content="Rabbit Hole">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#08090c">
+<meta name="theme-color" content="#070910">
 <title>The Rabbit Hole</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -42,16 +42,10 @@
   /* Deep space, not dark earth. Every stop is blue-black rather than neutral —
      the cast is what separates obsidian from charcoal, and it is what lets a
      luminous accent read as light emitted rather than paint applied. */
-  /* SURFACES ARE NEUTRAL (v163). They were a blue-violet navy and every card
-     was washed with the accent at 4-10%, so the whole app sat in one lavender
-     pool and the accent had nothing to stand out against. Now the page is a
-     near-neutral charcoal with only a breath of cool in it, cards are lifted
-     with white rather than with the accent, and the accent is left for the
-     few things that are selected or happening now. */
-  --bg-top:#17191e;
-  --bg-mid:#0f1115;
-  --bg-bot:#08090c;
-  --bg-lift:#1e2026;
+  --bg-top:#161a24;
+  --bg-mid:#0e111a;
+  --bg-bot:#070910;
+  --bg-lift:#1c212d;
 
   /* ── neutrals ──────────────────────────────────────────────
      Cool grey with a blue cast, matching the surfaces beneath them. */
@@ -61,8 +55,8 @@
      at arm's length, captions in those were too faint to read. Both lifted. */
   --n3:#959db2;   /* tertiary — labels, captions */
   --n4:#737b90;   /* quaternary — disabled, faint */
-  --n5:rgba(200,206,220,.12);  /* hairline */
-  --n6:rgba(200,206,220,.055);  /* divider, faint fills */
+  --n5:rgba(150,170,220,.13);  /* hairline */
+  --n6:rgba(150,170,220,.06);  /* divider, faint fills */
 
   /* ── sport colours ────────────────────────────────────────
      One fixed colour per kind of training, used everywhere a session or an
@@ -130,17 +124,17 @@
   --el0-line:rgba(0,0,0,.32);
   --el0-sh:inset 0 1px 2px rgba(3,5,10,.55);
 
-  --el1-bg:rgba(255,255,255,.032);
+  --el1-bg:rgba(143,154,232,.045);
   --el1-line:var(--n5);
   --el1-sh:0 1px 1px rgba(3,5,10,.34), 0 3px 8px -3px rgba(3,5,10,.42),
            inset 0 1px 0 rgba(230,236,255,.045);
 
-  --el2-bg:rgba(255,255,255,.052);
+  --el2-bg:rgba(143,154,232,.075);
   --el2-line:rgba(170,196,226,.17);
   --el2-sh:0 2px 3px rgba(3,5,10,.42), 0 10px 24px -8px rgba(3,5,10,.52),
            inset 0 1px 0 rgba(230,236,255,.07);
 
-  --el3-bg:#191b20;
+  --el3-bg:#171b26;
   --el3-line:rgba(170,196,226,.16);
   --el3-sh:0 4px 8px rgba(2,4,8,.52), 0 22px 60px -14px rgba(2,4,8,.72),
            inset 0 1px 0 rgba(230,236,255,.08);
@@ -299,15 +293,15 @@ html{-webkit-text-size-adjust:100%;}
 
    color-scheme tells the browser to use dark defaults for the overscroll area,
    scrollbars and form controls, which is the other place white leaks in. */
-html{background:#08090c;color-scheme:dark;overscroll-behavior:none;height:100%;}
+html{background:#070910;color-scheme:dark;overscroll-behavior:none;height:100%;}
 [data-theme="light"]{color-scheme:light;}
 [data-theme="light"] html{background:#eef1f7;}
 body{font-family:var(--fb);color:var(--ink);min-height:100vh;overflow-x:hidden;
   background:
     /* a second, off-centre bloom — one light source reads as a spotlight,
        two reads as depth, the way a real room is lit from more than one place */
-    radial-gradient(90% 44% at 82% 6%,rgba(255,255,255,.022),transparent 60%),
-    radial-gradient(120% 58% at 22% 22%,rgba(255,255,255,.03),transparent 58%),
+    radial-gradient(90% 44% at 82% 6%,rgba(179,154,232,.055),transparent 60%),
+    radial-gradient(120% 58% at 22% 22%,var(--a-fill),transparent 58%),
     radial-gradient(150% 100% at 50% -8%,var(--bg-top) 0%,var(--bg-mid) 46%,var(--bg-bot) 100%);
   background-color:var(--bg-bot);
   background-attachment:fixed;overscroll-behavior:none;
@@ -2354,7 +2348,7 @@ body.sheet-open::after{z-index:19;}
 
 /* Level 3: surfaces that float above everything. */
 .sheet{background:var(--el3-bg);box-shadow:var(--el3-sh);}
-.nav-in{background:rgba(25,27,32,.86);border:1px solid var(--el3-line);box-shadow:var(--el3-sh);}
+.nav-in{background:rgba(23,27,38,.86);border:1px solid var(--el3-line);box-shadow:var(--el3-sh);}
 .toast{background:var(--el3-bg);border:1px solid var(--el3-line);box-shadow:var(--el3-sh);}
 /* the "Update ready" pill sits where the toast does, just above the nav */
 .upd-bar{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 96px);transform:translate(-50%,16px);opacity:0;z-index:29;
@@ -6902,7 +6896,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v163';
+const RH_BUILD = 'v164';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -7066,7 +7060,7 @@ function applyTheme(mode){
   /* the browser chrome and the status bar should match, or the app ends in a
      hard line against a colour it does not own */
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute('content', m === 'light' ? '#eef1f7' : '#08090c');
+  if (meta) meta.setAttribute('content', m === 'light' ? '#eef1f7' : '#070910');
   lsSet(THEME_KEY, m);
   const sub = document.getElementById('rowThemeSub');
   if (sub) sub.textContent = m;
@@ -17968,7 +17962,7 @@ if ('serviceWorker' in navigator){
   --grad:linear-gradient(112deg,var(--g1),var(--g2) 46%,var(--g3));
   --cell:linear-gradient(180deg,color-mix(in srgb,var(--bg-lift) 46%,var(--bg-mid)),var(--bg-mid) 62%);
   --cell-dim:linear-gradient(180deg,color-mix(in srgb,var(--bg-mid) 60%,var(--bg-bot)),var(--bg-bot));
-  --glass:linear-gradient(180deg,rgba(255,255,255,.058),rgba(255,255,255,.022));   /* white, not the accent: see SURFACES in the main stylesheet */}
+  --glass:linear-gradient(180deg,rgba(143,154,232,.10),rgba(143,154,232,.035));}
 /* Readability. The app's tertiary and quaternary greys were chosen for a phone
    held a foot away; on a desk at arm's length the same greys at 10px were
    simply too faint to read. Inside these wide layouts both steps are lifted
@@ -17984,7 +17978,7 @@ if ('serviceWorker' in navigator){
    panel edges — is flat colour or neutral. An earlier pass lit all of those
    too, and with everything glowing the page was simply bright. */
 #plx::before{content:'';position:absolute;left:0;right:0;top:-110px;height:640px;pointer-events:none;z-index:0;
-  background:none;}
+  background:radial-gradient(40% 36% at 50% 30%,rgba(143,154,232,.07),transparent);}
 #plx > :not(.plx-pop){position:relative;z-index:1;}
 /* the tools menu hangs out of the year block over the calendar below it */
 #plx > #plxYear{z-index:6;}
@@ -20038,7 +20032,7 @@ render();
 .dsk{display:block;position:relative;padding-top:6px;}
 .dsk{--g1:#7fd9bd;--g2:#8f9ae8;--g3:#b39ae8;
   --grad:linear-gradient(112deg,var(--g1),var(--g2) 46%,var(--g3));
-  --glass:linear-gradient(180deg,rgba(255,255,255,.058),rgba(255,255,255,.022));   /* white, not the accent: see SURFACES in the main stylesheet */
+  --glass:linear-gradient(180deg,rgba(143,154,232,.10),rgba(143,154,232,.035));
   --dk-ink:#080a12;}
 /* Every mark in these dashboards is drawn in data ink (--data), not the accent:
    see the token note in the main stylesheet. The accent is not overridden here
@@ -20052,7 +20046,7 @@ render();
 .dsk{--n3:#a0a8bd;--n4:#868ea4;}
 [data-theme="light"] .dsk{--n3:#566074;--n4:#6b7387;}
 .dsk::before{content:'';position:absolute;left:0;right:0;top:-110px;height:640px;pointer-events:none;z-index:0;
-  background:none;}
+  background:radial-gradient(40% 36% at 50% 30%,rgba(143,154,232,.07),transparent);}
 .dsk > *{position:relative;z-index:1;}
 .dsk.nolight::before{display:none;}
 .dsk button{font-family:var(--fb);cursor:pointer;}
