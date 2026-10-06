@@ -4380,6 +4380,48 @@ function computeReadiness(){
            wsum: wsum, mult: (avgZ >= 0 ? UP : DOWN) };
 }
 
+/* Readiness for each of the last n nights, so the score can be seen as a trend.
+   Nothing is stored: every past score is worked out from the same nights and
+   activities, with the same arithmetic as computeReadiness above (each night
+   against the 60 before it, then the training-load adjustment as it stood that
+   morning). KEEP THE TWO IN STEP: if the scoring above changes, change it here.
+   Returns [{ date, score }] oldest first; nights that cannot be scored
+   (missing HRV or resting HR, too little history) are left out. */
+function readinessSeries(n){
+  const overnight = HEALTH.filter(function(r){ return READINESS_REQUIRED.some(function(k){ return r[k] > 0; }); });
+  const usable = activeMetrics(), totalW = usable.reduce(function(s,m){ return s + m.w; }, 0);
+  const out = [];
+  for (let i = Math.max(5, overnight.length - n); i < overnight.length; i++){
+    const row = overnight[i];
+    if (READINESS_REQUIRED.some(function(k){ return !(row[k] > 0); })) continue;
+    const hist = overnight.slice(Math.max(0, i - 60), i);
+    if (hist.length < 5) continue;
+    let wsum = 0, acc = 0, used = 0;
+    for (const m of usable){
+      const readV = m.read || function(r){ return r[m.key]; };
+      const cur = readV(row);
+      if (cur == null) continue;
+      const vals = hist.map(readV).filter(function(v){ return v != null; });
+      if (vals.length < 5) continue;
+      const mean = vals.reduce(function(s,v){ return s + v; }, 0)/vals.length;
+      const sd = Math.sqrt(vals.reduce(function(s,v){ return s + (v-mean)*(v-mean); }, 0)/vals.length) || 1;
+      let z = (cur - mean)/sd; if (m.down) z = -z;
+      z = Math.max(-2.5, Math.min(2.5, z));
+      acc += z*m.w; wsum += m.w; used++;
+    }
+    if (!wsum || used < 2 || (totalW ? wsum/totalW : 0) < 0.35) continue;
+    const avgZ = acc/wsum, physio = 80 + (avgZ >= 0 ? avgZ*16 : avgZ*20);
+    /* training load as of that morning: the same ramp trainingLoad() uses */
+    const end = new Date(row.date + 'T00:00:00').getTime();
+    const acute = loadWindow(7, end), chronic = loadWindow(28, end)/4;
+    let adj = 0;
+    if (chronic > 0){ const ratio = acute/chronic;
+      adj = ratio > 1.3 ? -6*Math.min(1, (ratio - 1.3)/0.5) : ratio >= 0.8 ? 0 : ratio >= 0.5 ? 3*(0.8 - ratio)/0.3 : 3; }
+    out.push({ date: row.date, score: Math.max(20, Math.min(99, Math.round(physio + adj))) });
+  }
+  return out;
+}
+
 
 /* ═══════════ NARRATIVE ENGINE ═══════════
    Always-on briefing writer. No API, no quota. Seeded per-day so it reads
@@ -6846,7 +6888,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v156';
+const RH_BUILD = 'v157';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -20024,6 +20066,7 @@ render();
 .dk-stat label{display:block;font-size:12px;color:var(--n3);margin-bottom:8px;}
 .dk-stat .v{display:flex;align-items:baseline;gap:6px;}
 .dk-stat .v b{font-family:var(--fd);font-size:38px;font-weight:600;letter-spacing:-.03em;line-height:1;color:var(--n1);font-variant-numeric:tabular-nums;}
+.dk-stat .rd-sp{margin-left:auto;display:flex;align-items:center;}
 .dk-stat.lead .v b{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;}
 [data-theme="light"] .dk-stat.lead .v b{background:linear-gradient(112deg,#2f9e7d,#5a66c4 46%,#7a5cc4);-webkit-background-clip:text;background-clip:text;}
 .dk-stat .v span{font-size:13px;color:var(--n3);}
@@ -20112,6 +20155,9 @@ render();
 @media (min-width:760px) and (max-width:1023px){
   .dk-g4{grid-template-columns:repeat(2,minmax(0,1fr));}
   .dk-g5{grid-template-columns:repeat(3,minmax(0,1fr));}
+  /* five tiles in three columns: readiness takes two so the rows come out even */
+  .dk-g5 > .dk-stat.lead{grid-column:span 2;}
+  .dk-g5 > .dk-stat.lead .rd-sp{flex:1;margin-left:26px;} .dk-g5 > .dk-stat.lead .rd-sp svg{width:100%;} .dk-g5 > .dk-stat.lead .rd-sp circle{display:none;}
   .dk-g21,.dk-g32,.dk-g11{grid-template-columns:minmax(0,1fr);}
   .dk-stat .v b{font-size:32px;}
 }
@@ -20267,6 +20313,12 @@ render();
   .dk-yr b{font-size:24px;min-width:66px;}
   .dk-top .dk-sp{display:none;}
   .dk-top .dk-more{margin-left:auto;}
+  /* five tiles in two columns left one stranded; readiness takes the full
+     first row and uses the width for its trend, the other four sit 2 x 2 */
+  .dk-g5 > .dk-stat.lead{grid-column:1 / -1;}
+  .dk-g5 > .dk-stat.lead .rd-sp{flex:1;margin-left:22px;}
+  .dk-g5 > .dk-stat.lead .rd-sp svg{width:100%;height:38px;}
+  .dk-g5 > .dk-stat.lead .rd-sp circle{display:none;}
   .rc-top .rc-pane{margin-left:auto;}
   .rc-top .rc-range{flex:1 1 100%;}
   .rc-top .rc-range button{flex:1;padding:8px 4px;}
@@ -20988,9 +21040,19 @@ function renderRec(){
   /* ── tiles: last night against the 60 nights before it ── */
   const hist = nights.slice(0, -1).slice(-60);
   let R = null; try { R = computeReadiness(); } catch(e){}
+  /* the score night after night: every past night scored the way today's is (readinessSeries in the main script) */
+  let rdSpark = '', rdAvg = null;
+  try {
+    const ser = readinessSeries(30).map(function(x){ return x.score; });
+    if (ser.length >= 2){
+      /* stretched to the card's width on the phone, so the line must not thicken and the end dot (an oval when stretched) is hidden there */
+      rdSpark = spark(ser, 84, 30).replace('<svg ', '<svg preserveAspectRatio="none" ').replace('<path ', '<path vector-effect="non-scaling-stroke" ');
+      const l7 = ser.slice(-7); rdAvg = Math.round(l7.reduce(function(a,b){ return a + b; }, 0)/l7.length);
+    }
+  } catch(e){ console.error('[dsk] readiness trend', e); }
   let tiles = '<button class="dk-card dk-stat lead" data-go="ready" style="text-align:left;cursor:pointer"><label>Readiness</label>'
-    + '<div class="v"><b>' + (R && typeof R.score === 'number' ? R.score : '—') + '</b></div>'
-    + '<div class="d">' + (R && R.label ? '<b>' + E(R.label) + '</b> · how the score is built' : (R && R.stale ? 'last night has not synced' : 'needs more nights')) + '</div></button>';
+    + '<div class="v"><b>' + (R && typeof R.score === 'number' ? R.score : '—') + '</b>' + (rdSpark ? '<span class="rd-sp">' + rdSpark + '</span>' : '') + '</div>'
+    + '<div class="d">' + (R && R.label ? '<b>' + E(R.label) + '</b>' + (rdAvg != null ? ' · 7-night average <b>' + rdAvg + '</b>' : ' · how the score is built') : (R && R.stale ? 'last night has not synced' : 'needs more nights')) + '</div></button>';
   HM.forEach(function(m){
     const cur = m.of(latest), base = hist.map(m.of).filter(function(v){ return v != null; }), usual = base.length >= 5 ? mean(base) : null;
     let d = '&nbsp;';
