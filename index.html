@@ -6896,7 +6896,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v169';
+const RH_BUILD = 'v170';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -20362,35 +20362,6 @@ render();
   .hm-it .t{flex:1 0 100%;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
 }
 
-/* ═══ HIERARCHY (v165, Overview) ═══ three levels of surface instead of one.
-   HERO  one card per page carries the accent wash: the thing you came for.
-   CARD  everything else that is an object sits on a flat, quiet card.
-   BARE  content that is not an object (a row of totals, a list of facts, the
-         week's days) sits straight on the page with no box at all.
-   Before this every block had the same box, border and tint, so the page read
-   as one tinted grid with no focal point. Same navy, same accent: only where
-   the wash is spent has changed. */
-#dskHome .dk-card{background:linear-gradient(180deg,rgba(143,154,232,.04),rgba(143,154,232,.015));border-color:rgba(170,196,226,.10);box-shadow:none;}
-#dskHome #hmVolSlot > .ov-volume{background:linear-gradient(180deg,rgba(143,154,232,.04),rgba(143,154,232,.015));border-color:rgba(170,196,226,.10);box-shadow:none;}
-#dskHome .dk-card.hm-ready{
-  background:radial-gradient(120% 90% at 18% 0%,rgba(143,154,232,.22),transparent 62%),linear-gradient(180deg,rgba(143,154,232,.11),rgba(143,154,232,.04));
-  border-color:rgba(170,180,255,.30);box-shadow:var(--el2-sh);}
-/* BARE: the four totals */
-#dskHome .hm-tiles{gap:0;margin:26px 0 30px;}
-#dskHome .hm-tiles .dk-card{background:none;border:none;border-radius:0;box-shadow:none;padding:2px 26px 2px;border-left:1px solid var(--line);}
-#dskHome .hm-tiles .dk-card:first-child{border-left:none;padding-left:4px;}
-#dskHome .hm-tiles button.dk-card:hover{transform:none;}
-#dskHome .hm-tiles .dk-stat .v b{font-size:34px;}
-/* BARE: the week's days, under a heading */
-#dskHome .dk-card.hm-weekcard{background:none;border:none;box-shadow:none;padding:0;margin-bottom:30px;}
-#dskHome .hm-weekcard .hm-day:not(.today){background:rgba(143,154,232,.035);border-color:rgba(170,196,226,.08);}
-/* BARE: insights are sentences, not an object */
-#dskHome .hm-side > .dk-card:first-child{background:none;border:none;box-shadow:none;padding:4px 6px 8px;}
-@media (min-width:760px) and (max-width:1023px){
-  #dskHome .hm-tiles .dk-card{padding-left:16px;padding-right:12px;}
-  #dskHome .hm-tiles .dk-stat .v b{font-size:28px;}
-}
-
 /* ═══ HIERARCHY (v166, Progress, Recovery, Profile) ═══ the same three levels
    as the Overview block above. Hero: the lead tile. Bare: the fact lists that
    sit beside the main chart ("Where it is heading", "This stretch"). */
@@ -20399,7 +20370,6 @@ render();
   background:radial-gradient(130% 100% at 14% 0%,rgba(143,154,232,.22),transparent 64%),linear-gradient(180deg,rgba(143,154,232,.11),rgba(143,154,232,.04));
   border-color:rgba(170,180,255,.30);box-shadow:var(--el2-sh);}
 .dsk .dk-card.tall{background:none;border-color:transparent;box-shadow:none;padding-left:14px;padding-right:8px;}
-#dskHome .hm-tiles .dk-card.dk-stat.lead{background:none;border-color:transparent;box-shadow:none;border-left:none;}
 .dsk .dk-fact > span{white-space:nowrap;}
 
 /* ═══ FEWER CARDS (v168) ═══ a second pass at the same idea. After v165-v167
@@ -20412,8 +20382,6 @@ render();
 .dsk .dk-g4 > .dk-card.dk-stat,.dsk .dk-g5 > .dk-card.dk-stat,
 .dsk .dk-g4 > .dk-card.dk-stat.lead,.dsk .dk-g5 > .dk-card.dk-stat.lead{background:none;border:none;border-radius:0;box-shadow:none;padding:2px 24px;border-left:1px solid var(--line);}
 .dsk .dk-g4 > .dk-card.dk-stat:first-child,.dsk .dk-g5 > .dk-card.dk-stat:first-child{border-left:none;padding-left:4px;}
-#dskHome .hm-r1 > .dk-card:not(.hm-ready){background:none;border-color:transparent;box-shadow:none;}
-#dskHome .hm-side > .dk-card{background:none;border-color:transparent;box-shadow:none;padding:4px 6px 8px;}
 @media (min-width:760px) and (max-width:1023px){
   .dsk .dk-g4,.dsk .dk-g5{row-gap:24px;}
   .dsk .dk-g4 > .dk-card.dk-stat:nth-child(odd){border-left:none;padding-left:4px;}
@@ -20424,7 +20392,57 @@ render();
   .dsk .dk-g4 > .dk-card.dk-stat,.dsk .dk-g5 > .dk-card.dk-stat,.dsk .dk-g5 > .dk-card.dk-stat.lead{padding:2px 14px;}
   .dsk .dk-g4 > .dk-card.dk-stat:nth-child(odd){border-left:none;padding-left:4px;}
   .dsk .dk-g5 > .dk-card.dk-stat:nth-child(even),.dsk .dk-g5 > .dk-card.dk-stat.lead{border-left:none;padding-left:4px;}
-  #dskHome .hm-r1 > .dk-card:not(.hm-ready),#dskHome .hm-side > .dk-card{padding:6px 4px 8px;}
+}
+
+/* ═══ PANELS (v170, Overview) ═══
+   One rule for what gets a box: A PANEL IS A SECTION. The page is a few large
+   panels, and everything inside a panel is separated by hairlines, never by
+   another box. This replaces two earlier attempts: every item in its own card
+   (too many boxes), then boxes on some items and not others (no visible reason
+   for the difference). Overview is three panels: today (readiness and last
+   night), this week (totals and the days), trends (volume, insights, recent). */
+@media (min-width:760px){
+#dskHome .hm-panel{border:1px solid var(--el2-line);border-radius:20px;background:var(--glass);box-shadow:var(--el2-sh);margin-bottom:16px;}
+#dskHome .hm-panel .dk-card,#dskHome .hm-panel #hmVolSlot > .ov-volume{background:none;border:none;border-radius:0;box-shadow:none;}
+#dskHome .hm-row.hm-panel{gap:0;}
+#dskHome .hm-panel > .dk-card.hm-ready{padding:22px 24px;border-radius:19px 0 0 19px;
+  background:radial-gradient(120% 110% at 15% 0%,rgba(143,154,232,.20),transparent 65%);}
+#dskHome .hm-panel > .dk-card.hm-ready + .dk-card{border-left:1px solid var(--line);padding:20px 22px;}
+#dskHome .hm-wkp .hm-tiles{margin:0;gap:0;padding:18px 8px 16px;border-bottom:1px solid var(--line);}
+#dskHome .hm-wkp .hm-tiles .dk-card{padding:2px 24px;border-left:1px solid var(--line);}
+#dskHome .hm-wkp .hm-tiles .dk-card:first-child{border-left:none;padding-left:14px;}
+#dskHome .hm-wkp .hm-tiles button.dk-card:hover{transform:none;}
+#dskHome .hm-wkp .dk-card.hm-weekcard{margin:0;padding:16px 20px 18px;}
+#dskHome .hm-wkp .hm-day:not(.today){background:rgba(0,0,0,.18);border-color:transparent;}
+#dskHome .hm-panel #hmVolSlot > .ov-volume{padding:20px 22px 18px;}
+#dskHome .hm-panel .hm-side{border-left:1px solid var(--line);gap:0;}
+#dskHome .hm-panel .hm-side > .dk-card{padding:18px 22px;}
+#dskHome .hm-panel .hm-side > .dk-card + .dk-card{border-top:1px solid var(--line);}
+}
+@media (min-width:760px) and (max-width:1023px){
+  /* held upright the two halves of a panel stack, so the divider runs across */
+  #dskHome .hm-panel > .dk-card.hm-ready{border-radius:19px 19px 0 0;}
+  #dskHome .hm-panel > .dk-card.hm-ready + .dk-card{border-left:none;border-top:1px solid var(--line);}
+  #dskHome .hm-panel .hm-side{border-left:none;border-top:1px solid var(--line);}
+  #dskHome .hm-wkp .hm-tiles .dk-card{padding:2px 14px;}
+  #dskHome .hm-wkp .hm-tiles .dk-stat .v b{font-size:26px;}
+}
+@media (max-width:759px){
+  /* The phone shows a subset in its own order (see the phone block below), with
+     the pairing wrappers dissolved, so its panels are made from the cards
+     themselves: readiness, then volume, then one panel of last night, insights
+     and recent joined edge to edge. */
+  #dskHome{gap:0;}
+  #dskHome .hm-head{margin-bottom:12px;}
+  #dskHome .hm-r1 > .dk-card.hm-ready,#dskHome #hmVolSlot > .ov-volume{border:1px solid var(--el2-line);border-radius:18px;box-shadow:var(--el2-sh);}
+  #dskHome #hmVolSlot > .ov-volume{background:var(--glass);}
+  #dskHome .hm-r1 > .dk-card.hm-ready{margin-bottom:12px;}
+  #dskHome #hmVolSlot{margin-bottom:12px;}
+  #dskHome .hm-r1 > .dk-card:not(.hm-ready),#dskHome .hm-side > .dk-card{background:rgba(143,154,232,.055);   /* flat, so three joined pieces read as one surface */
+    border:1px solid var(--el2-line);border-radius:0;box-shadow:none;margin:0;padding:16px 15px 15px;}
+  #dskHome .hm-r1 > .dk-card:not(.hm-ready){border-radius:18px 18px 0 0;border-bottom:none;}
+  #dskHome .hm-side > .dk-card:first-child{border-top:1px solid var(--line);border-bottom:none;}
+  #dskHome .hm-side > .dk-card:last-child{border-top:1px solid var(--line);border-radius:0 0 18px 18px;}
 }
 
 /* ═══ PHONE ═══ kept last so it wins over the wide rules above without !important */
@@ -21508,13 +21526,13 @@ function renderHome(){
   borrowed.forEach(function(b){ if (b.node.parentNode) b.node.parentNode.removeChild(b.node); });
   $home.innerHTML = '<div class="hm-head"><h2>' + todayD.toLocaleDateString(undefined, { weekday:'long' }) + ' <span>' + MON[todayD.getMonth()] + ' ' + todayD.getDate() + '</span></h2><span class="dk-sp"></span>'
     + '<button class="dk-txt hm-wkbtn" data-go="week">Week</button></div>'
-    + '<div class="hm-row hm-r1"><div class="dk-card hm-ready">' + ring + '<div class="hm-rtxt">' + rt + '</div></div>'
+    + '<div class="hm-row hm-r1 hm-panel"><div class="dk-card hm-ready">' + ring + '<div class="hm-rtxt">' + rt + '</div></div>'
     + '<div class="dk-card"><div class="dk-h" style="margin-bottom:14px"><h3>Last night</h3><span>' + (nDate ? nDate.toLocaleDateString(undefined, { weekday:'short', month:'short', day:'numeric' }) + ' · against your last 4 weeks' : '') + '</span></div>' + nightCard + '</div></div>'
     /* totals first, then the days that make them up (v150; the phone hides both) */
-    + '<div class="hm-tiles">' + tiles + '</div>'
+    + '<div class="hm-panel hm-wkp"><div class="hm-tiles">' + tiles + '</div>'
     + '<div class="dk-card hm-weekcard"><div class="dk-h"><h3>This week</h3><span>' + MON[mon.getMonth()] + ' ' + mon.getDate() + ' – ' + (sun.getMonth() !== mon.getMonth() ? MON[sun.getMonth()] + ' ' : '') + sun.getDate() + '</span>'
-    + '<span class="dk-sp"></span><button class="dk-txt" data-go="plan">Open planner</button></div><div class="hm-days">' + days + '</div></div>'
-    + '<div class="hm-row hm-r3"><div id="hmVolSlot"></div>'
+    + '<span class="dk-sp"></span><button class="dk-txt" data-go="plan">Open planner</button></div><div class="hm-days">' + days + '</div></div></div>'
+    + '<div class="hm-row hm-r3 hm-panel"><div id="hmVolSlot"></div>'
     + '<div class="hm-side"><div class="dk-card"><div class="dk-h"><h3>Insights</h3></div><div class="dk-facts hm-ins">' + insights + '</div></div>'
     + '<div class="dk-card"><div class="dk-h"><h3>Recent</h3><span class="dk-sp"></span><button class="dk-txt" data-go="acts" style="margin:-6px -6px 0 0">All activities</button></div><div class="dk-list hm-recent">' + (recent || '<div class="dk-empty">No activities yet.<br>Connect Strava under Profile and they appear here on their own.</div>') + '</div></div></div></div>';
   lend();
