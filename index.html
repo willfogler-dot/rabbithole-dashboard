@@ -6888,7 +6888,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v158';
+const RH_BUILD = 'v159';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -20329,7 +20329,6 @@ render();
   .dk-g5 > .dk-stat.lead .rd-sp{flex:1;margin-left:22px;}
   .dk-g5 > .dk-stat.lead .rd-sp svg{width:100%;height:38px;}
   .dk-g5 > .dk-stat.lead .rd-sp circle{display:none;}
-  .rc-top .rc-pane{margin-left:auto;}
   .rc-top .rc-range{flex:1 1 100%;}
   .rc-top .rc-range button{flex:1;padding:8px 4px;}
   /* on the phone the word would push this onto a second line; three dots fit on the first */
@@ -21025,13 +21024,16 @@ function mean(a){ return a.length ? a.reduce(function(s,v){ return s + v; }, 0)/
 
 function renderRec(){
   if (!$rec || !hHost.classList.contains('on')) return;
-  const fuelOn = $recPane.style.display === 'none';
+  /* Fuel can no longer be opened, so make sure Recovery is the pane showing */
+  if ($recPane.style.display === 'none'){ $recPane.style.display = ''; const fp = document.getElementById('fuelPane'); if (fp) fp.style.display = 'none'; }
+  const fuelOn = false;
   /* Title and the Recovery/Fuel switch on the left, the time range on the right:
      the switch changes what page this is, the range only changes the charts,
      so they are no longer run together as one strip of pills (v156). On the
      phone the range drops to its own full-width row. */
   $hTop.innerHTML = '<div class="dk-top rc-top" style="margin-bottom:16px"><div class="dk-yr"><b style="min-width:0;text-align:left">' + (fuelOn ? 'Fuel' : 'Recovery') + '</b></div>'
-    + '<div class="dk-seg rc-pane"><button data-pane="recovery"' + (fuelOn ? '' : ' class="on"') + '>Recovery</button><button data-pane="fuel"' + (fuelOn ? ' class="on"' : '') + '>Fuel</button></div>'
+    /* The Recovery/Fuel switch was here until v159. Fuel (the nutrition
+       planner) is retired from the screen; its saved data is untouched. */
     + '<div class="dk-sp"></div>'
     + (fuelOn ? '' : '<div class="dk-seg plain rc-range">' + [[30,'30 days'],[90,'90 days'],[180,'6 months'],[365,'1 year']].map(function(o){ return '<button data-range="' + o[0] + '"' + (hs.range === o[0] ? ' class="on"' : '') + '>' + o[1] + '</button>'; }).join('') + '</div>')
     + '</div>';
