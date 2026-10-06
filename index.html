@@ -6888,7 +6888,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v157';
+const RH_BUILD = 'v158';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -11886,6 +11886,13 @@ function jarvisFacts(){
   return lines.join('\n');
 }
 
+/* JARVIS IS OFF (v158). Will asks his questions in the Claude project, which
+   reads the same Supabase data, so the in-app assistant, the written briefing
+   and the AI meal/plan parsers are retired. Their buttons are gone; this flag
+   is the backstop that stops any leftover path from calling the paid function.
+   The code is left in place on purpose: other code still calls into it, and
+   deleting it piecemeal is how this file has broken before. */
+const JARVIS_OFF = true;
 const AI_FN = 'ai-brief';          /* Supabase edge function holding the key */
 const AI_CACHE_KEY = 'rh_jarvis_today_v1';
 
@@ -12036,6 +12043,7 @@ function recentBriefings(){
 async function jarvisViaProxy(prompt){
   const c = syncCfg();
   if (!c) throw new Error('no_proxy');
+  if (JARVIS_OFF) throw new Error('jarvis_off');   /* v158: no AI calls from the app */
   const res = await fetch(c.url.replace(/\/$/,'') + '/functions/v1/' + AI_FN, {
     method:'POST',
     headers:{ apikey:c.key, Authorization:'Bearer '+c.key, 'Content-Type':'application/json' },
@@ -14450,6 +14458,7 @@ async function logFoodFromText(text, dayISO){
       + known.map(function(k){ return '- ' + k.name + ' (' + k.kcal + ' kcal)'; }).join('\n')
     : '';
 
+  if (JARVIS_OFF) throw new Error('jarvis_off');   /* v158: no AI calls from the app */
   const res = await fetch(c.url.replace(/\/$/,'') + '/functions/v1/' + AI_FN, {
     method:'POST',
     headers:{ apikey:c.key, Authorization:'Bearer '+c.key, 'Content-Type':'application/json' },
@@ -14575,6 +14584,7 @@ async function planFromText(text){
     'Split multiple sessions into multiple entries.',
   ].join('\n');
 
+  if (JARVIS_OFF) throw new Error('jarvis_off');   /* v158: no AI calls from the app */
   const res = await fetch(c.url.replace(/\/$/,'') + '/functions/v1/' + AI_FN, {
     method:'POST',
     headers:{ apikey:c.key, Authorization:'Bearer '+c.key, 'Content-Type':'application/json' },
@@ -21332,7 +21342,7 @@ function renderHome(){
   tActs.forEach(function(a){ if (tUsed.has(a.id)) return; const k = kOf(a.type);
     tRows += '<div class="hm-td done"' + (k ? ' style="--k:' + k + '"' : '') + '><i></i><span>' + E(a.name || a.type) + '</span><b>' + E(valOf(a.distance_mi, a.moving_time)) + '</b></div>'; });
   rt += '<div class="hm-today"><label>Today</label>' + (tRows || '<div class="hm-td none"><span>Nothing planned</span></div>') + '</div>';
-  if (brief) rt += '<p class="brief">' + brief.replace(/<\/?p[^>]*>/g, ' ') + '</p>';
+  /* the written briefing was shown here until v158 */
   const nights = (HEALTH || []).filter(function(r){ return r && r.date && (r.hrv_last_night_avg > 0 || r.sleep_seconds > 0 || r.resting_hr > 0); })
                                .sort(function(a,b){ return a.date < b.date ? -1 : 1; });
   const last = nights[nights.length - 1];
