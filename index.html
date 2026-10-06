@@ -6896,7 +6896,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v175';
+const RH_BUILD = 'v176';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -20438,6 +20438,16 @@ render();
   background:radial-gradient(70% 150% at 8% 0%,rgba(143,154,232,.20),transparent 62%),linear-gradient(180deg,rgba(143,154,232,.10),rgba(143,154,232,.086));
   border-color:rgba(170,180,255,.26);}
 :root:not([data-theme="light"]) #dskTrain .dk-g4 + .dk-grid,:root:not([data-theme="light"]) #dskRec .dk-g5 + .dk-grid{border-color:rgba(170,180,255,.26);border-top-color:var(--line);}
+
+/* v176: SQUARE CORNERS ON PANELS. Every card has a background blur
+   (backdrop-filter). Inside a panel the cards are square and transparent, but
+   the blur is still painted to the card's full square box, so it showed
+   through at the panel's rounded corners as a square edge with a dark notch.
+   Cards inside panels no longer blur; the panel is the surface. */
+.dsk .dk-grid > .dk-card,#dskHome .hm-panel .dk-card,#dskHome .hm-panel #hmVolSlot > .ov-volume{-webkit-backdrop-filter:none;backdrop-filter:none;}
+@media (max-width:759px){
+  #dskHome .hm-r1 > .dk-card:not(.hm-ready),#dskHome .hm-side > .dk-card{-webkit-backdrop-filter:none;backdrop-filter:none;}
+}
 
 /* ═══ PANELS (v170, Overview) ═══
    One rule for what gets a box: A PANEL IS A SECTION. The page is a few large
