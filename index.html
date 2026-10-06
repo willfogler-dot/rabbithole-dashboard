@@ -6896,7 +6896,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v173';
+const RH_BUILD = 'v174';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -18371,6 +18371,11 @@ if ('serviceWorker' in navigator){
   .plx-day.plx-wd:first-child{border-radius:19px 19px 0 0;} .plx-day.plx-wd:last-child{border-radius:0 0 19px 19px;}
 }
 
+/* v174: the same inset as the dashboards (23px desktop, 16px phone; see the note there) */
+.plx-hero > div{padding-left:22px;padding-right:22px;}
+.plx-hero{margin-bottom:16px;}
+.plx-day.plx-wd,.plx-day.plx-wd:not(.today),.plx-day.plx-wd.past:not(.today){padding-left:12px;padding-right:12px;}
+
 /* ═══ PHONE ═══
    Kept LAST so it wins over the base rules above without !important wars.
    The phone is for looking at the plan, with the odd edit, so it keeps the
@@ -18404,7 +18409,9 @@ if ('serviceWorker' in navigator){
   .plx-fact small{display:block;margin-top:1px;}
   .plx-fact b.mixv{white-space:normal;}   /* two columns on a phone: this one line is allowed to wrap rather than be cut */
   .plx-week{grid-template-columns:minmax(0,1fr);gap:8px;}
-  .plx-day.plx-wd,.plx-day.plx-wd:not(.today),.plx-day.plx-wd.past:not(.today){min-height:0;padding:12px 11px 11px;}
+  .plx-day.plx-wd,.plx-day.plx-wd:not(.today),.plx-day.plx-wd.past:not(.today){min-height:0;padding:12px 10px 11px;}
+  .plx-hero > div{padding-left:15px;padding-right:15px;}
+  .plx-hero{margin-bottom:12px;}
   .plx-week{gap:0;border-radius:18px;}
   .plx-wdh{padding-bottom:4px;}
   .plx-wdh .dw{font-size:12px;}
@@ -20470,6 +20477,19 @@ render();
   #dskHome .hm-r1 > .dk-card:not(.hm-ready){border-radius:18px 18px 0 0;border-bottom:none;}
   #dskHome .hm-side > .dk-card:first-child{border-top:1px solid var(--line);border-bottom:none;}
   #dskHome .hm-side > .dk-card:last-child{border-top:1px solid var(--line);border-radius:0 0 18px 18px;}
+}
+
+/* v174: ONE INSET. Measured, the first line of text sat 21 to 25px in from a
+   panel's edge on desktop and 15 to 17px on the phone, depending on the panel,
+   so headings did not line up down the page. Everything now starts 23px in on
+   desktop and iPad and 16px in on the phone. */
+@media (min-width:760px){
+  #dskHome .hm-wkp .hm-tiles .dk-card:first-child{padding-left:15px;}
+  #dskHome .hm-wkp .dk-card.hm-weekcard{padding-left:22px;padding-right:22px;}
+}
+@media (max-width:759px){
+  .dsk .dk-g4 > .dk-card.dk-stat:nth-child(odd),.dsk .dk-g5 > .dk-card.dk-stat:nth-child(even),.dsk .dk-g5 > .dk-card.dk-stat.lead{padding-left:9px;}
+  #dskHome #hmVolSlot > .ov-volume{padding-left:15px;padding-right:15px;}
 }
 
 /* ═══ PHONE ═══ kept last so it wins over the wide rules above without !important */
