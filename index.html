@@ -3576,6 +3576,7 @@ async function pushPlan(force){
                             jarvisFeedback: lsGet(FB_KEY, []),
                             foodMemory: lsGet(FOODMEM_KEY, {}),
                             customFoods: CUSTOM, templates: TEMPLATES, repeats: REPEATS,
+                            points: PTS,
                             stravaActs: stravaActs,
                             stravaSyncedAt: lsGet(STRAVA_SYNCED, null),
                             ts: ts };
@@ -3674,6 +3675,8 @@ function adoptPlan(src, p){
   /* Only adopted when the cloud copy carries the key at all: a device still on
      an older build pushes a plan without it, and that must not erase the rules. */
   if (Array.isArray(src.repeats)){ REPEATS = src.repeats; lsSet(REPEATS_KEY, REPEATS); }
+  /* frozen points: a union, and where both sides froze the same session the cloud's number is kept so devices agree */
+  if (p.points && typeof p.points === 'object'){ PTS = Object.assign({}, PTS, p.points); lsSet(PTS_KEY, PTS); }
   if (Array.isArray(p.stravaActs) && p.stravaActs.length){
     const local = lsGet(STRAVA_ACTS_KEY, []) || [];
     const byId = {};
@@ -4215,6 +4218,43 @@ function loadOf(a){
      bad reading run the week */
   return re*0.7 + est*0.3;
 }
+/* ── POINTS ──
+   The game layer over training load. A point is one unit of loadOf(): mostly
+   Strava's heart-rate effort, blended with time and vert, so every kind of
+   session earns something (runs, strength, Qi Gong, sauna: Will chose to count
+   sauna). More is always better here; readiness is the thing that says stop.
+
+   FROZEN ONCE THE WEEK ENDS. loadOf() is calibrated against all history, so an
+   old session's score drifts a little as new data arrives. A scoreboard whose
+   past totals move is not a scoreboard, so every activity's points are written
+   down the first time the app sees it in a finished week and never recomputed.
+   The current week stays live until Monday. The frozen values travel in the
+   synced plan document (key `points`), so every device shows the same totals;
+   when two devices froze the same session differently, the cloud's value wins. */
+const PTS_KEY = 'rh_points_frozen_v1';
+let PTS = lsGet(PTS_KEY, {}) || {};
+function pointsOf(a){
+  if (!a) return 0;
+  const k = a.id != null ? String(a.id) : null;
+  if (k && PTS[k] != null) return PTS[k];
+  return Math.round(loadOf(a));
+}
+function freezePoints(){
+  const cutTs = weekStart(todayD).getTime();
+  let n = 0;
+  ACTS.forEach(function(a){
+    if (!a || a.id == null || !(a._ts < cutTs)) return;
+    const k = String(a.id);
+    if (PTS[k] == null){ PTS[k] = Math.round(loadOf(a)); n++; }
+  });
+  if (n){ lsSet(PTS_KEY, PTS); try { queuePush(); } catch(e){} console.log('[points] froze ' + n + ' sessions from finished weeks'); }
+  return n;
+}
+window.rhPoints = function(){
+  const wk = weekStart(todayD).getTime(), yr = new Date(todayD.getFullYear(), 0, 1).getTime();
+  const sum = function(from){ return ACTS.reduce(function(t,a){ return t + (a && a._ts >= from ? pointsOf(a) : 0); }, 0); };
+  console.log('[points] this week ' + sum(wk) + ' · this year ' + sum(yr) + ' · lifetime ' + sum(0) + ' · frozen sessions ' + Object.keys(PTS).length);
+};
 function loadWindow(days, endTs){
   const end = endTs || todayD.getTime();
   const start = end - days*86400000;
@@ -6896,7 +6936,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v176';
+const RH_BUILD = 'v177';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -8683,6 +8723,7 @@ function applyNewActivities(){
   let snap = null;
   try { snap = window.rhMotion && window.rhMotion.snap(); } catch(e){}
   ACTS = buildActs();
+  try { freezePoints(); } catch(e){}
   refreshAllViews();
   try { if (snap) window.rhMotion.update(snap); } catch(e){ console.warn('[motion]', e); }
 }
@@ -17685,6 +17726,8 @@ stravaCallback();
 try { if (!lsGet(PLAN_BASE_KEY, null)) _loadBase = planSnapshot(lsGet(PLAN_TS_KEY, 0)); } catch(e){ console.warn('[sync] base', e); }
 /* plans made on another device */
 pullPlan().then(function(changed){
+  /* after the cloud has been heard from, so this device does not freeze numbers another already has */
+  try { freezePoints(); } catch(e){ console.warn('[points]', e); }
   if (!changed) return;
   renderCal(); setPlanView(planView); renderGreeting(); renderRaceCard(); renderRaceList();
   renderGoals(); renderWeek(); renderProgress(); refreshProfileRows(); renderSavedRoutes();
@@ -20633,6 +20676,10 @@ const MET = {
   time:      { label:'Hours', unit:'h', of:function(a){ return (a.moving_time || 0)/3600; },
                fmt:function(v){ return v >= 100 ? Math.round(v).toLocaleString() : (Math.round(v*10)/10).toString(); },
                fine:function(v){ return (Math.round(v*10)/10).toString(); } },
+  /* training load as a score (pointsOf, in the main script). Unlike the three above it counts every activity, not only runs. */
+  points:    { label:'Points', unit:'pts', of:function(a){ try { return pointsOf(a); } catch(e){ return 0; } },
+               fmt:function(v){ return Math.round(v).toLocaleString(); },
+               fine:function(v){ return Math.round(v).toLocaleString(); } },
 };
 const axisFmt = function(metric){
   return function(v){
@@ -20827,7 +20874,9 @@ function delta(now, then){
 
 function renderTrain(){
   if (!$train || !host.classList.contains('on')) return;
-  const y = st.year, M = MET[st.metric], R = runs();
+  const y = st.year, M = MET[st.metric], RR = runs(), PTSMODE = st.metric === 'points';
+  /* miles, vert and hours are about running; points are earned by everything */
+  const R = PTSMODE ? ACTS.filter(function(a){ return a && a._date; }) : RR;
   const years = Array.from(new Set(R.map(function(a){ return a._date.getFullYear(); }))).sort();
   const minY = years.length ? years[0] : curY;
   const isCur = y === curY;
@@ -20852,7 +20901,27 @@ function renderTrain(){
   };
   const nRuns = inYear.filter(function(a){ return a.distance_mi > 0; }).length, pRuns = prevTo.filter(function(a){ return a.distance_mi > 0; }).length;
   const miNow = sum(inYear, 'distance'), secNow = inYear.reduce(function(s,a){ return s + (a.distance_mi > 0 ? (a.moving_time || 0) : 0); }, 0);
-  const tiles = tile('distance', true) + tile('elevation') + tile('time')
+  let ptsTiles = '';
+  if (PTSMODE){
+    /* the scoreboard: this week against a usual one, and the records to beat */
+    const wkTot = {}, moTot = {};
+    R.forEach(function(a){ const p = M.of(a); if (!p) return; const wk = iso(weekStart(a._date)); wkTot[wk] = (wkTot[wk] || 0) + p;
+      const mk = a._date.getFullYear() + '-' + String(a._date.getMonth() + 1).padStart(2, '0'); moTot[mk] = (moTot[mk] || 0) + p; });
+    const thisWk = iso(weekStart(todayD)), nowWk = wkTot[thisWk] || 0;
+    const past12 = []; for (let i=1;i<=12;i++) past12.push(wkTot[iso(addDays(weekStart(todayD), -7*i))] || 0);
+    const usual = med(past12.filter(function(v){ return v > 0; })) || 0;
+    const top = function(o){ let bk = null; Object.keys(o).forEach(function(k){ if (bk == null || o[k] > o[bk]) bk = k; }); return bk; };
+    const bw = top(wkTot), bm = top(moTot);
+    const bwD = bw ? new Date(bw + 'T00:00:00') : null, bmD = bm ? new Date(bm + '-01T00:00:00') : null;
+    ptsTiles = '<div class="dk-card dk-stat"><label>This week</label><div class="v"><b>' + M.fmt(nowWk) + '</b><span>pts</span></div>'
+      + '<div class="d">' + (usual ? (nowWk >= usual ? '<b class="up">past a usual week</b> (' + M.fmt(usual) + ')' : '<b>' + M.fmt(usual - nowWk) + '</b> to reach a usual week (' + M.fmt(usual) + ')') : '&nbsp;') + '</div>'
+      + (usual ? '<div class="dk-prog"><i style="width:' + Math.min(100, nowWk/Math.max(usual, nowWk, 1)*100).toFixed(1) + '%"></i><em style="left:' + Math.min(100, usual/Math.max(usual, nowWk, 1)*100).toFixed(1) + '%"></em></div>' : '') + '</div>'
+      + '<div class="dk-card dk-stat"><label>Best week</label><div class="v"><b>' + (bw ? M.fmt(wkTot[bw]) : '—') + '</b><span>' + (bw ? 'pts' : '') + '</span></div>'
+      + '<div class="d">' + (bw ? (bw === thisWk ? '<b class="up">this week, and counting</b>' : 'week of ' + bwD.toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' })) : '&nbsp;') + '</div></div>'
+      + '<div class="dk-card dk-stat"><label>Best month</label><div class="v"><b>' + (bm ? M.fmt(moTot[bm]) : '—') + '</b><span>' + (bm ? 'pts' : '') + '</span></div>'
+      + '<div class="d">' + (bm ? MON[bmD.getMonth()] + ' ' + bmD.getFullYear() : '&nbsp;') + '</div></div>';
+  }
+  const tiles = PTSMODE ? tile('points', true) + ptsTiles : tile('distance', true) + tile('elevation') + tile('time')
     + '<div class="dk-card dk-stat"><label>Runs</label><div class="v"><b>' + nRuns + '</b></div>'
     + '<div class="d">' + (pRuns ? delta(nRuns, pRuns) + 'vs ' + pRuns + ' by this point in ' + (y - 1) : '&nbsp;') + '</div>'
     + '<div class="d" style="margin-top:6px">' + (nRuns ? '<b>' + M_fine(miNow/nRuns) + ' mi</b> average · <b>' + paceStr(miNow, secNow) + '</b> /mi' : '') + '</div></div>';
@@ -20883,6 +20952,12 @@ function renderTrain(){
             + '<small>' + M.fmt(Math.abs(gap)) + ' ' + M.unit + ' ' + (gap >= 0 ? 'over' : 'under') + ' where ' + M.fmt(T) + ' needs you today</small></b></div>'
             + '<div class="dk-fact"><span>Needed from here</span><b>' + (done >= T ? 'Done' : M.fine((T - done)/Math.max(.1, wksLeft)) + ' ' + M.unit + ' / wk')
             + '<small>' + (done >= T ? 'target already met' : 'for the ' + Math.round(wksLeft) + ' weeks left') + '</small></b></div>';
+    } else if (PTSMODE){
+      const life = R.reduce(function(t,a){ return t + M.of(a); }, 0), yrs = {}; R.forEach(function(a){ const k = a._date.getFullYear(); yrs[k] = (yrs[k] || 0) + M.of(a); });
+      const bestY = Object.keys(yrs).filter(function(k){ return +k !== y; }).sort(function(a,b){ return yrs[b] - yrs[a]; })[0];
+      if (bestY) facts += '<div class="dk-fact"><span>Year to beat</span><b class="' + (done >= yrs[bestY] ? 'up' : '') + '">' + (done >= yrs[bestY] ? 'Beaten' : M.fmt(yrs[bestY] - done) + ' pts to go')
+            + '<small>' + bestY + ' finished on ' + M.fmt(yrs[bestY]) + '</small></b></div>';
+      facts += '<div class="dk-fact"><span>Lifetime</span><b>' + M.fmt(life) + ' pts<small>every session since ' + years[0] + '</small></b></div>';
     } else facts += '<div class="dk-fact"><span>Target</span><b>—<small>no ' + M.label.toLowerCase() + ' target set for ' + y + '</small></b></div>';
   } else {
     const tot = cumA[dN - 1], prev = cumB[dN - 1];
@@ -20925,8 +21000,9 @@ function renderTrain(){
   const bigHTML = big.length ? big.map(function(a){
     return '<button class="dk-row" data-act="' + E(a.id) + '"><span class="nm">' + E(a.name || a.type) + '</span>'
       + '<span class="vv">' + M.fine(M.of(a)) + '<small>' + M.unit + '</small></span>'
-      + '<span class="mt">' + a._date.toLocaleDateString(undefined, { month:'short', day:'numeric' }) + ' · ' + MET.distance.fine(a.distance_mi || 0) + ' mi · '
-      +   Math.round(a.elevation_ft || 0).toLocaleString() + ' ft · ' + paceStr(a.distance_mi, a.moving_time) + ' /mi</span><span></span>'
+      + '<span class="mt">' + a._date.toLocaleDateString(undefined, { month:'short', day:'numeric' }) + ' · ' + (a.distance_mi > 0 ? MET.distance.fine(a.distance_mi || 0) + ' mi · '
+      +   Math.round(a.elevation_ft || 0).toLocaleString() + ' ft · ' + paceStr(a.distance_mi, a.moving_time) + ' /mi'
+      :   E((a.type || 'Other').replace(/([a-z])([A-Z])/g, '$1 $2')) + ' · ' + Math.round((a.moving_time || 0)/60) + ' min') + '</span><span></span>'
       + '<span class="br"><i style="width:' + (M.of(a)/bigMax*100).toFixed(1) + '%"></i></span></button>';
   }).join('') : '<div class="dk-empty">No runs logged in ' + y + ' yet.</div>';
 
@@ -20942,14 +21018,14 @@ function renderTrain(){
   for (let i=0;i<24;i++){
     const a0 = new Date(m0.getFullYear(), m0.getMonth() + i, 1), a1 = new Date(m0.getFullYear(), m0.getMonth() + i + 1, 1);
     let mi = 0, ft = 0, sec = 0;
-    R.forEach(function(a){ if (a._date >= a0 && a._date < a1 && a.distance_mi > 0){ mi += a.distance_mi; ft += a.elevation_ft || 0; sec += a.moving_time || 0; } });
+    RR.forEach(function(a){ if (a._date >= a0 && a._date < a1 && a.distance_mi > 0){ mi += a.distance_mi; ft += a.elevation_ft || 0; sec += a.moving_time || 0; } });
     climb.push(mi >= 10 ? ft/mi : null); pace.push(mi >= 10 && sec > 0 ? sec/60/mi : null); mLab.push(a0);
   }
   const paceFmt = function(v){ const mm = Math.floor(v), ss = Math.round((v - mm)*60); return (ss === 60 ? (mm + 1) + ':00' : mm + ':' + String(ss).padStart(2,'0')); };
 
   /* ── mix and weekday ── */
   const mix = {};
-  ACTS.forEach(function(a){ if (a && a._date && a._date.getFullYear() === y){ const k = RUNLIKE.has(a.type) ? 'Run' : (a.type || 'Other').replace(/([a-z])([A-Z])/g, '$1 $2'); mix[k] = (mix[k] || 0) + (a.moving_time || 0)/3600; } });
+  ACTS.forEach(function(a){ if (a && a._date && a._date.getFullYear() === y){ const k = RUNLIKE.has(a.type) ? 'Run' : (a.type || 'Other').replace(/([a-z])([A-Z])/g, '$1 $2'); mix[k] = (mix[k] || 0) + (PTSMODE ? M.of(a) : (a.moving_time || 0)/3600); } });
   const mixKeys = Object.keys(mix).filter(function(k){ return mix[k] >= 0.5; }).sort(function(a,b){ return mix[b] - mix[a]; }).slice(0, 6);
   const mixTot = Object.keys(mix).reduce(function(s,k){ return s + mix[k]; }, 0) || 1, mixMax = mixKeys.length ? mix[mixKeys[0]] : 1;
   const dow = new Array(7).fill(0); inYear.forEach(function(a){ dow[(a._date.getDay() + 6) % 7] += M.of(a); });
@@ -20982,7 +21058,7 @@ function renderTrain(){
     +   '<div class="dk-chart" id="dkWk"></div>'
     +   '<div class="dk-note">Biggest week: <b>' + M.fine(wkVals[peak]) + ' ' + M.unit + '</b>, the week of ' + wkDate(peak).toLocaleDateString(undefined, { month:'short', day:'numeric' }) + '.</div></div></div>'
     + '<div class="dk-grid">'
-    +   '<div class="dk-card dk-heatcard"><div class="dk-h"><h3>Every day</h3><span>' + active + ' days run · longest streak ' + best + '</span>'
+    +   '<div class="dk-card dk-heatcard"><div class="dk-h"><h3>Every day</h3><span>' + active + (PTSMODE ? ' days active' : ' days run') + ' · longest streak ' + best + '</span>'
     +     '<span class="dk-scale">less<i style="background:var(--n6)"></i><i style="background:color-mix(in srgb,var(--data) 26%,transparent)"></i><i style="background:color-mix(in srgb,var(--data) 46%,transparent)"></i>'
     +       '<i style="background:color-mix(in srgb,var(--data) 68%,transparent)"></i><i style="background:color-mix(in srgb,var(--data) 88%,transparent)"></i><i style="background:var(--data-hi)"></i>more</span></div>'
     +     '<div class="dk-scroll" id="dkHeatScroll"><div class="dk-heat" id="dkHeat">' + heat + '</div><div class="dk-heatx">' + heatX + '</div></div></div>'
@@ -21002,9 +21078,9 @@ function renderTrain(){
     +     '<div class="dk-note">Months with under 10 miles are left out, so a single outing cannot swing the line.</div></div>'
     + '</div>'
     + '<div class="dk-grid dk-g11">'
-    +   '<div class="dk-card"><div class="dk-h"><h3>Where the hours went</h3><span>' + y + ', all activity</span></div><div class="dk-list">'
-    +     (mixKeys.length ? mixKeys.map(function(k){ return '<div class="dk-row" style="cursor:default;--k:' + kOf(k) + '"><span class="nm"><i class="dk-dot"></i>' + E(k) + '</span><span class="vv">' + Math.round(mix[k]) + '<small>h</small></span>'
-            + '<span class="mt">' + Math.round(mix[k]/mixTot*100) + '% of the year’s training time</span><span></span><span class="br"><i style="width:' + (mix[k]/mixMax*100).toFixed(1) + '%"></i></span></div>'; }).join('')
+    +   '<div class="dk-card"><div class="dk-h"><h3>' + (PTSMODE ? 'Where the points came from' : 'Where the hours went') + '</h3><span>' + y + ', all activity</span></div><div class="dk-list">'
+    +     (mixKeys.length ? mixKeys.map(function(k){ return '<div class="dk-row" style="cursor:default;--k:' + kOf(k) + '"><span class="nm"><i class="dk-dot"></i>' + E(k) + '</span><span class="vv">' + Math.round(mix[k]).toLocaleString() + '<small>' + (PTSMODE ? 'pts' : 'h') + '</small></span>'
+            + '<span class="mt">' + Math.round(mix[k]/mixTot*100) + '% of the year’s ' + (PTSMODE ? 'points' : 'training time') + '</span><span></span><span class="br"><i style="width:' + (mix[k]/mixMax*100).toFixed(1) + '%"></i></span></div>'; }).join('')
           : '<div class="dk-empty">Nothing logged in ' + y + ' yet.</div>') + '</div></div>'
     +   '<div class="dk-card"><div class="dk-h"><h3>Which days carry the load</h3><span>' + y + ' running ' + M.label.toLowerCase() + ' by weekday</span></div>'
     +     '<div class="dk-chart" id="dkDow"></div>'
