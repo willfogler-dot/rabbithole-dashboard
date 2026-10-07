@@ -4273,8 +4273,12 @@ window.rhPoints = function(){
 function loadWindow(days, endTs){
   const end = endTs || todayD.getTime();
   const start = end - days*86400000;
+  /* v188: counted in carrots (pointsOf), not raw loadOf. It is the same unit,
+     but carrots from finished weeks are frozen, so the load readiness reacts to
+     is exactly the number shown on the scoreboard, and a past morning's
+     readiness no longer shifts when the calibration does. */
   return ACTS.filter(function(a){ return a._ts > start && a._ts <= end; })
-             .reduce(function(s,a){ return s + loadOf(a); }, 0);
+             .reduce(function(s,a){ return s + pointsOf(a); }, 0);
 }
 function trainingLoad(){
   const acute = loadWindow(7);
@@ -6951,7 +6955,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v187';
+const RH_BUILD = 'v188';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -21760,7 +21764,9 @@ function renderHome(){
     let dv = ''; try { dv = pctDev(x.cur, x.mean, true); } catch(e){}
     chips += '<span class="hm-chip ' + tone + '" title="' + E(x.m.label) + ': ' + E(String(x.m.fmt(x.cur))) + E(x.m.unit || '') + ', usually ' + E(String(x.m.fmt(x.mean))) + '"><i>' + (tone === 't-up' ? '▲' : tone === 't-dn' ? '▼' : '•') + '</i>' + E(x.m.label) + ' <b>' + E(dv) + '</b></span>';
   });
-  if (L) chips += '<span class="hm-chip ' + (L.adj > 0.5 ? 't-up' : L.adj < -0.5 ? 't-dn' : 't-fl') + '" title="Last 7 days of training against a usual week"><i>' + (L.adj > 0.5 ? '▲' : L.adj < -0.5 ? '▼' : '•') + '</i>Load <b>' + L.ratio.toFixed(1) + '×</b></span>';
+  if (L) chips += '<span class="hm-chip ' + (L.adj > 0.5 ? 't-up' : L.adj < -0.5 ? 't-dn' : 't-fl') + '" title="' + Math.round(L.acute) + ' carrots in the last 7 days. A usual week lately is ' + Math.round(L.chronic) + '."><i>' + (L.adj > 0.5 ? '▲' : L.adj < -0.5 ? '▼' : '•') + '</i>'
+    /* the load that nudges readiness is the carrot count, so say it in carrots */
+    + (typeof carrotSvg === 'function' ? carrotSvg(13) : 'Load') + '<b>' + Math.round(L.acute).toLocaleString() + '</b> in 7 days · <b>' + L.ratio.toFixed(1) + '×</b> usual</span>';
   if (chips) rt += '<div class="hm-chips">' + chips + '</div>';
   /* THE WEEK'S POINTS, on the first card he sees: the running score, how far
      it is from a usual week (the mark on the bar), and what today added. It
