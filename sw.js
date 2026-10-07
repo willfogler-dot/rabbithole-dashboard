@@ -46,6 +46,9 @@ self.addEventListener('fetch', function(event){
   const req = event.request;
   if (req.method !== 'GET') return;               // never intercept writes
   if (isNeverCache(req.url)) return;                // let live data pass straight through
+  /* The update check (see fetchUpdate in index.html) must reach the network,
+     never a saved copy — a cached "latest build" is the bug it exists to fix. */
+  if (/\/version\.json(\?|$)|[?&]rhfresh=/.test(req.url)) return;
 
   /* The page itself: CACHE-FIRST, then refresh in the background.
    *

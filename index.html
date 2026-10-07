@@ -6951,7 +6951,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v185';
+const RH_BUILD = 'v186';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -17993,7 +17993,76 @@ async function checkForUpdate(){
    whenever the app comes back to the front */
 setTimeout(checkForUpdate, 6000); setTimeout(checkForUpdate, 20000);
 document.addEventListener('visibilitychange', function(){ if (!document.hidden) setTimeout(checkForUpdate, 1500); });
-window.rhUpdate = function(){ return checkForUpdate().then(function(w){ console.log('[update] running ' + RH_BUILD + ', saved copy is ' + (w || 'not found (no service worker cache yet)')); return w; }); };
+/* ── Fetch the update, don't wait to be handed it ──
+   Why the above was not enough: the worker only downloads a new build during a
+   full page load. An iPhone home-screen app is almost never loaded — it is
+   RESUMED, exactly where it was left — so no download happened, the saved copy
+   never changed, and the check above had nothing to find. Days could pass.
+   So each time the app comes to the front, read a 20-byte file (version.json,
+   written by every build) that says what the newest build is. If it is newer
+   than the one running, download the page, check it really is that build, put
+   it where the worker keeps its saved copy, and reload. The reload is answered
+   from the device, so it is quick.
+   The reload is automatic only if nothing has been touched since the app came
+   forward. Mid-tap or mid-typing, it shows the "Update ready" pill instead and
+   swaps the next time the app is brought forward. */
+let _updBusy = false, _updReady = null, _updLast = 0, _frontAt = Date.now(), _inputAt = 0;
+['pointerdown','keydown','touchstart'].forEach(function(ev){
+  document.addEventListener(ev, function(){ _inputAt = Date.now(); }, { capture:true, passive:true });
+});
+function _updIdle(){
+  const el = document.activeElement;
+  const typing = el && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName);
+  return _inputAt < _frontAt && !typing;
+}
+/* one automatic reload per build per session: if the reload somehow comes back
+   on the old build, never loop — fall back to the pill */
+function _updReload(build){
+  let tried = null;
+  try { tried = sessionStorage.getItem('rh_upd_tried'); } catch(e){}
+  if (tried === build){ checkForUpdate(); return false; }
+  try { sessionStorage.setItem('rh_upd_tried', build); } catch(e){ checkForUpdate(); return false; }
+  location.reload(); return true;
+}
+async function fetchUpdate(force){
+  if (_updBusy || !('caches' in window) || !navigator.onLine) return 'skipped';
+  if (!force && Date.now() - _updLast < 60000) return 'recent';
+  _updBusy = true; _updLast = Date.now();
+  try {
+    const here = location.href.split('#')[0];
+    /* the timestamp makes the address unique, so no cache layer (the worker,
+       the browser, GitHub's CDN) can answer with an old copy */
+    const vr = await fetch(new URL('version.json?t=' + Date.now(), here), { cache:'no-store' });
+    if (!vr.ok) return 'no version file';
+    const latest = (await vr.json()).build;
+    if (_bn(latest) <= _bn(RH_BUILD)) return 'current';
+    const pr = await fetch(here + (here.indexOf('?') < 0 ? '?' : '&') + 'rhfresh=' + latest + '-' + Date.now(), { cache:'no-store' });
+    if (!pr.ok) return 'page fetch failed';
+    const txt = await pr.text();
+    const m = /const RH_BUILD = '(v\d+)'/.exec(txt);
+    /* version.json can go live a moment before the page does; if the page is
+       not the new build yet, leave everything alone and look again later */
+    if (!m || _bn(m[1]) <= _bn(RH_BUILD)){ _updLast = 0; return 'page not updated yet'; }
+    const name = (await caches.keys()).find(function(k){ return k.indexOf('rabbithole-shell-') === 0; });
+    if (!name) return 'no worker cache';
+    const c = await caches.open(name);
+    await c.put(here, new Response(txt, { headers:{ 'Content-Type':'text/html; charset=utf-8' } }));
+    _updReady = m[1];
+    if (_updIdle() && _updReload(m[1])) return 'reloading';
+    checkForUpdate();
+    return 'ready ' + m[1];
+  } catch(e){ return 'failed: ' + (e && e.message); }
+  finally { _updBusy = false; }
+}
+window.addEventListener('load', function(){ setTimeout(fetchUpdate, 400); });
+document.addEventListener('visibilitychange', function(){
+  if (document.hidden) return;
+  _frontAt = Date.now();
+  if (_updReady && _bn(_updReady) > _bn(RH_BUILD) && _updReload(_updReady)) return;
+  fetchUpdate();
+});
+/* rhUpdate() in the console: what is running, what is saved, what is live */
+window.rhUpdate = function(){ return fetchUpdate(true).then(function(r){ return checkForUpdate().then(function(w){ console.log('[update] running ' + RH_BUILD + ', saved copy is ' + (w || 'not found (no service worker cache yet)') + ', live check: ' + r); return r; }); }); };
 
 /* offline app shell — see sw.js. Registered last, after everything else has
    had first crack at the main thread, and it never blocks first paint. */
