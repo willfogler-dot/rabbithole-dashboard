@@ -6936,7 +6936,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v177';
+const RH_BUILD = 'v178';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -20338,6 +20338,13 @@ render();
 .hm-rtxt{min-width:0;flex:1;}
 .hm-verdict{font-family:var(--fd);font-size:19px;font-weight:600;letter-spacing:-.015em;color:var(--n1);margin-bottom:10px;}
 .hm-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;}
+.hm-pts{display:flex;align-items:center;gap:10px;width:100%;max-width:440px;border:none;background:none;padding:2px 0;margin:0 0 4px;color:inherit;font:inherit;cursor:pointer;text-align:left;}
+.hm-pts > b{font-family:var(--fd);font-size:18px;font-weight:600;color:var(--n1);font-variant-numeric:tabular-nums;letter-spacing:-.01em;}
+.hm-pts > span{font-size:12px;color:var(--n3);white-space:nowrap;}
+.hm-pts > span.td,.hm-pts > span.up{color:var(--pos);font-weight:600;}
+.hm-pts .bar{flex:1;min-width:40px;height:5px;border-radius:3px;background:var(--el0-bg);box-shadow:var(--el0-sh);position:relative;display:block;}
+.hm-pts .bar > i{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:var(--grad);}
+.hm-pts .bar > em{position:absolute;top:-3px;bottom:-3px;width:2px;border-radius:1px;background:var(--n1);}
 .hm-chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--n2);padding:5px 10px 5px 8px;border-radius:999px;background:var(--n6);border:1px solid var(--n5);white-space:nowrap;}
 .hm-chip i{font-style:normal;font-size:9px;color:var(--n3);}
 .hm-chip b{font-family:var(--fd);font-weight:600;color:var(--n1);font-variant-numeric:tabular-nums;}
@@ -21605,6 +21612,28 @@ function renderHome(){
   });
   if (L) chips += '<span class="hm-chip ' + (L.adj > 0.5 ? 't-up' : L.adj < -0.5 ? 't-dn' : 't-fl') + '" title="Last 7 days of training against a usual week"><i>' + (L.adj > 0.5 ? '▲' : L.adj < -0.5 ? '▼' : '•') + '</i>Load <b>' + L.ratio.toFixed(1) + '×</b></span>';
   if (chips) rt += '<div class="hm-chips">' + chips + '</div>';
+  /* THE WEEK'S POINTS, on the first card he sees: the running score, how far
+     it is from a usual week (the mark on the bar), and what today added. It
+     turns into a call-out when the week passes his usual or becomes his best
+     ever. Tapping it opens Progress on the Points view. */
+  try {
+    const wk0 = weekStart(todayD), wkT = {}; let todayP = 0;
+    ACTS.forEach(function(a){ if (!a || !a._date) return; const p = pointsOf(a); if (!p) return;
+      const k = iso(weekStart(a._date)); wkT[k] = (wkT[k] || 0) + p; if (a._iso === tIso) todayP += p; });
+    const nowP = wkT[iso(wk0)] || 0, prev = [];
+    for (let i=1;i<=12;i++){ const v = wkT[iso(addDays(wk0, -7*i))] || 0; if (v > 0) prev.push(v); }
+    const usual = med(prev) || 0;
+    let bestOther = 0; Object.keys(wkT).forEach(function(k){ if (k !== iso(wk0) && wkT[k] > bestOther) bestOther = wkT[k]; });
+    if (nowP > 0 || usual > 0){
+      const scale = Math.max(usual, nowP, 1);
+      const note = (nowP > bestOther && bestOther > 0) ? '<span class="up">best week ever</span>'
+                 : (usual && nowP >= usual) ? '<span class="up">past a usual week</span>'
+                 : usual ? '<span>' + Math.round(usual - nowP).toLocaleString() + ' to a usual week</span>' : '';
+      rt += '<button class="hm-pts" data-go="points" title="Points: training load as a score. Tap for the full scoreboard."><b>' + Math.round(nowP).toLocaleString() + '</b><span>pts this week</span>'
+          + '<i class="bar"><i style="width:' + (nowP/scale*100).toFixed(1) + '%"></i>' + (usual ? '<em style="left:' + Math.min(100, usual/scale*100).toFixed(1) + '%"></em>' : '') + '</i>'
+          + (todayP > 0 ? '<span class="td">+' + Math.round(todayP).toLocaleString() + ' today</span>' : note) + '</button>';
+    }
+  } catch(e){ console.error('[dsk] points meter', e); }
   /* today's sessions, ticked when a matching activity is in */
   const tActs = ACTS.filter(function(a){ return a && a._iso === tIso; }), tUsed = new Set();
   let tRows = todays.map(function(w){
@@ -21687,6 +21716,7 @@ if ($home){
     const g = e.target.closest('[data-go]'); if (!g) return;
     const k = g.dataset.go;
     if (k === 'ready') openReadiness();
+    else if (k === 'points'){ st.metric = 'points'; showTab('progress'); }
     else if (k === 'jarvis') openJarvis();
     else if (k === 'week') openWeek();
     else if (k === 'acts') openActivities();
