@@ -4231,6 +4231,21 @@ function loadOf(a){
    The current week stays live until Monday. The frozen values travel in the
    synced plan document (key `points`), so every device shows the same totals;
    when two devices froze the same session differently, the cloud's value wins. */
+/* CARROTS. On screen a point is a carrot (v185): the app is called Rabbit Hole,
+   and a named thing with its own mark is more fun to collect than "pts". Only
+   the wording and the emblem changed. In the code and the database they are
+   still points (pointsOf, PTS, the `points` key), so nothing stored moved. The
+   emblem is the one place the app uses orange; it is drawn here once and used
+   everywhere so it can be changed in one place. */
+function carrotSvg(px){
+  const z = px || 14;
+  return '<svg class="crt" width="' + z + '" height="' + z + '" viewBox="0 0 24 24" aria-label="carrots" role="img" style="vertical-align:' + (-Math.round(z*0.16)) + 'px;flex:0 0 auto">'
+    + '<path d="M15.2 8.9c1.9 1.9 1.2 4.4-.6 6.5-2 2.3-5.6 5-8.3 6.300-1.100.5-2.300.1-2.800-.9-.3-.7-.2-1.400.2-2.100 1.500-2.600 4.100-6.100 6.300-8.200 2-1.900 4-2.800 5.200-1.600z" fill="#f28c3a"/>'
+    + '<path d="M8.300 14.400l1.700 1.500M6.300 17.200l1.300 1.200M11 11.900l1.300 1.200" stroke="#b9601c" stroke-width="1.1" stroke-linecap="round" fill="none"/>'
+    + '<path d="M15 9.100c-.9-2.300-.3-4.700 1.500-6.400 1 1.900 1 4.100-.1 6z" fill="#3fb984"/>'
+    + '<path d="M15.300 9.200c1.100-2.200 3.300-3.500 5.800-3.400-.5 2.200-2.200 3.800-4.400 4.300z" fill="#57cf9a"/>'
+    + '<path d="M15.400 9.300c2.300-.5 4.600.4 5.900 2.300-2 1-4.300.7-6-.7z" fill="#3fb984"/></svg>';
+}
 const PTS_KEY = 'rh_points_frozen_v1';
 let PTS = lsGet(PTS_KEY, {}) || {};
 function pointsOf(a){
@@ -6936,7 +6951,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v184';
+const RH_BUILD = 'v185';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -7398,7 +7413,7 @@ const VOL_CHARTABLE = {
 function volMetrics(){ return VOL_CHARTABLE[volType] || ['time','count']; }
 const VOL_TYPES = [
   { key:'Run',             label:'Running',  metric:'distance' },
-  { key:'All',             label:'Points \u00b7 all training', metric:'points' },
+  { key:'All',             label:'Carrots', metric:'points' },
   { key:'Sauna',           label:'Sauna',    metric:'time' },
   { key:'Weight Training', label:'Strength', metric:'time' },
   { key:'Yoga',            label:'Yoga',     metric:'time' },
@@ -7476,7 +7491,7 @@ function volFmt(v){
   if (m === 'distance')  return f1(v)+' mi';
   if (m === 'elevation') return fmtK(v)+' ft';
   if (m === 'count')     return Math.round(v)+'';
-  if (m === 'points')    return Math.round(v).toLocaleString()+' pts';
+  if (m === 'points')    return Math.round(v).toLocaleString()+' carrots';
   return (Math.round(v*10)/10)+' h';
 }
 
@@ -7494,13 +7509,13 @@ function paintVolHeader(data, meta){
     if (m === 'distance')  return d.mi  > 0 ? f1(d.mi)+u('mi') : (isCurrent && wkPlanMi ? '0'+u('\u00a0of '+(Math.round(wkPlanMi*10)/10)+' mi') : '\u2014');
     if (m === 'elevation') return d.ft  > 0 ? fmtK(d.ft)+u('ft') : '\u2014';
     if (m === 'count')     return d.n   > 0 ? String(d.n) : '\u2014';
-    if (m === 'points')    return d.pts > 0 ? Math.round(d.pts).toLocaleString()+u('pts') : '\u2014';
+    if (m === 'points')    return d.pts > 0 ? carrotSvg(13)+' '+Math.round(d.pts).toLocaleString() : '\u2014';
     return d.hrs > 0 ? (d.hrs >= 10 ? Math.round(d.hrs) : Math.round(d.hrs*10)/10)+u('h') : '\u2014';
   };
   const list = volMetrics();
   document.getElementById('volMetrics').innerHTML = list.map(function(m){
     return '<button class="vm'+(m===meta.metric?' lead':'')+'" data-vm="'+m+'">'
-      + '<div class="vm-v">'+val(m)+'</div><div class="vm-l">'+(m === 'points' ? 'Points' : METRIC_META[m].label)+'</div></button>';
+      + '<div class="vm-v">'+val(m)+'</div><div class="vm-l">'+(m === 'points' ? 'Carrots' : METRIC_META[m].label)+'</div></button>';
   }).join('');
   document.getElementById('volMetrics').querySelectorAll('[data-vm]').forEach(function(b){
     b.addEventListener('click', function(){ volMetric = b.dataset.vm; renderVolChart(); });
@@ -20741,7 +20756,7 @@ const MET = {
                fmt:function(v){ return v >= 100 ? Math.round(v).toLocaleString() : (Math.round(v*10)/10).toString(); },
                fine:function(v){ return (Math.round(v*10)/10).toString(); } },
   /* training load as a score (pointsOf, in the main script). Unlike the three above it counts every activity, not only runs. */
-  points:    { label:'Points', unit:'pts', of:function(a){ try { return pointsOf(a); } catch(e){ return 0; } },
+  points:    { label:'Carrots', unit:'carrots', of:function(a){ try { return pointsOf(a); } catch(e){ return 0; } },
                fmt:function(v){ return Math.round(v).toLocaleString(); },
                fine:function(v){ return Math.round(v).toLocaleString(); } },
 };
@@ -20959,7 +20974,7 @@ function renderTrain(){
            + (isCur ? '<em style="left:' + Math.min(100, pace/T*100).toFixed(1) + '%"></em>' : '') + '</div>';
     }
     return '<div class="dk-card dk-stat' + (lead ? ' lead' : '') + '"><label>' + m.label + (T ? ' · target ' + m.fmt(T) : '') + '</label>'
-      + '<div class="v"><b>' + m.fmt(now) + '</b><span>' + m.unit + '</span></div>'
+      + '<div class="v">' + (key === 'points' ? carrotSvg(26) : '') + '<b>' + m.fmt(now) + '</b><span>' + (key === 'points' ? '' : m.unit) + '</span></div>'
       + '<div class="d">' + (then > 0 ? delta(now, then) + 'vs ' + m.fmt(then) + ' by this point in ' + (y - 1) : 'no ' + (y - 1) + ' data to compare') + '</div>'
       + prog + '</div>';
   };
@@ -20977,12 +20992,12 @@ function renderTrain(){
     const top = function(o){ let bk = null; Object.keys(o).forEach(function(k){ if (bk == null || o[k] > o[bk]) bk = k; }); return bk; };
     const bw = top(wkTot), bm = top(moTot);
     const bwD = bw ? new Date(bw + 'T00:00:00') : null, bmD = bm ? new Date(bm + '-01T00:00:00') : null;
-    ptsTiles = '<div class="dk-card dk-stat"><label>This week</label><div class="v"><b>' + M.fmt(nowWk) + '</b><span>pts</span></div>'
+    ptsTiles = '<div class="dk-card dk-stat"><label>This week</label><div class="v">' + carrotSvg(17) + '<b>' + M.fmt(nowWk) + '</b></div>'
       + '<div class="d">' + (usual ? (nowWk >= usual ? '<b class="up">past a usual week</b> (' + M.fmt(usual) + ')' : '<b>' + M.fmt(usual - nowWk) + '</b> to reach a usual week (' + M.fmt(usual) + ')') : '&nbsp;') + '</div>'
       + (usual ? '<div class="dk-prog"><i style="width:' + Math.min(100, nowWk/Math.max(usual, nowWk, 1)*100).toFixed(1) + '%"></i><em style="left:' + Math.min(100, usual/Math.max(usual, nowWk, 1)*100).toFixed(1) + '%"></em></div>' : '') + '</div>'
-      + '<div class="dk-card dk-stat"><label>Best week</label><div class="v"><b>' + (bw ? M.fmt(wkTot[bw]) : '—') + '</b><span>' + (bw ? 'pts' : '') + '</span></div>'
+      + '<div class="dk-card dk-stat"><label>Best week</label><div class="v">' + (bw ? carrotSvg(17) : '') + '<b>' + (bw ? M.fmt(wkTot[bw]) : '—') + '</b></div>'
       + '<div class="d">' + (bw ? (bw === thisWk ? '<b class="up">this week, and counting</b>' : 'week of ' + bwD.toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' })) : '&nbsp;') + '</div></div>'
-      + '<div class="dk-card dk-stat"><label>Best month</label><div class="v"><b>' + (bm ? M.fmt(moTot[bm]) : '—') + '</b><span>' + (bm ? 'pts' : '') + '</span></div>'
+      + '<div class="dk-card dk-stat"><label>Best month</label><div class="v">' + (bm ? carrotSvg(17) : '') + '<b>' + (bm ? M.fmt(moTot[bm]) : '—') + '</b></div>'
       + '<div class="d">' + (bm ? MON[bmD.getMonth()] + ' ' + bmD.getFullYear() : '&nbsp;') + '</div></div>';
   }
   const tiles = PTSMODE ? tile('points', true) + ptsTiles : tile('distance', true) + tile('elevation') + tile('time')
@@ -21019,9 +21034,9 @@ function renderTrain(){
     } else if (PTSMODE){
       const life = R.reduce(function(t,a){ return t + M.of(a); }, 0), yrs = {}; R.forEach(function(a){ const k = a._date.getFullYear(); yrs[k] = (yrs[k] || 0) + M.of(a); });
       const bestY = Object.keys(yrs).filter(function(k){ return +k !== y; }).sort(function(a,b){ return yrs[b] - yrs[a]; })[0];
-      if (bestY) facts += '<div class="dk-fact"><span>Year to beat</span><b class="' + (done >= yrs[bestY] ? 'up' : '') + '">' + (done >= yrs[bestY] ? 'Beaten' : M.fmt(yrs[bestY] - done) + ' pts to go')
+      if (bestY) facts += '<div class="dk-fact"><span>Year to beat</span><b class="' + (done >= yrs[bestY] ? 'up' : '') + '">' + (done >= yrs[bestY] ? 'Beaten' : M.fmt(yrs[bestY] - done) + ' to go')
             + '<small>' + bestY + ' finished on ' + M.fmt(yrs[bestY]) + '</small></b></div>';
-      facts += '<div class="dk-fact"><span>Lifetime</span><b>' + M.fmt(life) + ' pts<small>every session since ' + years[0] + '</small></b></div>';
+      facts += '<div class="dk-fact"><span>Lifetime</span><b>' + carrotSvg(15) + ' ' + M.fmt(life) + '<small>every session since ' + years[0] + '</small></b></div>';
     } else facts += '<div class="dk-fact"><span>Target</span><b>—<small>no ' + M.label.toLowerCase() + ' target set for ' + y + '</small></b></div>';
   } else {
     const tot = cumA[dN - 1], prev = cumB[dN - 1];
@@ -21142,9 +21157,9 @@ function renderTrain(){
     +     '<div class="dk-note">Months with under 10 miles are left out, so a single outing cannot swing the line.</div></div>'
     + '</div>'
     + '<div class="dk-grid dk-g11 tr-mix">'
-    +   '<div class="dk-card"><div class="dk-h"><h3>' + (PTSMODE ? 'Where the points came from' : 'Where the hours went') + '</h3><span>' + y + ', all activity</span></div><div class="dk-list">'
-    +     (mixKeys.length ? mixKeys.map(function(k){ return '<div class="dk-row" style="cursor:default;--k:' + kOf(k) + '"><span class="nm"><i class="dk-dot"></i>' + E(k) + '</span><span class="vv">' + Math.round(mix[k]).toLocaleString() + '<small>' + (PTSMODE ? 'pts' : 'h') + '</small></span>'
-            + '<span class="mt">' + Math.round(mix[k]/mixTot*100) + '% of the year’s ' + (PTSMODE ? 'points' : 'training time') + '</span><span></span><span class="br"><i style="width:' + (mix[k]/mixMax*100).toFixed(1) + '%"></i></span></div>'; }).join('')
+    +   '<div class="dk-card"><div class="dk-h"><h3>' + (PTSMODE ? 'Where the carrots came from' : 'Where the hours went') + '</h3><span>' + y + ', all activity</span></div><div class="dk-list">'
+    +     (mixKeys.length ? mixKeys.map(function(k){ return '<div class="dk-row" style="cursor:default;--k:' + kOf(k) + '"><span class="nm"><i class="dk-dot"></i>' + E(k) + '</span><span class="vv">' + Math.round(mix[k]).toLocaleString() + '<small>' + (PTSMODE ? '' : 'h') + '</small></span>'
+            + '<span class="mt">' + Math.round(mix[k]/mixTot*100) + '% of the year’s ' + (PTSMODE ? 'carrots' : 'training time') + '</span><span></span><span class="br"><i style="width:' + (mix[k]/mixMax*100).toFixed(1) + '%"></i></span></div>'; }).join('')
           : '<div class="dk-empty">Nothing logged in ' + y + ' yet.</div>') + '</div></div>'
     +   '<div class="dk-card"><div class="dk-h"><h3>Which days carry the load</h3><span>' + y + ' running ' + M.label.toLowerCase() + ' by weekday</span></div>'
     +     '<div class="dk-chart" id="dkDow"></div>'
@@ -21686,7 +21701,7 @@ function renderHome(){
       const note = (nowP > bestOther && bestOther > 0) ? '<span class="up">best week ever</span>'
                  : (usual && nowP >= usual) ? '<span class="up">past a usual week</span>'
                  : usual ? '<span>' + Math.round(usual - nowP).toLocaleString() + ' to a usual week</span>' : '';
-      rt += '<button class="hm-pts" data-go="points" title="Points: training load as a score. Tap for the full scoreboard."><b>' + Math.round(nowP).toLocaleString() + '</b><span>pts this week</span>'
+      rt += '<button class="hm-pts" data-go="points" title="Carrots: training load as a score. Tap for the full scoreboard.">' + carrotSvg(17) + '<b>' + Math.round(nowP).toLocaleString() + '</b><span>carrots this week</span>'
           + '<i class="bar"><i style="width:' + (nowP/scale*100).toFixed(1) + '%"></i>' + (usual ? '<em style="left:' + Math.min(100, usual/scale*100).toFixed(1) + '%"></em>' : '') + '</i>'
           + (todayP > 0 ? '<span class="td">+' + Math.round(todayP).toLocaleString() + ' today</span>' : note) + '</button>';
     }
