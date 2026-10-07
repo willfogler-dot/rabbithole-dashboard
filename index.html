@@ -6936,7 +6936,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v181';
+const RH_BUILD = 'v182';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -19202,10 +19202,15 @@ function renderWeekView(ix){
   /* the headline is the goal while the week is open, and the result once it is over */
   const goal = W.planned, hasGoal = goal > 0;
   const headline = W.past ? W.done : (hasGoal ? goal : W.done);
-  if (W.past) sub = 'run' + (hasGoal ? ' · the plan was ' + fmt1(goal) + ' ' + m.unit : ' · no plan was set');
-  else if (!hasGoal) sub = W.done > 0 ? 'run · no plan set for this week' : 'No plan set for this week';
-  else if (W.future) sub = 'planned · this is the week’s goal';
-  else sub = 'the goal · ' + fmt1(W.done) + ' run · ' + fmt1(Math.max(0, goal - W.done)) + ' to go';
+  /* The big number is the plan while the week is open and the result once it is
+     over, and it used to say only "12 mi": he could not tell which. The word
+     now sits right beside the number (v182), so the line under it only has to
+     carry the other half. */
+  const kind = (W.past || !hasGoal) ? 'run' : 'planned';
+  if (W.past) sub = hasGoal ? 'the plan was ' + fmt1(goal) + ' ' + m.unit : 'no plan was set';
+  else if (!hasGoal) sub = 'No plan set for this week';
+  else if (W.future) sub = 'this is the week’s goal';
+  else sub = fmt1(W.done) + ' run so far · ' + fmt1(Math.max(0, goal - W.done)) + ' to go';
   const scale = Math.max(goal, W.done, 1);
   const pc = function(v){ return Math.min(100, Math.max(0, v/scale*100)).toFixed(1); };
 
@@ -19264,7 +19269,7 @@ function renderWeekView(ix){
 
   const hero = '<div class="plx-hero">'
     + '<div><div class="plx-hx-l">' + rel + '</div>'
-    +   '<div class="plx-hx-n' + (headline > 0 ? '' : ' zero') + '"><b>' + fmt1(headline) + '</b><span>' + m.unit + '</span></div>'
+    +   '<div class="plx-hx-n' + (headline > 0 ? '' : ' zero') + '"><b>' + fmt1(headline) + '</b><span>' + m.unit + ' ' + kind + '</span></div>'
     +   '<div class="plx-hx-s">' + sub + '</div>'
     +   (hasGoal || W.done > 0 ? '<div class="plx-wbar" title="' + fmt1(W.done) + ' done of ' + fmt1(goal) + ' planned"><i class="pl" style="width:' + pc(goal) + '%"></i><i class="dn" style="width:' + pc(W.done) + '%"></i></div>' : '')
     +   '<div class="plx-hx-t">' + monthLine(ix, addDays(mon, 3)) + '</div></div>'
