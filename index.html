@@ -6936,7 +6936,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v180';
+const RH_BUILD = 'v181';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -21704,7 +21704,7 @@ function renderHome(){
 
   borrowed.forEach(function(b){ if (b.node.parentNode) b.node.parentNode.removeChild(b.node); });
   $home.innerHTML = '<div class="hm-head"><h2>' + todayD.toLocaleDateString(undefined, { weekday:'long' }) + ' <span>' + MON[todayD.getMonth()] + ' ' + todayD.getDate() + '</span></h2><span class="dk-sp"></span>'
-    + '<button class="dk-txt hm-wkbtn" data-go="week">Week</button></div>'
+    + '</div>'   /* the phone's Week button (this week / last week sheet) was here until v181 */
     + '<div class="hm-row hm-r1 hm-panel"><div class="dk-card hm-ready">' + ring + '<div class="hm-rtxt">' + rt + '</div></div>'
     + '<div class="dk-card"><div class="dk-h" style="margin-bottom:14px"><h3>Last night</h3><span>' + (nDate ? nDate.toLocaleDateString(undefined, { weekday:'short', month:'short', day:'numeric' }) + ' · against your last 4 weeks' : '') + '</span></div>' + nightCard + '</div></div>'
     /* totals first, then the days that make them up (v150; the phone hides both) */
