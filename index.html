@@ -6936,7 +6936,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v179';
+const RH_BUILD = 'v180';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -20289,7 +20289,7 @@ render();
    These two keep the phone's own content — it is already the right content —
    and only change how it is arranged, plus one panel each that the phone has
    no room for: the week at a glance on Home, lifetime totals on Profile. */
-#dskLife{padding-top:0;}
+#dskLife{padding-top:0;margin-top:16px;}   /* clear of the name and avatar above it at every width; on the phone the panel sat under them */
 /* THE PHONE GETS THE SAME OVERVIEW.
    This page was first built for iPad and desktop only, and the phone kept its
    older Overview. That left the phone looking a week behind the rest of the
