@@ -6936,7 +6936,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v182';
+const RH_BUILD = 'v183';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -20574,6 +20574,35 @@ render();
   #dskHome #hmVolSlot > .ov-volume{padding-left:15px;padding-right:15px;}
 }
 
+/* ═══ PROGRESS ON THE PHONE (v183) ═══ a subset, like the phone Overview.
+   The desktop page is nine sections; on a phone that was a very long scroll of
+   charts built for width. The phone keeps what answers "how is the year going"
+   at a glance and leaves the study to the iPad and laptop:
+     kept     the headline number, the other three as one compact line each,
+              the running-total chart with where it is heading, week by week,
+              the three biggest days, and the split by sport
+     dropped  month by month, how the running is changing, the weekday chart
+              (and the heatmap, dropped earlier) */
+@media (max-width:759px){
+  #dskTrain .dk-g4{grid-template-columns:minmax(0,1fr);row-gap:0;padding:14px 6px 6px;}
+  #dskTrain .dk-g4 > .dk-card.dk-stat.lead{padding:2px 10px 14px;}
+  #dskTrain .dk-g4 > .dk-card.dk-stat.lead .v b{font-size:40px;}
+  #dskTrain .dk-g4 > .dk-card.dk-stat:not(.lead){display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:baseline;column-gap:10px;
+    padding:10px 10px 9px;border-left:none;border-top:1px solid var(--line);}
+  #dskTrain .dk-g4 > .dk-card.dk-stat:not(.lead) label{margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  #dskTrain .dk-g4 > .dk-card.dk-stat:not(.lead) .v b{font-size:19px;}
+  #dskTrain .dk-g4 > .dk-card.dk-stat:not(.lead) .d{grid-column:1 / -1;margin-top:2px;font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  #dskTrain .dk-g4 > .dk-card.dk-stat:not(.lead) .d + .d,#dskTrain .dk-g4 > .dk-card.dk-stat:not(.lead) .dk-prog{display:none;}
+  #dskTrain .tr-big > .dk-card + .dk-card,#dskTrain .tr-chg,#dskTrain .tr-mix > .dk-card + .dk-card{display:none;}
+  #dskTrain .tr-big .dk-list > .dk-row:nth-child(n+4){display:none;}
+  /* four metrics no longer fit beside the year: the switch takes its own row */
+  #dskTrain .dk-top{flex-wrap:wrap;gap:10px 8px;}
+  #dskTrain .dk-top .dk-seg{order:3;flex:1 1 100%;}
+  #dskTrain .dk-top .dk-seg button{flex:1;padding:8px 4px;}
+  /* the line under a fact may wrap here; cut off at the panel edge was worse */
+  .dsk .dk-card.tall .dk-fact b small{white-space:normal;max-width:215px;margin-left:auto;}
+}
+
 /* ═══ PHONE ═══ kept last so it wins over the wide rules above without !important */
 @media (max-width:759px){
   .dsk .dk-card{padding:15px 15px 14px;border-radius:16px;}
@@ -20593,8 +20622,6 @@ render();
   .dk-morebtn{font-size:0;gap:0;padding:6px 9px;height:34px;}
   .dk-morebtn svg{display:none;}
   .dk-morebtn::before{content:'\22EF';font-size:20px;line-height:1;}
-  #dskTrain .dk-top{flex-wrap:nowrap;gap:8px;}
-  #dskTrain .dk-top .dk-seg button{padding:7px 9px;}
   #dskTrain .dk-yr b{min-width:58px;}
   .dk-seg button{padding:7px 11px;}
   .dk-grid{gap:12px;margin-bottom:12px;}
@@ -21081,7 +21108,7 @@ function renderTrain(){
     +       '<i style="background:color-mix(in srgb,var(--data) 68%,transparent)"></i><i style="background:color-mix(in srgb,var(--data) 88%,transparent)"></i><i style="background:var(--data-hi)"></i>more</span></div>'
     +     '<div class="dk-scroll" id="dkHeatScroll"><div class="dk-heat" id="dkHeat">' + heat + '</div><div class="dk-heatx">' + heatX + '</div></div></div>'
     + '</div>'
-    + '<div class="dk-grid dk-g11">'
+    + '<div class="dk-grid dk-g11 tr-big">'
     +   '<div class="dk-card"><div class="dk-h"><h3>Biggest days</h3><span>' + y + ', by ' + M.label.toLowerCase() + '</span></div><div class="dk-list">' + bigHTML + '</div></div>'
     +   '<div class="dk-card"><div class="dk-h"><h3>Month by month</h3><span>same scale every year</span></div><div class="dk-yrs">'
     +     showYears.map(function(v){
@@ -21089,13 +21116,13 @@ function renderTrain(){
             return '<button class="dk-yrow" data-recap="' + v + '" title="Open the ' + v + ' recap"><span class="yl"><b>' + v + '</b><span>' + M.fmt(tot) + ' ' + M.unit + '</span></span><span class="dk-chart" data-ym="' + v + '"></span></button>';
           }).join('') + '</div></div>'
     + '</div>'
-    + '<div class="dk-grid">'
+    + '<div class="dk-grid tr-chg">'
     +   '<div class="dk-card"><div class="dk-h"><h3>How the running is changing</h3><span>by month, 24 months</span></div>'
     +     '<div class="dk-two"><div><h4>Climb per mile<span>ft</span></h4><div class="dk-chart" id="dkClimb"></div></div>'
     +       '<div><h4>Average pace<span>min / mi, lower is faster</span></h4><div class="dk-chart" id="dkPace"></div></div></div>'
     +     '<div class="dk-note">Months with under 10 miles are left out, so a single outing cannot swing the line.</div></div>'
     + '</div>'
-    + '<div class="dk-grid dk-g11">'
+    + '<div class="dk-grid dk-g11 tr-mix">'
     +   '<div class="dk-card"><div class="dk-h"><h3>' + (PTSMODE ? 'Where the points came from' : 'Where the hours went') + '</h3><span>' + y + ', all activity</span></div><div class="dk-list">'
     +     (mixKeys.length ? mixKeys.map(function(k){ return '<div class="dk-row" style="cursor:default;--k:' + kOf(k) + '"><span class="nm"><i class="dk-dot"></i>' + E(k) + '</span><span class="vv">' + Math.round(mix[k]).toLocaleString() + '<small>' + (PTSMODE ? 'pts' : 'h') + '</small></span>'
             + '<span class="mt">' + Math.round(mix[k]/mixTot*100) + '% of the year’s ' + (PTSMODE ? 'points' : 'training time') + '</span><span></span><span class="br"><i style="width:' + (mix[k]/mixMax*100).toFixed(1) + '%"></i></span></div>'; }).join('')
