@@ -6982,7 +6982,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v190';
+const RH_BUILD = 'v191';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -20740,19 +20740,16 @@ render();
   #dskRec .rc-a > .dk-card + .dk-card{border-top:none;}
 }
 
-/* v189, phone only: the two widest charts are back as pictures, not instruments.
-   v187 removed "Miles through the year" and "Recovery against training" because
-   they are read by dragging along them, and at 340px that was cramped and fought
-   the page scroll. Missing them, the fix is the opposite of more controls: on
-   the phone they are drawn shorter, with the latest value printed on the chart,
-   and they do not respond to touch at all (see `still` in chartLine and
-   chartStack), so a finger on them just scrolls the page. Drag-to-inspect stays
-   on iPad and desktop. */
+/* v187, phone only: the two widest charts go. "Miles through the year" and
+   "Recovery against training" are read by dragging along them, and at 340px
+   that was cramped and fought the page scroll. The facts beside each
+   ("Where it is heading", "This stretch") say the same thing in words and stay.
+   v189 brought them back as still, glanceable versions; v191 took them out
+   again for good. Will's rule: the phone is for the high-level view, the
+   desktop is for analysis. Don't put analysis charts back on the phone. */
 @media (max-width:759px){
-  .dsk .dk-chart.still{pointer-events:none;}
-  /* each panel is named on the chart itself; four legend entries only wrapped */
-  #dskRec .dk-g21 > .dk-card.lead .dk-leg{display:none;}
-  #dskTrain .dk-g21 > .dk-card.lead .dk-leg{margin-bottom:6px;}
+  #dskTrain .dk-g21 > .dk-card.lead,#dskRec .dk-g21 > .dk-card.lead{display:none;}
+  #dskTrain .dk-g21 > .dk-card.tall,#dskRec .dk-g21 > .dk-card.tall{border-top:none;border-left:none;}
 }
 
 /* ═══ PHONE ═══ kept last so it wins over the wide rules above without !important */
@@ -21031,9 +21028,6 @@ function chartLine(el, c){
   s += '<line class="xh" data-xh x1="0" x2="0" y1="' + f.T + '" y2="' + (f.T + f.ph) + '" visibility="hidden"/>'
      + c.series.map(function(sr, k){ return '<circle data-dot="' + k + '" r="4.5" fill="' + sr.color + '" stroke="var(--bg-mid)" stroke-width="2" visibility="hidden"/>'; }).join('');
   el.innerHTML = s + '</svg>';
-  /* still: a picture to glance at, no crosshair and no tooltip (the phone) */
-  el.classList.toggle('still', !!c.still);
-  if (c.still) return;
   const xh = el.querySelector('[data-xh]'), dots = el.querySelectorAll('[data-dot]');
   bindHover(el, function(e){
     if (!e){ xh.setAttribute('visibility','hidden'); dots.forEach(function(d){ d.setAttribute('visibility','hidden'); }); tipHide(); return; }
@@ -21293,9 +21287,8 @@ function renderTrain(){
   const cumSeries = [{ name:String(y), color:'var(--data)', vals:serA, w:2.5, area:true, end:isCur }];
   if (hasPrev) cumSeries.unshift({ name:String(y - 1), color:'var(--n3)', vals:cumB, w:2 });
   if (serT) cumSeries.unshift({ name:'target pace', color:'var(--n4)', vals:serT, w:1.5 });
-  const ph = !wide.matches;      /* phone: glance versions, see the v189 note in the stylesheet */
-  chartLine(document.getElementById('dkCum'), { h: ph ? 170 : 250, still:ph, n:dN, series:cumSeries, yf:yf, tf:function(v){ return M.fmt(v) + ' ' + M.unit; },
-    tick:function(i){ const m = firstOf.indexOf(i); return m >= 0 && (!ph || m % 2 === 0) ? MON[m] : null; },
+  chartLine(document.getElementById('dkCum'), { h:250, n:dN, series:cumSeries, yf:yf, tf:function(v){ return M.fmt(v) + ' ' + M.unit; },
+    tick:function(i){ const m = firstOf.indexOf(i); return m >= 0 ? MON[m] : null; },
     tipTitle:function(i){ return dateOfDay(i).toLocaleDateString(undefined, { month:'long', day:'numeric' }); } });
   chartCols(document.getElementById('dkWk'), { h:210, vals:wkVals, line:wkAvg, yf:yf, hi: isCur ? 51 : -1, barMax:16,
     tick:function(i){ const d = wkDate(i); return d.getDate() <= 7 ? MON[d.getMonth()] : null; },
@@ -21366,16 +21359,14 @@ if ($train){
    small charts, not one chart with several axes) and one crosshair runs through
    all of them, so a bad night can be read against the days around it */
 function chartStack(el, c){
-  const n = c.n, W = Math.max(160, el.clientWidth), L = 40, R = 10, T = 6, B = 20, GAP = c.still ? 22 : 16;
+  const n = c.n, W = Math.max(160, el.clientWidth), L = 40, R = 10, T = 6, B = 20, GAP = 16;
   const pw = W - L - R, X = function(i){ return L + (n <= 1 ? pw/2 : pw*i/(n - 1)); };
-  let y0 = c.still ? T + 14 : T, s = '';
+  let y0 = T, s = '';
   const geo = [];
   c.panels.forEach(function(p){
     let lo = Infinity, hi = -Infinity;
     const scan = function(a){ if (a) a.forEach(function(v){ if (v != null){ if (v < lo) lo = v; if (v > hi) hi = v; } }); };
-    /* still (phone): only the 7-night line is drawn, so scale to it; the nightly
-       zigzag is what made these panels noisy at this size */
-    if (c.still && p.avg && p.kind !== 'cols') scan(p.avg); else { scan(p.vals); scan(p.avg); }
+    scan(p.vals); scan(p.avg);
     if (!isFinite(lo)){ lo = 0; hi = 1; }
     let yMin, yMax;
     let clip = null;
@@ -21397,16 +21388,6 @@ function chartStack(el, c){
       s += '<line class="' + (k === 0 ? 'bl' : 'gl') + '" x1="' + L + '" x2="' + (W - R) + '" y1="' + yy + '" y2="' + yy + '"/>';
       if (k !== 1) s += '<text x="' + (L - 7) + '" y="' + (yy + (k === 0 ? 0 : 8)) + '" text-anchor="end">' + E(p.yf(v)) + '</text>';
     });
-    if (c.still){
-      /* no tooltip to ask, so the answer is printed: the name above the panel
-         on the left, where it stands now on the right */
-      let lv = null; const src = p.kind === 'cols' ? null : (p.avg || p.vals);
-      if (src) for (let i = src.length - 1; i >= 0; i--) if (src[i] != null){ lv = src[i]; break; }
-      const tot = p.kind === 'cols' ? p.vals.reduce(function(t, v){ return t + (v || 0); }, 0) : null;
-      s += '<text x="' + L + '" y="' + (top - 6) + '" style="fill:var(--n2);font-size:11px;font-weight:600">' + E(p.name) + '</text>'
-         + '<text x="' + (W - R) + '" y="' + (top - 6) + '" text-anchor="end" style="fill:var(--n1);font-size:11.5px;font-weight:600">'
-         + E(p.kind === 'cols' ? p.tf(tot) + ' total' : lv != null ? p.tf(lv) + ' now' : '') + '</text>';
-    } else
     s += '<text x="' + (L + 6) + '" y="' + (top + 11) + '" style="fill:var(--n2);font-size:11px;font-weight:600">' + E(p.name) + '</text>';
     if (p.band){
       const a = Y(Math.min(yMax, p.band[1])), b = Y(Math.max(yMin, p.band[0]));
@@ -21417,12 +21398,12 @@ function chartStack(el, c){
       p.vals.forEach(function(v, i){
         if (!(v > 0)) return;
         const over = v > yMax, yy = over ? y0 : Y(v), hgt = y0 + p.h - yy;
-        if (over && !c.still) s += '<text x="' + (X(i) + bw/2 + 4).toFixed(1) + '" y="' + (y0 + 9) + '" style="fill:var(--n1);font-size:10.5px;font-weight:600">' + E(p.tf(v)) + '</text>';
+        if (over) s += '<text x="' + (X(i) + bw/2 + 4).toFixed(1) + '" y="' + (y0 + 9) + '" style="fill:var(--n1);font-size:10.5px;font-weight:600">' + E(p.tf(v)) + '</text>';
         s += '<rect x="' + (X(i) - bw/2).toFixed(1) + '" y="' + yy.toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + hgt.toFixed(1) + '" rx="' + Math.min(2, bw/2) + '" fill="var(--data)" opacity=".7"/>';
       });
     } else {
       const path = function(a){ let d = '', pen = false; a.forEach(function(v, i){ if (v == null){ pen = false; return; } d += (pen ? 'L' : 'M') + X(i).toFixed(1) + ',' + Y(v).toFixed(1); pen = true; }); return d; };
-      if (!(c.still && p.avg)) s += '<path d="' + path(p.vals) + '" fill="none" stroke="var(--n4)" stroke-width="1.25" stroke-linejoin="round" opacity=".8"/>';
+      s += '<path d="' + path(p.vals) + '" fill="none" stroke="var(--n4)" stroke-width="1.25" stroke-linejoin="round" opacity=".8"/>';
       if (p.avg) s += '<path d="' + path(p.avg) + '" fill="none" stroke="var(--data)" stroke-width="2.25" stroke-linejoin="round" stroke-linecap="round"/>';
     }
     y0 += p.h + GAP;
@@ -21435,8 +21416,6 @@ function chartStack(el, c){
   s += '<line class="xh" data-xh x1="0" x2="0" y1="' + T + '" y2="' + (H - B) + '" visibility="hidden"/>'
      + c.panels.map(function(p, k){ return '<circle data-dot="' + k + '" r="4.5" fill="var(--data)" stroke="var(--bg-mid)" stroke-width="2" visibility="hidden"/>'; }).join('');
   el.innerHTML = '<svg height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '">' + s + '</svg>';
-  el.classList.toggle('still', !!c.still);
-  if (c.still) return;
   const xh = el.querySelector('[data-xh]'), dots = el.querySelectorAll('[data-dot]');
   bindHover(el, function(e){
     if (!e){ xh.setAttribute('visibility','hidden'); dots.forEach(function(d){ d.setAttribute('visibility','hidden'); }); tipHide(); return; }
@@ -21653,13 +21632,11 @@ function renderRec(){
     return ((n - 1 - i) % step === 0) ? MON[d.getMonth()] + ' ' + d.getDate() : null;
   };
   const title = function(i){ return dates[i].toLocaleDateString(undefined, { weekday:'short', month:'short', day:'numeric', year:'numeric' }); };
-  const ph = !wide.matches;      /* phone: glance version, see the v189 note in the stylesheet */
-  const tickPh = function(i){ const d = dates[i]; return n <= 30 ? ((n - 1 - i) % 10 === 0 ? MON[d.getMonth()] + ' ' + d.getDate() : null) : (d.getDate() === 1 && (n <= 180 || d.getMonth() % 2 === 0) ? MON[d.getMonth()] : null); };
-  chartStack(document.getElementById('dkStack'), { n:n, tick: ph ? tickPh : tick, still:ph, tipTitle:title, panels:[
-    { name:'HRV',        kind:'line', h: ph ? 66 : 118, vals:vHrv, avg:roll(vHrv), band:band, yf:HM[0].f, tf:function(v){ return Math.round(v) + ' ms'; } },
-    { name:'Resting HR', kind:'line', h: ph ? 44 : 84,  vals:vRhr, avg:roll(vRhr), yf:HM[1].f, tf:function(v){ return Math.round(v) + ' bpm'; } },
-    { name:'Sleep',      kind:'line', h: ph ? 44 : 84,  vals:vSl,  avg:roll(vSl),  yf:HM[2].f, tf:HM[2].f },
-    { name:'Miles run',  kind:'cols', h: ph ? 40 : 70,  vals:miles, yf:function(v){ return String(Math.round(v)); }, tf:function(v){ return (Math.round(v*10)/10) + ' mi'; } },
+  chartStack(document.getElementById('dkStack'), { n:n, tick:tick, tipTitle:title, panels:[
+    { name:'HRV',        kind:'line', h:118, vals:vHrv, avg:roll(vHrv), band:band, yf:HM[0].f, tf:function(v){ return Math.round(v) + ' ms'; } },
+    { name:'Resting HR', kind:'line', h:84,  vals:vRhr, avg:roll(vRhr), yf:HM[1].f, tf:function(v){ return Math.round(v) + ' bpm'; } },
+    { name:'Sleep',      kind:'line', h:84,  vals:vSl,  avg:roll(vSl),  yf:HM[2].f, tf:HM[2].f },
+    { name:'Miles run',  kind:'cols', h:70,  vals:miles, yf:function(v){ return String(Math.round(v)); }, tf:function(v){ return (Math.round(v*10)/10) + ' mi'; } },
   ] });
   chartDots(document.getElementById('dkScat'), { h:230, pts:pts, fit:fit, yf:function(v){ return String(Math.round(v)); }, xf:function(v){ return String(Math.round(v)); } });
   chartCols(document.getElementById('dkSleep'), { h:230, vals:sl30.map(function(v){ return v || 0; }), ref:slUsual, refLabel:'usual', barMax:14,
