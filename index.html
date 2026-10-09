@@ -1939,6 +1939,35 @@ em.pro-short{color:var(--warn);background:rgba(232,197,143,.12);}
   margin-top:2px;font-variant-numeric:tabular-nums;white-space:nowrap;}
 
 .trail-note{margin-top:14px;font-size:11px;color:var(--n4);line-height:1.5;}
+/* v190 trailing windows as a ladder: one measure at a time, a verdict on top,
+   a bar per window sized by its weekly rate, and your year's rate drawn as a
+   line through all of them. See renderTrailing for why. */
+.tl-top{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+.tl-mets{display:flex;gap:4px;margin-left:auto;}
+.tl-mets button{font:600 11.5px var(--fb);color:var(--n3);background:none;border:1px solid var(--n5);border-radius:999px;padding:5px 10px;cursor:pointer;white-space:nowrap;}
+.tl-mets button.on{color:#080a12;border-color:transparent;background:var(--grad,linear-gradient(112deg,#7fd9bd,#8f9ae8 46%,#b39ae8));}
+.tl-verdict{margin-bottom:16px;}
+.tl-verdict b{display:block;font:650 22px/1.15 var(--fd);letter-spacing:-.01em;background:var(--grad,linear-gradient(112deg,#7fd9bd,#8f9ae8 46%,#b39ae8));-webkit-background-clip:text;background-clip:text;color:transparent;}
+.tl-verdict.cool b{background:none;color:var(--n1);}
+.tl-verdict span{display:block;margin-top:4px;font-size:12.5px;color:var(--n3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tl-verdict span em{font-style:normal;color:var(--n1);font-weight:600;}
+.tl-lad{position:relative;}
+.tl-row{display:grid;grid-template-columns:62px minmax(0,1fr) 92px;align-items:center;column-gap:10px;height:40px;}
+.tl-w{font-size:12px;font-weight:600;color:var(--n2);white-space:nowrap;}
+.tl-bar{position:relative;height:12px;border-radius:6px;background:var(--n6);}
+.tl-bar i{position:absolute;left:0;top:0;bottom:0;border-radius:6px;background:linear-gradient(90deg,#7fd9bd,#8f9ae8 60%,#b39ae8);
+  transform-origin:left;animation:tlGrow .7s cubic-bezier(.3,.7,.2,1) both;}
+.tl-row.base .tl-bar i{background:var(--n4);}
+.tl-v{text-align:right;white-space:nowrap;line-height:1.15;}
+.tl-v b{font:600 15px var(--fd);color:var(--n1);font-variant-numeric:tabular-nums;}
+.tl-v b small{font-size:10.5px;color:var(--n3);font-weight:500;margin-left:1px;}
+.tl-v u{display:block;text-decoration:none;font-size:10.5px;color:var(--n4);}
+/* the year's weekly rate, carried down through every bar */
+.tl-ref{position:absolute;top:2px;bottom:2px;width:0;border-left:1.5px dashed var(--n3);pointer-events:none;}
+.tl-ref span{position:absolute;top:-15px;transform:translateX(-50%);font-size:10px;color:var(--n3);white-space:nowrap;}
+.tl-note{margin-top:10px;font-size:11px;color:var(--n4);}
+@keyframes tlGrow{from{transform:scaleX(0);}}
+@media (prefers-reduced-motion:reduce){ .tl-bar i{animation:none;} }
 .stale-warn{padding:11px 14px;margin-bottom:14px;border-radius:12px;font-size:12.5px;
   line-height:1.5;color:var(--warn);background:rgba(232,197,143,.08);
   border:1px solid rgba(232,197,143,.22);}
@@ -2537,9 +2566,7 @@ body.sheet-open::after{z-index:19;}
         </div>
       </div>
       <div class="card vol-card" id="trailCard" style="display:none">
-        <div class="trail-head">Trailing totals <span id="trailWhat"></span></div>
         <div id="trailRows"></div>
-        <div class="trail-note">Rolling windows counted back from today — not calendar weeks or months.</div>
       </div>
       <div class="card vol-card" id="volCardMain">
         <div class="vol-head">
@@ -6955,7 +6982,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v189';
+const RH_BUILD = 'v190';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -7716,70 +7743,73 @@ const TRAIL_WINDOWS = [
   { key:'1yr', days:365, label:'1yr' },
 ];
 
+/* v190: the table was 20 numbers in a grid, and on the phone it read as a
+   spreadsheet. The question it answers is one comparison: am I doing more or
+   less than usual lately? So: one measure at a time (chips), a verdict that
+   answers that question in words (the last 30 days against the last year), and
+   a ladder of bars, one per window, sized by WEEKLY RATE so windows of
+   different length compare (a total makes the year always biggest). The year's
+   rate is a dashed line through every bar, so "above my normal" is visible
+   without reading a number. */
+let trailMet = (function(){ try { return localStorage.getItem('rh_trail_met') || 'mi'; } catch(e){ return 'mi'; } })();
 function renderTrailing(){
   const host = document.getElementById('trailRows');
   if (!host) return;
   const t = VOL_TYPES.find(function(x){ return x.key === volType; }) || VOL_TYPES[0];
-  const what = document.getElementById('trailWhat');
-  if (what) what.textContent = '\u00b7 ' + (t.label || 'Running');
 
   /* Exactly the filter renderVolChart uses. Written out rather than
      approximated, so switching to Trail cannot silently change what is being
-     counted \u2014 two views of the same thing disagreeing is worse than either
+     counted: two views of the same thing disagreeing is worse than either
      being slightly wrong. */
   const inType = function(a){
     return volType === 'All' || normType(a.type) === normType(volType)
         || (volType === 'Run' && RUNLIKE.has(a.type));
   };
+  const runish = volType === 'Run' || volType === 'Hike' || volType === 'Walk';
+  /* the measures that mean something for this activity type; carrots for "All" */
+  const MS = (volType === 'All' ? [
+      { k:'pts', label:'Carrots', of:function(a){ return pointsOf(a); }, unit:'', rate:function(v){ return Math.round(v).toLocaleString(); }, tot:function(v){ return Math.round(v).toLocaleString() + ' carrots'; }, word:'carrots' } ] : [])
+    .concat(volType === 'All' || !runish ? [] : [
+      { k:'mi', label:'Miles', of:function(a){ return a.distance_mi || 0; }, unit:'mi', rate:function(v){ return String(Math.round(v)); }, tot:function(v){ return f1mi(v) + ' mi'; }, word:'mi' },
+      { k:'ft', label:'Vert', of:function(a){ return a.elevation_ft || 0; }, unit:'ft', rate:function(v){ return String(fmtK(v)); }, tot:function(v){ return fmtK(v) + ' ft'; }, word:'ft' } ])
+    .concat([
+      { k:'h', label:'Hours', of:function(a){ return (a.moving_time || 0)/3600; }, unit:'h', rate:function(v){ return (Math.round(v*10)/10).toFixed(1); }, tot:function(v){ return (Math.round(v*10)/10) + ' h'; }, word:'h' },
+      { k:'n', label: volType === 'Run' ? 'Runs' : 'Sessions', of:function(){ return 1; }, unit:'', rate:function(v){ return (Math.round(v*10)/10).toFixed(1); }, tot:function(v){ return v + (volType === 'Run' ? ' runs' : ' sessions'); }, word: volType === 'Run' ? 'runs' : 'sessions' } ]);
+  const M = MS.find(function(m){ return m.k === trailMet; }) || MS[0];
 
   const rows = TRAIL_WINDOWS.map(function(w){
     const cutoff = todayD.getTime() - (w.days - 1) * 86400000;
-    const acts = ACTS.filter(function(a){ return a._ts >= cutoff && inType(a); });
-    const mi = acts.reduce(function(s,a){ return s + (a.distance_mi||0); }, 0);
-    const ft = acts.reduce(function(s,a){ return s + (a.elevation_ft||0); }, 0);
-    const sec = acts.reduce(function(s,a){ return s + (a.moving_time||0); }, 0);
-    /* per-week rate makes windows of different lengths comparable at a glance,
-       which is the whole point of showing five of them together */
-    const perWk = mi / (w.days/7);
-    return { w:w, n:acts.length, mi:mi, ft:ft, sec:sec, perWk:perWk };
+    const tot = ACTS.reduce(function(s, a){ return a._ts >= cutoff && inType(a) ? s + M.of(a) : s; }, 0);
+    return { w:w, tot:tot, rate: tot / (w.days/7) };
   });
+  const yr = rows[rows.length - 1].rate, mo = rows[1].rate;
+  const top = Math.max.apply(null, rows.map(function(r){ return r.rate; })) || 1;
+  const ratio = yr > 0 ? mo / yr : null;
+  const pct = ratio != null ? Math.round((ratio - 1)*100) : 0;
+  const verdict = ratio == null ? 'Nothing logged yet' : ratio >= 1.25 ? 'On a tear' : ratio >= 1.08 ? 'Running hotter than usual'
+    : ratio > 0.92 ? 'Right on your normal' : ratio > 0.6 ? 'Easing off' : 'Resting up';
+  const NAMES = { '7d':'7 days', '30d':'30 days', '90d':'90 days', '6mo':'6 months', '1yr':'1 year' };
 
-  /* Four columns, identical shape: a figure with its per-week rate beneath.
-     The rate is what makes windows of different lengths comparable at all \u2014
-     without it, 1yr is always the biggest number and says nothing.
-
-     Headers share the exact column sizing rather than being laid out
-     separately, which is what had them drifting away from the values below. */
-  const col = function(main, unit, rate){
-    return '<span class="tr-c">'
-      + '<b>' + main + (unit ? '<i>' + unit + '</i>' : '') + '</b>'
-      + '<u>' + (rate || '&nbsp;') + '</u></span>';
-  };
-
-  let h = '<div class="tr-row tr-head">'
-    + '<span class="tr-w"></span>'
-    + '<span class="tr-c">Distance</span>'
-    + '<span class="tr-c">Vert</span>'
-    + '<span class="tr-c">Time</span>'
-    + '<span class="tr-c">Sessions</span>'
-    + '</div>';
-
-  h += rows.map(function(r){
-    const wks = r.w.days / 7;
-    return '<div class="tr-row">'
-      + '<span class="tr-w">' + r.w.label + '</span>'
-      + col(r.mi > 0.05 ? f1mi(r.mi) : '\u2013', r.mi > 0.05 ? 'mi' : '',
-            r.mi > 0.05 ? Math.round(r.mi/wks) + '/wk' : '')
-      + col(r.ft > 0 ? fmtK(r.ft) : '\u2013', r.ft > 0 ? 'ft' : '',
-            r.ft > 0 ? fmtK(r.ft/wks) + '/wk' : '')
-      + col(r.sec > 0 ? (Math.round(r.sec/360)/10) : '\u2013', r.sec > 0 ? 'h' : '',
-            r.sec > 0 ? (Math.round(r.sec/wks/360)/10) + '/wk' : '')
-      + col(r.n > 0 ? r.n : '\u2013', '',
-            r.n > 0 ? (Math.round(r.n/wks*10)/10) + '/wk' : '')
-      + '</div>';
-  }).join('');
+  let h = '<div class="tl-top"><div class="hsec" style="margin:0"><span>Lately</span></div><div class="tl-mets">'
+    + MS.map(function(m){ return '<button data-tm="' + m.k + '"' + (m === M ? ' class="on"' : '') + '>' + m.label + '</button>'; }).join('') + '</div></div>'
+    + '<div class="tl-verdict' + (ratio != null && ratio <= 0.92 ? ' cool' : '') + '"><b>' + verdict + '</b>'
+    + (ratio != null ? '<span><em>' + M.rate(mo) + (M.unit ? ' ' + M.unit : '') + '</em> a week this month · '
+        + (Math.abs(pct) < 1 ? 'the same as' : '<em>' + Math.abs(pct) + '% ' + (pct > 0 ? 'above' : 'below') + '</em>') + ' your year</span>' : '') + '</div>'
+    + '<div class="tl-lad">'
+    + rows.map(function(r, i){
+        const base = i === rows.length - 1;
+        return '<div class="tl-row' + (base ? ' base' : '') + '"><span class="tl-w">' + NAMES[r.w.key] + '</span>'
+          + '<span class="tl-bar"><i style="width:' + Math.max(r.rate > 0 ? 3 : 0, r.rate/top*100).toFixed(1) + '%;animation-delay:' + (i*70) + 'ms"></i></span>'
+          + '<span class="tl-v"><b>' + (r.rate > 0 ? M.rate(r.rate) : '–') + '<small>/wk</small></b><u>' + (r.tot > 0 ? M.tot(r.tot) : 'none') + '</u></span></div>';
+      }).join('')
+    /* the reference line sits in the bar column: offset by the label column and gaps */
+    + (yr > 0 ? '<span class="tl-ref" style="left:calc(72px + (100% - 174px) * ' + (yr/top).toFixed(4) + ')"><span>your year</span></span>' : '')
+    + '</div><div class="tl-note">' + (t.label || 'Running') + ' · counted back from today, not calendar weeks</div>';
 
   host.innerHTML = h;
+  host.querySelectorAll('[data-tm]').forEach(function(b){
+    b.addEventListener('click', function(){ trailMet = b.dataset.tm; try { localStorage.setItem('rh_trail_met', trailMet); } catch(e){} renderTrailing(); });
+  });
 }
 
 function renderVolChips(){
