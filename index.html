@@ -1956,35 +1956,35 @@ em.pro-short{color:var(--warn);background:rgba(232,197,143,.12);}
   margin-top:2px;font-variant-numeric:tabular-nums;white-space:nowrap;}
 
 .trail-note{margin-top:14px;font-size:11px;color:var(--n4);line-height:1.5;}
-/* v190 trailing windows as a ladder: one measure at a time, a verdict on top,
-   a bar per window sized by its weekly rate, and your year's rate drawn as a
-   line through all of them. See renderTrailing for why. */
+/* v194 trailing figures as a pull-back window (Will picked idea 1 of three
+   mocks). One readout, a smooth curve of the last year, and a slider: drag
+   left to look further back. It clicks onto 7d / 30d / 90d / 6mo / 1y and any
+   length in between works. See renderTrailing. */
 .tl-top{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+.tl-lbl{font:600 11.5px var(--fd);letter-spacing:.14em;text-transform:uppercase;color:var(--n3);}
 .tl-mets{display:flex;gap:4px;margin-left:auto;}
 .tl-mets button{font:600 11.5px var(--fb);color:var(--n3);background:none;border:1px solid var(--n5);border-radius:999px;padding:5px 10px;cursor:pointer;white-space:nowrap;}
 .tl-mets button.on{color:#080a12;border-color:transparent;background:var(--grad,linear-gradient(112deg,#7fd9bd,#8f9ae8 46%,#b39ae8));}
-.tl-verdict{margin-bottom:16px;}
-.tl-verdict b{display:block;font:650 22px/1.15 var(--fd);letter-spacing:-.01em;background:var(--grad,linear-gradient(112deg,#7fd9bd,#8f9ae8 46%,#b39ae8));-webkit-background-clip:text;background-clip:text;color:transparent;}
-.tl-verdict.cool b{background:none;color:var(--n1);}
-.tl-verdict span{display:block;margin-top:4px;font-size:12.5px;color:var(--n3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.tl-verdict span em{font-style:normal;color:var(--n1);font-weight:600;}
-.tl-lad{position:relative;}
-.tl-row{display:grid;grid-template-columns:62px minmax(0,1fr) 92px;align-items:center;column-gap:10px;height:40px;}
-.tl-w{font-size:12px;font-weight:600;color:var(--n2);white-space:nowrap;}
-.tl-bar{position:relative;height:12px;border-radius:6px;background:var(--n6);}
-.tl-bar i{position:absolute;left:0;top:0;bottom:0;border-radius:6px;background:linear-gradient(90deg,#7fd9bd,#8f9ae8 60%,#b39ae8);
-  transform-origin:left;animation:tlGrow .7s cubic-bezier(.3,.7,.2,1) both;}
-.tl-row.base .tl-bar i{background:var(--n4);}
-.tl-v{text-align:right;white-space:nowrap;line-height:1.15;}
-.tl-v b{font:600 15px var(--fd);color:var(--n1);font-variant-numeric:tabular-nums;}
-.tl-v b small{font-size:10.5px;color:var(--n3);font-weight:500;margin-left:1px;}
-.tl-v u{display:block;text-decoration:none;font-size:10.5px;color:var(--n4);}
-/* the year's weekly rate, carried down through every bar */
-.tl-ref{position:absolute;top:2px;bottom:2px;width:0;border-left:1.5px dashed var(--n3);pointer-events:none;}
-.tl-ref span{position:absolute;top:-15px;transform:translateX(-50%);font-size:10px;color:var(--n3);white-space:nowrap;}
-.tl-note{margin-top:10px;font-size:11px;color:var(--n4);}
-@keyframes tlGrow{from{transform:scaleX(0);}}
-@media (prefers-reduced-motion:reduce){ .tl-bar i{animation:none;} }
+.tl-read{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin-bottom:10px;}
+.tl-big{font:700 38px/1 var(--fd);letter-spacing:-.02em;color:var(--n1);font-variant-numeric:tabular-nums;white-space:nowrap;}
+.tl-big small{font-size:15px;color:var(--n3);font-weight:500;margin-left:3px;letter-spacing:0;}
+.tl-win{font-size:12.5px;color:var(--n2);margin-top:6px;white-space:nowrap;}
+.tl-rate{text-align:right;white-space:nowrap;}
+.tl-rate b{display:block;font:650 22px var(--fd);font-variant-numeric:tabular-nums;background:var(--grad,linear-gradient(112deg,#7fd9bd,#8f9ae8 46%,#b39ae8));-webkit-background-clip:text;background-clip:text;color:transparent;}
+.tl-rate span{font-size:11.5px;color:var(--n3);}
+.tl-curve{display:block;width:100%;height:92px;}
+.tl-range{-webkit-appearance:none;appearance:none;width:100%;height:34px;background:transparent;margin:2px 0 0;touch-action:pan-y;}
+.tl-range::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:linear-gradient(90deg,var(--n5) 0 var(--p,50%),#8f9ae8 var(--p,50%) 100%);}
+.tl-range::-moz-range-track{height:4px;border-radius:2px;background:var(--n5);}
+.tl-range::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:26px;margin-top:-11px;border-radius:50%;background:#eceefa;border:4px solid #8f9ae8;box-shadow:0 2px 10px rgba(0,0,0,.5);}
+.tl-range::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:#eceefa;border:4px solid #8f9ae8;}
+.tl-range:focus-visible{outline:2px solid #8f9ae8;outline-offset:2px;border-radius:8px;}
+.tl-ticks{position:relative;height:16px;font-size:10.5px;color:var(--n4);}
+.tl-ticks button{position:absolute;transform:translateX(-50%);background:none;border:none;padding:0 4px;font:inherit;color:inherit;cursor:pointer;white-space:nowrap;}
+.tl-ticks button.on{color:var(--n1);font-weight:600;}
+.tl-vs{margin-top:10px;font-size:12.5px;color:var(--n3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tl-vs em{font-style:normal;color:var(--n1);font-weight:600;}
+.tl-vs em.up{color:var(--pos,#7fd9bd);} .tl-vs em.dn{color:var(--neg,#f08a99);}
 .stale-warn{padding:11px 14px;margin-bottom:14px;border-radius:12px;font-size:12.5px;
   line-height:1.5;color:var(--warn);background:rgba(232,197,143,.08);
   border:1px solid rgba(232,197,143,.22);}
@@ -7066,7 +7066,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v193';
+const RH_BUILD = 'v194';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -7835,6 +7835,8 @@ const TRAIL_WINDOWS = [
    different length compare (a total makes the year always biggest). The year's
    rate is a dashed line through every bar, so "above my normal" is visible
    without reading a number. */
+/* the window length survives re-renders (a sync, switching measure) within a session */
+let trailLen = 30;
 let trailMet = (function(){ try { return localStorage.getItem('rh_trail_met') || 'mi'; } catch(e){ return 'mi'; } })();
 function renderTrailing(){
   const host = document.getElementById('trailRows');
@@ -7861,36 +7863,83 @@ function renderTrailing(){
       { k:'n', label: volType === 'Run' ? 'Runs' : 'Sessions', of:function(){ return 1; }, unit:'', rate:function(v){ return (Math.round(v*10)/10).toFixed(1); }, tot:function(v){ return v + (volType === 'Run' ? ' runs' : ' sessions'); }, word: volType === 'Run' ? 'runs' : 'sessions' } ]);
   const M = MS.find(function(m){ return m.k === trailMet; }) || MS[0];
 
-  const rows = TRAIL_WINDOWS.map(function(w){
-    const cutoff = todayD.getTime() - (w.days - 1) * 86400000;
-    const tot = ACTS.reduce(function(s, a){ return a._ts >= cutoff && inType(a) ? s + M.of(a) : s; }, 0);
-    return { w:w, tot:tot, rate: tot / (w.days/7) };
+  /* one value per day, newest last, two years deep so any window can be set
+     against the same days a year earlier */
+  const ND = 730, DAY = 864e5, t0 = new Date(todayD.getFullYear(), todayD.getMonth(), todayD.getDate()).getTime();
+  const daily = new Float64Array(ND);
+  ACTS.forEach(function(a){
+    if (!a || !a._date || !inType(a)) return;
+    const d = new Date(a._date.getFullYear(), a._date.getMonth(), a._date.getDate()).getTime();
+    const back = Math.round((t0 - d)/DAY);
+    if (back >= 0 && back < ND) daily[ND - 1 - back] += M.of(a);
   });
-  const yr = rows[rows.length - 1].rate, mo = rows[1].rate;
-  const top = Math.max.apply(null, rows.map(function(r){ return r.rate; })) || 1;
-  const ratio = yr > 0 ? mo / yr : null;
-  const pct = ratio != null ? Math.round((ratio - 1)*100) : 0;
-  const verdict = ratio == null ? 'Nothing logged yet' : ratio >= 1.25 ? 'On a tear' : ratio >= 1.08 ? 'Running hotter than usual'
-    : ratio > 0.92 ? 'Right on your normal' : ratio > 0.6 ? 'Easing off' : 'Resting up';
-  const NAMES = { '7d':'7 days', '30d':'30 days', '90d':'90 days', '6mo':'6 months', '1yr':'1 year' };
+  const T = ND - 1;
+  const sumWin = function(end, len){ let s = 0; for (let i = Math.max(0, end - len + 1); i <= end; i++) s += daily[i]; return s; };
 
-  let h = '<div class="tl-top"><div class="hsec" style="margin:0"><span>Lately</span></div><div class="tl-mets">'
+  host.innerHTML = '<div class="tl-top"><span class="tl-lbl">Lately</span><div class="tl-mets">'
     + MS.map(function(m){ return '<button data-tm="' + m.k + '"' + (m === M ? ' class="on"' : '') + '>' + m.label + '</button>'; }).join('') + '</div></div>'
-    + '<div class="tl-verdict' + (ratio != null && ratio <= 0.92 ? ' cool' : '') + '"><b>' + verdict + '</b>'
-    + (ratio != null ? '<span><em>' + M.rate(mo) + (M.unit ? ' ' + M.unit : '') + '</em> a week this month · '
-        + (Math.abs(pct) < 1 ? 'the same as' : '<em>' + Math.abs(pct) + '% ' + (pct > 0 ? 'above' : 'below') + '</em>') + ' your year</span>' : '') + '</div>'
-    + '<div class="tl-lad">'
-    + rows.map(function(r, i){
-        const base = i === rows.length - 1;
-        return '<div class="tl-row' + (base ? ' base' : '') + '"><span class="tl-w">' + NAMES[r.w.key] + '</span>'
-          + '<span class="tl-bar"><i style="width:' + Math.max(r.rate > 0 ? 3 : 0, r.rate/top*100).toFixed(1) + '%;animation-delay:' + (i*70) + 'ms"></i></span>'
-          + '<span class="tl-v"><b>' + (r.rate > 0 ? M.rate(r.rate) : '–') + '<small>/wk</small></b><u>' + (r.tot > 0 ? M.tot(r.tot) : 'none') + '</u></span></div>';
-      }).join('')
-    /* the reference line sits in the bar column: offset by the label column and gaps */
-    + (yr > 0 ? '<span class="tl-ref" style="left:calc(72px + (100% - 174px) * ' + (yr/top).toFixed(4) + ')"><span>your year</span></span>' : '')
-    + '</div><div class="tl-note">' + (t.label || 'Running') + ' · counted back from today, not calendar weeks</div>';
+    + '<div class="tl-read"><div><div class="tl-big" id="tlBig"></div><div class="tl-win" id="tlWin"></div></div>'
+    + '<div class="tl-rate"><b id="tlRate"></b><span>' + (M.unit || M.word) + ' a week</span></div></div>'
+    + '<svg class="tl-curve" id="tlCurve" aria-label="The last year, day by day"></svg>'
+    + '<input type="range" class="tl-range" id="tlRange" min="0" max="1000" aria-label="How far back to count">'
+    + '<div class="tl-ticks" id="tlTicks"></div>'
+    + '<div class="tl-vs" id="tlVs"></div>';
 
-  host.innerHTML = h;
+  /* ── the curve: the last 365 days as a 14-day rolling average, drawn as a
+     smooth line. Will asked for it smoother than the daily bars of the mock;
+     the average also keeps a 100-miler from towering over the year while its
+     week still stands out. The window is the lit part; the rest is dim. */
+  const svg = document.getElementById('tlCurve');
+  const W = svg.clientWidth || 340, H = 92, top = 8, base = H - 2, n = 365;
+  const sm = []; for (let i = T - n + 1; i <= T; i++){ let s = 0; for (let k = 0; k < 14; k++) s += daily[i - k] || 0; sm.push(s/14); }
+  const mx = Math.max.apply(null, sm) || 1;
+  const X = function(i){ return i/(n - 1)*W; }, Y = function(v){ return base - v/mx*(base - top); };
+  /* sample every fifth day, then a Catmull-Rom spline through the samples */
+  const pts = []; for (let i = 0; i < n; i += 5) pts.push([X(i), Y(sm[i])]); pts.push([X(n - 1), Y(sm[n - 1])]);
+  let d = 'M' + pts[0][0].toFixed(1) + ' ' + pts[0][1].toFixed(1);
+  for (let i = 0; i < pts.length - 1; i++){
+    const p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2;
+    const c1y = Math.min(base, p1[1] + (p2[1] - p0[1])/6), c2y = Math.min(base, p2[1] - (p3[1] - p1[1])/6);
+    d += ' C' + (p1[0] + (p2[0] - p0[0])/6).toFixed(1) + ' ' + c1y.toFixed(1) + ' ' + (p2[0] - (p3[0] - p1[0])/6).toFixed(1) + ' ' + c2y.toFixed(1) + ' ' + p2[0].toFixed(1) + ' ' + p2[1].toFixed(1);
+  }
+  const area = d + ' L' + W + ' ' + base + ' L0 ' + base + ' Z';
+  svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+  svg.innerHTML = '<defs><linearGradient id="tlG" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#8f9ae8" stop-opacity=".7"/><stop offset="1" stop-color="#7fd9bd" stop-opacity=".08"/></linearGradient>'
+    + '<linearGradient id="tlL" x1="0" x2="1"><stop offset="0" stop-color="#7fd9bd"/><stop offset=".5" stop-color="#8f9ae8"/><stop offset="1" stop-color="#b39ae8"/></linearGradient>'
+    + '<clipPath id="tlClip"><rect id="tlClipR" x="0" y="0" width="' + W + '" height="' + H + '"/></clipPath></defs>'
+    + '<path d="' + area + '" fill="var(--n6,#171b2b)"/><path d="' + d + '" fill="none" stroke="var(--n5,#2a2f45)" stroke-width="1.5"/>'
+    + '<g clip-path="url(#tlClip)"><path d="' + area + '" fill="url(#tlG)"/><path d="' + d + '" fill="none" stroke="url(#tlL)" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/></g>'
+    + '<line id="tlEdge" x1="0" x2="0" y1="0" y2="' + H + '" stroke="#eceefa" stroke-opacity=".7" stroke-width="1.25" stroke-dasharray="3 3"/>';
+
+  /* ── the slider: log scale so 7, 30, 90, 182 and 365 days spread across it
+     instead of crowding at one end; snaps when close to one of them ── */
+  const SNAPS = [365, 182, 90, 30, 7], LN0 = Math.log(365), LN1 = Math.log(7);
+  const posOf = function(L){ return Math.round((LN0 - Math.log(L))/(LN0 - LN1)*1000); };
+  const lenOf = function(v){ let L = Math.round(Math.exp(LN0 + (LN1 - LN0)*v/1000)); for (const s of SNAPS) if (Math.abs(L - s) <= Math.max(2, s*0.06)) return s; return L; };
+  const range = document.getElementById('tlRange');
+  document.getElementById('tlTicks').innerHTML = SNAPS.map(function(L){
+    return '<button data-l="' + L + '" style="left:calc(13px + (100% - 26px) * ' + (posOf(L)/1000).toFixed(4) + ')">' + ({365:'1y',182:'6mo',90:'90d',30:'30d',7:'7d'})[L] + '</button>'; }).join('');
+  const upd = function(L){
+    trailLen = L;
+    range.value = posOf(L); range.style.setProperty('--p', (range.value/10) + '%');
+    const tot = sumWin(T, L), wk = tot/(L/7), prev = sumWin(T - 365, L), pwk = prev/(L/7);
+    const unit = M.unit || M.word;
+    document.getElementById('tlBig').innerHTML = M.tot(tot).split(' ')[0] + '<small>' + unit + '</small>';
+    const since = new Date(t0 - (L - 1)*DAY).toLocaleDateString(undefined, { month:'short', day:'numeric' });
+    document.getElementById('tlWin').textContent = 'Last ' + L + ' days · since ' + since;
+    document.getElementById('tlRate').textContent = M.rate(wk);
+    const pct = pwk > 0 ? Math.round((wk/pwk - 1)*100) : null;
+    document.getElementById('tlVs').innerHTML = pct == null ? 'Nothing in the same days last year.'
+      : 'Same days last year: <em>' + M.rate(pwk) + ' ' + unit + '</em> a week · <em class="' + (pct >= 0 ? 'up' : 'dn') + '">' + Math.abs(pct) + '% ' + (pct >= 0 ? 'ahead' : 'behind') + '</em>';
+    const x = Math.max(0, (n - Math.min(L, n))/(n - 1)*W);
+    document.getElementById('tlClipR').setAttribute('x', x.toFixed(1));
+    const e = document.getElementById('tlEdge'); e.setAttribute('x1', x.toFixed(1)); e.setAttribute('x2', x.toFixed(1));
+    document.querySelectorAll('#tlTicks button').forEach(function(b){ b.classList.toggle('on', +b.dataset.l === L); });
+  };
+  range.addEventListener('input', function(){ upd(lenOf(+range.value)); });
+  host.querySelectorAll('#tlTicks button').forEach(function(b){ b.addEventListener('click', function(){ upd(+b.dataset.l); }); });
+  upd(trailLen);
+
   host.querySelectorAll('[data-tm]').forEach(function(b){
     b.addEventListener('click', function(){ trailMet = b.dataset.tm; try { localStorage.setItem('rh_trail_met', trailMet); } catch(e){} renderTrailing(); });
   });
