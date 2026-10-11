@@ -477,6 +477,23 @@ a,button,.set,.lrow,.row,.dayrow,.ycard,.food-row,.sup-row,.vdot,.seg button,
   0%,100%{box-shadow:0 0 12px -6px rgba(127,184,148,.22);}
   46%    {box-shadow:0 0 30px -4px rgba(143,154,232,.38);}}
 @media (prefers-reduced-motion:reduce){.parc,.parc::after{animation:none;}}
+/* v193 readiness ring (see rhRing). The old layers' styles above (.pglow,
+   .prings, .pfall, .parc) no longer have elements; kept only until a cleanup pass. */
+.rr-host{position:absolute;inset:0;}
+.portal::before{display:none;}
+.rr{position:absolute;inset:0;width:100%;height:100%;overflow:visible;}
+.rr .rr-pool{transform-box:view-box;transform-origin:50% 50%;}
+.rr-idle .rr-pool{animation:rrPool 5.5s ease-in-out infinite;}
+@keyframes rrPool{0%,100%{opacity:.7;}50%{opacity:1;}}
+.rr .rr-glint{transform-box:view-box;transform-origin:50% 50%;}
+.rr-idle .rr-glint path{animation:rrGlintA 7s ease-in-out 1.2s infinite;}
+.rr-idle .rr-glint{animation:rrGlint 7s cubic-bezier(.45,0,.25,1) 1.2s infinite;}
+@keyframes rrGlint{0%{transform:rotate(0deg);}38%,100%{transform:rotate(var(--rr-end,270deg));}}
+@keyframes rrGlintA{0%{opacity:0;}6%{opacity:.9;}32%{opacity:.9;}38%,100%{opacity:0;}}
+.rr .rr-halo{transform-box:fill-box;transform-origin:center;}
+.rr-idle .rr-halo{animation:rrHalo 3.6s ease-in-out infinite;}
+@keyframes rrHalo{0%,100%{transform:scale(.85);opacity:.28;}50%{transform:scale(1.25);opacity:.5;}}
+@media (prefers-reduced-motion:reduce){.rr-idle .rr-pool,.rr-idle .rr-glint,.rr-idle .rr-glint path,.rr-idle .rr-halo{animation:none;}}
 .pcore{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
 .pnum{font-family:var(--fd);font-size:56px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums;
   letter-spacing:-.03em;color:var(--honey-hot);animation:numGlow 4.2s ease-in-out infinite;}
@@ -2549,9 +2566,7 @@ body.sheet-open::after{z-index:19;}
     <div class="ov-brief">
       <div class="hero-head"><span class="eyebrow" id="ovDate">◆ Briefing</span><div class="actions"><button class="pill" id="weekBtn">▤ Week</button><button class="pill pill-ai" id="jarvisBtn"><span class="dot"></span> Jarvis</button></div></div>
       <div class="portal">
-        <div class="pglow"></div>
-        <svg class="prings" id="prings" viewBox="0 0 212 212"></svg>
-        <div class="pfall"></div><div class="parc" id="parc"></div>
+        <div class="rr-host" id="rrHost"></div>
         <div class="pcore"><div class="pnum" id="pnum">—</div><div class="plbl" id="plbl"></div></div>
       </div>
       <div class="greet" id="greet"></div>
@@ -6734,35 +6749,104 @@ function renderPortal(){
   if (rLabel)   rLabel.style.display   = hasScore ? '' : 'none';
   if (!hasScore) return;
 
-  /* cool ramp, deep to bright, ending on the accent */
-  /* Four rings, and the innermost stops at r=60. There used to be six, the last
-     two at r=38 and r=25 in bright green and lavender with a glow — which put
-     them straight through the digits of the score. The number needs about 45px
-     of clear radius; nothing is drawn inside that now. */
-  const stops=['#141830','#1a2044','#232a5e','#7fd9bd'], rad=[96,84,72,60];
-  let s=''; rad.forEach((r,i)=>{ s+='<circle cx="106" cy="106" r="'+r+'" fill="none" stroke="'+stops[i]+'" stroke-opacity="'+(0.3+i*0.09).toFixed(2)+'" stroke-width="'+(i===3?1.3:1)+'"/>'; });
-  document.getElementById('prings').innerHTML = s;
-  const deg = Math.round(R.score*3.6);
-  /* stroked SVG arc as the mask: crisp curve, round caps */
-  (function(){
-    const el = document.getElementById('parc');
-    const R = 94, CX = 106, W = 11;
-    const C = 2 * Math.PI * R;
-    const frac = Math.max(0, Math.min(1, deg / 360));
-    const dash = C * frac;
-    const svg =
-      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 212 212">' +
-      '<circle cx="' + CX + '" cy="' + CX + '" r="' + R + '" fill="none" stroke="#000" ' +
-      'stroke-width="' + W + '" stroke-linecap="round" ' +
-      'stroke-dasharray="' + dash.toFixed(2) + ' ' + (C - dash + 1).toFixed(2) + '" ' +
-      'transform="rotate(-90 ' + CX + ' ' + CX + ')"/></svg>';
-    const url = 'url("data:image/svg+xml,' + encodeURIComponent(svg) + '")';
-    el.style.webkitMaskImage = url;
-    el.style.maskImage = url;
-  })();
-  document.getElementById('pnum').textContent = R.score;
+  /* v193: one SVG ring (rhRing, below). It sweeps in only when the score is
+     new to this screen; ordinary re-renders redraw it at rest, so a sync or a
+     tab switch does not replay the animation every time. */
+  const host = document.getElementById('rrHost');
+  if (host){
+    const fresh = window._rrShown !== R.score;
+    window._rrShown = R.score;
+    rhRing(host, R.score, R.label, { numEl: document.getElementById('pnum'), still: !fresh });
+  }
+  if (!host) document.getElementById('pnum').textContent = R.score;
   document.getElementById('plbl').textContent = R.label;
 }
+
+/* ── READINESS RING (v193) ──
+   Replaces the old stack: four grey concentric circles, a "falling" ring, and a
+   CSS-masked conic arc that pulsed by scaling. The grey lines read as sloppy
+   and the scale-pulse made the arc wobble.
+
+   Now it is one SVG with nothing inside the arc but light:
+   - a faint full-circle track, the same width as the arc
+   - the arc, coloured ALONG its length (mint at the top, through periwinkle,
+     to lavender near the end of the circle) so a higher score literally
+     reaches further into the lavender. SVG has no conic gradient, so the
+     colour is 180 short segments; a stroked circle in a <mask> reveals them
+     with true round caps.
+   - a bright head at the tip of the arc, with a soft halo
+   - one small tick on the outside at 80: an ordinary night scores 80, so the
+     tick is "your normal" and the gap to it is the story of the day
+   - on load the arc sweeps in and the number counts up with it; afterwards a
+     slow glint runs along the arc and the head breathes. Nothing scales.
+   Respects reduced motion (no sweep, no glint). */
+function rhRing(host, score, label, opts){
+  opts = opts || {};
+  const S = 212, C = 106, R = 92, W = 12, CIRC = 2*Math.PI*R;
+  const f = Math.max(0, Math.min(1, score/100));
+  const id = 'rr' + Math.random().toString(36).slice(2, 7);
+  const STOPS = [[0, [127,217,189]], [0.5, [143,154,232]], [1, [179,154,232]]];
+  const col = function(t){
+    let a = STOPS[0], b = STOPS[STOPS.length - 1];
+    for (let i = 0; i < STOPS.length - 1; i++) if (t >= STOPS[i][0] && t <= STOPS[i+1][0]){ a = STOPS[i]; b = STOPS[i+1]; break; }
+    const k = (t - a[0])/((b[0] - a[0]) || 1);
+    return 'rgb(' + a[1].map(function(v, j){ return Math.round(v + (b[1][j] - v)*k); }).join(',') + ')';
+  };
+  const pt = function(t, r){ const a = (t*360 - 90)*Math.PI/180; return [C + r*Math.cos(a), C + r*Math.sin(a)]; };
+  /* the coloured band: short arcs, each overlapping the next a hair so no seam shows */
+  let segs = '';
+  const N = 180;
+  for (let i = 0; i < N; i++){
+    const t0 = i/N, t1 = Math.min(1, (i + 1.6)/N), p0 = pt(t0, R), p1 = pt(t1, R);
+    segs += '<path d="M' + p0[0].toFixed(2) + ' ' + p0[1].toFixed(2) + ' A' + R + ' ' + R + ' 0 0 1 ' + p1[0].toFixed(2) + ' ' + p1[1].toFixed(2) + '" stroke="' + col(t0) + '"/>';
+  }
+  const n0 = pt(0.8, R + W/2 + 4), n1 = pt(0.8, R + W/2 + 10);
+  host.innerHTML =
+    '<svg class="rr" viewBox="0 0 ' + S + ' ' + S + '" aria-hidden="true">'
+    + '<defs>'
+    +   '<radialGradient id="' + id + 'p" cx="50%" cy="52%" r="50%"><stop offset="0" stop-color="#8f9ae8" stop-opacity=".22"/><stop offset=".55" stop-color="#7fd9bd" stop-opacity=".06"/><stop offset="1" stop-color="#7fd9bd" stop-opacity="0"/></radialGradient>'
+    +   '<mask id="' + id + 'm" maskUnits="userSpaceOnUse" x="0" y="0" width="' + S + '" height="' + S + '"><circle class="rr-mk" cx="' + C + '" cy="' + C + '" r="' + R + '" fill="none" stroke="#fff" stroke-width="' + W + '" stroke-linecap="round" stroke-dasharray="0 ' + CIRC.toFixed(2) + '" transform="rotate(-90 ' + C + ' ' + C + ')"/></mask>'
+    +   '<filter id="' + id + 'g" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3.2"/></filter>'
+    +   '<linearGradient id="' + id + 'l" gradientUnits="userSpaceOnUse" x1="' + (C - 26) + '" x2="' + (C + 26) + '" y1="0" y2="0"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".75"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>'
+    + '</defs>'
+    + '<circle class="rr-pool" cx="' + C + '" cy="' + C + '" r="78" fill="url(#' + id + 'p)"/>'
+    + '<circle cx="' + C + '" cy="' + C + '" r="' + R + '" fill="none" stroke="#fff" stroke-opacity=".06" stroke-width="' + W + '"/>'
+    + '<line x1="' + n0[0].toFixed(2) + '" y1="' + n0[1].toFixed(2) + '" x2="' + n1[0].toFixed(2) + '" y2="' + n1[1].toFixed(2) + '" stroke="#eceefa" stroke-opacity=".55" stroke-width="2" stroke-linecap="round"/>'
+    /* soft bloom under the arc, then the arc */
+    + '<g mask="url(#' + id + 'm)"><g class="rr-bloom" filter="url(#' + id + 'g)" fill="none" stroke-width="' + (W + 6) + '" opacity=".45">' + segs + '</g>'
+    +   '<g fill="none" stroke-width="' + W + '">' + segs + '</g>'
+    +   '<circle cx="' + C + '" cy="' + (C - R) + '" r="' + (W/2) + '" fill="' + col(0) + '"/>'
+    /* the glint: a short white streak that travels along the arc, seen only where the arc is */
+    +   '<g class="rr-glint"><path d="M' + (C - 26) + ' ' + (C - R) + ' L' + (C + 26) + ' ' + (C - R) + '" stroke="url(#' + id + 'l)" stroke-width="' + (W + 2) + '" opacity="0"/></g>'
+    + '</g>'
+    + '<g class="rr-head"><circle class="rr-halo" r="' + (W*0.95) + '" fill="#b39ae8" opacity=".35" filter="url(#' + id + 'g)"/><circle r="' + (W/2 - 1.2) + '" fill="#f6f4ff"/></g>'
+    + '</svg>';
+  const mk = host.querySelector('.rr-mk'), head = host.querySelector('.rr-head'), halo = host.querySelector('.rr-halo'), glint = host.querySelector('.rr-glint');
+  const numEl = opts.numEl || null;
+  const setAt = function(e){
+    const v = f*e;
+    mk.setAttribute('stroke-dasharray', (CIRC*v).toFixed(2) + ' ' + CIRC.toFixed(2));
+    const p = pt(v, R); head.setAttribute('transform', 'translate(' + p[0].toFixed(2) + ' ' + p[1].toFixed(2) + ')');
+    halo.setAttribute('fill', col(v));
+    if (numEl) numEl.textContent = Math.round(score*e);
+  };
+  /* the glint runs from the start of the arc to its head, then rests */
+  glint.style.setProperty('--rr-end', (f*360) + 'deg');
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduce || opts.still){ setAt(1); host.classList.add('rr-idle'); return; }
+  host.classList.remove('rr-idle');
+  setAt(0);
+  const t0 = performance.now(), dur = opts.dur || 1500;
+  /* ease out, quick off the line and a long soft landing */
+  const ease = function(k){ return 1 - Math.pow(1 - k, 4); };
+  const step = function(now){
+    const k = Math.min(1, (now - t0)/dur);
+    setAt(ease(k));
+    if (k < 1) requestAnimationFrame(step); else host.classList.add('rr-idle');
+  };
+  requestAnimationFrame(step);
+}
+
 
 function sparkSvg(vals, color){
   if (!vals || vals.length < 2) return '';
@@ -6982,7 +7066,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v192';
+const RH_BUILD = 'v193';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -21959,7 +22043,8 @@ function renderLife(){
    at "however far in we already are", so a redraw mid-flight carries on from
    the same point instead of starting again. */
 const RM = window.matchMedia('(prefers-reduced-motion: reduce)');
-const M_NUM = '.dk-stat .v b, .hm-nt .v b, #pnum';
+/* #pnum is left out: the readiness ring counts its own number up in step with the sweep (rhRing) */
+const M_NUM = '.dk-stat .v b, .hm-nt .v b';
 const M_CHART = '.dk-chart svg, #volChart, .hm-nt .sp svg';
 const M_BAR = '.dk-prog i';
 const M_TICK = '.hm-it.done, .hm-td.done';
