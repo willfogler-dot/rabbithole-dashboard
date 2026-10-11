@@ -7066,7 +7066,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v194';
+const RH_BUILD = 'v195';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -20887,6 +20887,49 @@ render();
   #dskTrain .dk-g21 > .dk-card.tall,#dskRec .dk-g21 > .dk-card.tall{border-top:none;border-left:none;}
 }
 
+/* ═══ PROGRESS SCOREBOARD ON THE PHONE (v195) ═══ see phoneBoard in renderTrain */
+.tr-ph{display:none;}
+@media (max-width:759px){
+  #dskTrain .tr-ph{display:grid;}
+  #dskTrain .dk-g4,#dskTrain .dk-g21,#dskTrain .dk-top .dk-seg{display:none;}
+  #dskTrain .tr-ph .dk-card{padding:18px 16px 16px;}
+  .tb-head{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+  .tb-head span{font:600 11.5px var(--fd);letter-spacing:.14em;text-transform:uppercase;color:var(--n3);white-space:nowrap;}
+  .tb-chip{font:600 12px var(--fb);font-style:normal;padding:5px 10px;border-radius:999px;white-space:nowrap;background:var(--n6);color:var(--n2);}
+  .tb-chip.up{background:color-mix(in srgb,var(--pos) 16%,transparent);color:var(--pos);}
+  .tb-chip.dn{background:color-mix(in srgb,var(--neg) 14%,transparent);color:var(--neg);}
+  .tb-big{display:flex;align-items:baseline;gap:8px;margin:10px 0 14px;}
+  .tb-big b{font:700 52px/1 var(--fd);letter-spacing:-.035em;font-variant-numeric:tabular-nums;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .tb-big span{font-size:15px;color:var(--n3);white-space:nowrap;}
+  .tb-big svg{align-self:center;}
+  .tb-track{position:relative;height:12px;border-radius:6px;background:var(--n6);}
+  .tb-done{position:absolute;left:0;top:0;bottom:0;border-radius:6px;background:linear-gradient(90deg,#7fd9bd,#8f9ae8 60%,#b39ae8);}
+  /* where recent pace takes you: a hatched extension past the filled bar */
+  .tb-ghost{position:absolute;top:0;bottom:0;border-radius:0 6px 6px 0;background:repeating-linear-gradient(135deg,color-mix(in srgb,#b39ae8 42%,transparent) 0 3px,transparent 3px 7px);}
+  .tb-pace{position:absolute;top:-5px;bottom:-5px;width:2px;margin-left:-1px;border-radius:1px;background:var(--n1);}
+  .tb-goal{position:absolute;top:-3px;bottom:-3px;width:2px;margin-left:-1px;border-radius:1px;background:var(--n3);}
+  .tb-legend{display:flex;justify-content:space-between;gap:10px;margin-top:9px;font-size:11.5px;color:var(--n3);white-space:nowrap;}
+  .tb-legend span{display:inline-flex;align-items:center;gap:6px;}
+  .tb-legend i{display:inline-block;}
+  .tb-legend .k-pace{width:2px;height:11px;border-radius:1px;background:var(--n1);}
+  .tb-legend .k-ghost{width:14px;height:8px;border-radius:2px;background:repeating-linear-gradient(135deg,color-mix(in srgb,#b39ae8 55%,transparent) 0 3px,transparent 3px 6px);}
+  .tb-facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin-top:18px;padding-top:14px;border-top:1px solid var(--line);}
+  .tb-facts div{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0;}
+  .tb-facts div + div{border-left:1px solid var(--line);}
+  .tb-facts b{font:650 20px var(--fd);font-variant-numeric:tabular-nums;color:var(--n1);}
+  .tb-facts b.up{color:var(--pos);} .tb-facts b.dn{color:var(--neg);}
+  .tb-facts span{font-size:11px;color:var(--n3);white-space:nowrap;}
+  .tb-tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:16px;}
+  .tb-tile{display:flex;flex-direction:column;align-items:center;gap:2px;padding:12px 4px 10px;border-radius:14px;background:var(--n6);border:1px solid var(--line);cursor:pointer;color:inherit;font:inherit;min-width:0;}
+  .tb-tile:active{transform:scale(.97);}
+  .tb-dial{width:38px;height:38px;margin-bottom:4px;}
+  .tb-tv{display:inline-flex;align-items:baseline;gap:3px;}
+  .tb-tv b{font:650 17px var(--fd);font-variant-numeric:tabular-nums;color:var(--n1);}
+  .tb-tv small{font-size:11px;color:var(--n3);}
+  .tb-tl{font-size:11.5px;font-weight:600;color:var(--n2);}
+  .tb-ts{font-size:10.5px;color:var(--n4);white-space:nowrap;}
+}
+
 /* ═══ PHONE ═══ kept last so it wins over the wide rules above without !important */
 @media (max-width:759px){
   .dsk .dk-card{padding:15px 15px 14px;border-radius:16px;}
@@ -21360,6 +21403,83 @@ function renderTrain(){
   const dow = new Array(7).fill(0); inYear.forEach(function(a){ dow[(a._date.getDay() + 6) % 7] += M.of(a); });
   const dowTot = dow.reduce(function(s,v){ return s + v; }, 0) || 1, dowTop = dow.indexOf(Math.max.apply(null, dow));
 
+  /* ── PHONE SCOREBOARD (v195) ──
+     Will's least favourite page on the phone: four stacked stat rows, each a
+     sentence ("+37% vs 907 by this point in 2025"), then three more facts with
+     wrapping sub-lines. Nothing to read at a glance. The phone now gets one
+     question answered, "am I on track for the year?":
+       - the selected measure, big, against its target
+       - one track: done (filled), where the target says you should be today
+         (tick), and where your recent pace lands you by Dec 31 (ghost)
+       - three numbers in a row: vs last year, your weekly rate lately, what
+         the target needs per week from here
+       - the other three measures as small dials underneath; tap one to make
+         it the big one. That replaces the Miles/Vert/Hours/Carrots switch.
+     With no target set (carrots, or a measure without one) it chases last
+     year's full total instead. Desktop and iPad keep the full layout. */
+  const phoneBoard = (function(){
+    const doy = isCur ? dayOfYear(todayD) : daysIn(y), dIn = daysIn(y);
+    const wksLeft = isCur ? Math.max(0, (new Date(y, 11, 31) - todayD)/86400000/7) : 0;
+    const yd = function(key){
+      const list = key === 'points' ? ACTS.filter(function(a){ return a && a._date; }) : RR, m = MET[key];
+      let now = 0, then = 0, prevFull = 0, recent = 0;
+      const from = addDays(todayD, -56), to = addDays(todayD, 1);
+      list.forEach(function(a){
+        const v = m.of(a), yy = a._date.getFullYear();
+        if (yy === y) now += v;
+        if (yy === y - 1){ prevFull += v; if ((a._date.getMonth()*100 + a._date.getDate()) <= cut) then += v; }
+        if (isCur && a._date > from && a._date <= to) recent += v;
+      });
+      recent /= 8;
+      const T = goalYear(y, key), ref = T || prevFull || 0;
+      const paceNow = T ? T*doy/dIn : then;
+      return { key:key, m:m, now:now, then:then, prevFull:prevFull, recent:recent, T:T, ref:ref, paceNow:paceNow, proj: isCur ? now + recent*wksLeft : now };
+    };
+    const K = ['distance', 'elevation', 'time', 'points'];
+    const D = yd(st.metric), m = D.m, unit = st.metric === 'points' ? '' : m.unit;
+    const nRunsY = st.metric === 'distance' ? inYear.filter(function(a){ return a.distance_mi > 0; }).length : 0;
+    /* the verdict chip */
+    let chip = '', chipCls = '';
+    if (D.T && isCur){ const g = Math.round((D.now - D.paceNow)/(D.T/dIn)); chip = Math.abs(g) + ' day' + (Math.abs(g) === 1 ? '' : 's') + ' ' + (g >= 0 ? 'ahead' : 'behind'); chipCls = g >= 0 ? 'up' : 'dn'; }
+    else if (D.T){ chip = Math.round(D.now/D.T*100) + '% of target'; chipCls = D.now >= D.T ? 'up' : 'dn'; }
+    else if (D.then > 0){ const p = Math.round((D.now/D.then - 1)*100); chip = (p >= 0 ? '+' : '−') + Math.abs(p) + '% vs ' + (y - 1); chipCls = p >= 0 ? 'up' : 'dn'; }
+    /* the track, on one scale: whichever is furthest of target, projection and done */
+    const top = Math.max(D.ref, D.proj, D.now) || 1, pc = function(v){ return Math.max(0, Math.min(100, v/top*100)).toFixed(2); };
+    const refName = D.T ? 'target ' + m.fmt(D.T) : (D.prevFull ? (y - 1) + ': ' + m.fmt(D.prevFull) : '');
+    const track = '<div class="tb-track"><i class="tb-ghost" style="left:' + pc(D.now) + '%;width:' + (pc(D.proj) - pc(D.now)).toFixed(2) + '%"></i>'
+      + '<i class="tb-done" style="width:' + pc(D.now) + '%"></i>'
+      + (isCur && D.paceNow > 0 ? '<em class="tb-pace" style="left:' + pc(D.paceNow) + '%"></em>' : '')
+      + (D.ref > 0 ? '<em class="tb-goal" style="left:' + pc(D.ref) + '%"></em>' : '') + '</div>'
+      + '<div class="tb-legend"><span><i class="k-pace"></i>' + (D.T ? 'target pace today' : (y - 1) + ' by today') + '</span>'
+      + (isCur && D.proj > D.now ? '<span><i class="k-ghost"></i>' + m.fmt(D.proj) + (unit ? ' ' + unit : '') + ' by Dec 31</span>' : '') + '</div>';
+    const pct = D.then > 0 ? Math.round((D.now/D.then - 1)*100) : null;
+    const need = D.T && isCur ? (D.now >= D.T ? 'Done' : m.fine((D.T - D.now)/Math.max(.1, wksLeft))) : null;
+    const facts = '<div class="tb-facts">'
+      + '<div><b class="' + (pct == null ? '' : pct >= 0 ? 'up' : 'dn') + '">' + (pct == null ? '—' : (pct >= 0 ? '+' : '−') + Math.abs(pct) + '%') + '</b><span>vs ' + (y - 1) + '</span></div>'
+      + (isCur ? '<div><b>' + m.fine(D.recent) + '</b><span>' + (unit || 'carrots') + ' / wk lately</span></div>' : '<div><b>' + m.fmt(D.now) + '</b><span>year total</span></div>')
+      + (need != null ? '<div><b>' + need + '</b><span>' + (need === 'Done' ? 'target met' : (unit || 'carrots') + ' / wk needed') + '</span></div>'
+          : '<div><b>' + (D.prevFull ? m.fmt(D.prevFull) : '—') + '</b><span>' + (y - 1) + ' total</span></div>')
+      + '</div>';
+    /* the other three measures as dials: how far through their own target (or last year's total) */
+    const dial = function(f){ const r = 15, c = 2*Math.PI*r, v = Math.max(0, Math.min(1, f));
+      return '<svg viewBox="0 0 38 38" class="tb-dial"><circle cx="19" cy="19" r="' + r + '" fill="none" stroke="var(--n5)" stroke-width="4"/>'
+        + '<circle cx="19" cy="19" r="' + r + '" fill="none" stroke="url(#tbG)" stroke-width="4" stroke-linecap="round" stroke-dasharray="' + (c*v).toFixed(1) + ' ' + c.toFixed(1) + '" transform="rotate(-90 19 19)"/></svg>'; };
+    const others = K.filter(function(k){ return k !== st.metric; }).map(function(k){
+      const o = yd(k), u = k === 'points' ? '' : o.m.unit, f = o.ref ? o.now/o.ref : 0;
+      const sub = o.T ? Math.round(o.now/o.T*100) + '% of ' + o.m.fmt(o.T) : (o.then > 0 ? (o.now >= o.then ? '+' : '−') + Math.abs(Math.round((o.now/o.then - 1)*100)) + '% vs ' + (y - 1) : '');
+      return '<button class="tb-tile" data-metric="' + k + '">' + dial(f)
+        + '<span class="tb-tv">' + (k === 'points' ? carrotSvg(12) : '') + '<b>' + o.m.fmt(o.now) + '</b>' + (u ? '<small>' + u + '</small>' : '') + '</span>'
+        + '<span class="tb-tl">' + o.m.label + '</span><span class="tb-ts">' + sub + '</span></button>';
+    }).join('');
+    return '<div class="dk-grid tr-ph"><div class="dk-card">'
+      + '<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><linearGradient id="tbG" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#7fd9bd"/><stop offset=".55" stop-color="#8f9ae8"/><stop offset="1" stop-color="#b39ae8"/></linearGradient></defs></svg>'
+      + '<div class="tb-head"><span>' + m.label + (nRunsY ? ' · ' + nRunsY + ' runs' : '') + '</span>' + (chip ? '<em class="tb-chip ' + chipCls + '">' + chip + '</em>' : '') + '</div>'
+      + '<div class="tb-big">' + (st.metric === 'points' ? carrotSvg(30) : '') + '<b>' + m.fmt(D.now) + '</b>' + (refName ? '<span>' + (D.T ? 'of ' + m.fmt(D.T) + (unit ? ' ' + unit : '') : 'vs ' + refName) + '</span>' : '') + '</div>'
+      + track + facts
+      + '<div class="tb-tiles">' + others + '</div>'
+      + '</div></div>';
+  })();
+
   $train.innerHTML =
       '<div class="dk-top">'
     +   '<div class="dk-yr"><button class="dk-nav" data-yr="-1"' + (y <= minY ? ' disabled' : '') + ' aria-label="Previous year">‹</button><b>' + y + '</b>'
@@ -21374,6 +21494,7 @@ function renderTrain(){
     +       '<button data-go="recap"><b>' + y + ' recap</b><span>The year in one page</span></button><button data-go="acts"><b>All activities</b><span>Search and edit every activity</span></button></div>' : '')
     +   '</div>'
     + '</div>'
+    + phoneBoard
     + '<div class="dk-grid dk-g4">' + tiles + '</div>'
     + '<div class="dk-grid dk-g21">'
     +   '<div class="dk-card lead"><div class="dk-h"><h3>' + M.label + ' through the year</h3><span>running total</span></div>'
