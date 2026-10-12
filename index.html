@@ -2512,6 +2512,22 @@ body.sheet-open::after{z-index:19;}
 }
 @media (prefers-reduced-motion:reduce){.seg-thumb{transition:none;}}
 
+/* ── v213 · CARROT MOMENT ── see carrotMoment */
+.cm{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 10px);z-index:70;width:min(92vw,380px);display:flex;align-items:center;gap:12px;padding:12px 16px 12px 12px;border-radius:22px;text-align:left;
+  background:rgba(20,24,36,.94);-webkit-backdrop-filter:blur(20px) saturate(1.4);backdrop-filter:blur(20px) saturate(1.4);border:1px solid rgba(242,140,58,.32);
+  box-shadow:0 18px 50px -12px rgba(0,0,0,.75),0 0 0 1px rgba(255,255,255,.03) inset;color:var(--n1);font-family:var(--fb);
+  transform:translate(-50%,-140%) scale(.96);transition:transform .55s cubic-bezier(.34,1.35,.5,1);cursor:pointer;}
+.cm.on{transform:translate(-50%,0) scale(1);}
+.cm > svg{flex:0 0 auto;filter:drop-shadow(0 0 10px rgba(242,140,58,.45));}
+.cm-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;}
+.cm-t > b{font:700 19px var(--fd);letter-spacing:-.01em;color:#ffb27a;}
+.cm-t > span{font-size:12.5px;color:var(--n2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cm-t .cm-wk{font-size:11.5px;color:var(--n3);}
+.cm-bar{position:relative;display:block;height:5px;border-radius:3px;background:rgba(150,170,220,.12);margin-top:4px;}
+.cm-bar > i{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:linear-gradient(90deg,#f6a35c,#f28c3a);transition:width 1.1s cubic-bezier(.2,.8,.2,1);}
+.cm-bar em{position:absolute;top:-3px;bottom:-3px;width:2px;margin-left:-1px;border-radius:1px;background:var(--n2);}
+@media (prefers-reduced-motion:reduce){.cm,.cm-bar > i{transition:none;}}
+
 /* ── 13 · BLUR AS A MATERIAL ───────────────────────────────────
    Blur means "this is floating above the page". Applied consistently
    to every floating surface, and to nothing else. */
@@ -7165,7 +7181,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v212';
+const RH_BUILD = 'v213';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -9216,6 +9232,44 @@ window.addEventListener('keydown', function(){ _touched = true; }, { capture:tru
    ACTS, so rebuilding that list and redrawing does the same job with nothing
    blinking. The pull-to-refresh gesture has worked this way all along.
    rhMotion (in the dashboards block) rolls the numbers that changed. */
+/* ── CARROT MOMENT (v213) ──
+   When a new session shows up (from the server sync, the Sync button, or on
+   opening the app after a run), a card drops in from the top: the carrots it
+   earned, what it was, and this week's bar filling from before to after.
+   "New" means newer than the last one celebrated on this device, and from the
+   last 36 hours, so opening the app after a week away does not throw a party
+   for old runs. The very first time it just records where things stand. */
+const CM_KEY = 'rh_carrot_seen_v1';
+function carrotMoment(){
+  try {
+    const seen = lsGet(CM_KEY, null), latest = ACTS.reduce(function(m, a){ return a && a._ts > m ? a._ts : m; }, 0);
+    if (seen == null){ lsSet(CM_KEY, latest); return; }
+    const fresh = ACTS.filter(function(a){ return a && a._ts > seen && a._ts > Date.now() - 36*3600e3; });
+    lsSet(CM_KEY, Math.max(seen, latest));
+    if (!fresh.length) return;
+    let pts = 0; fresh.forEach(function(a){ try { pts += pointsOf(a); } catch(e){} });
+    if (pts < 1) return;
+    const w0 = weekStart(todayD).getTime(), wkTot = {};
+    ACTS.forEach(function(a){ if (!a || !a._date) return; const k = weekStart(a._date).getTime(); try { wkTot[k] = (wkTot[k] || 0) + pointsOf(a); } catch(e){} });
+    const after = wkTot[w0] || 0, before = Math.max(0, after - fresh.filter(function(a){ return a._ts >= w0; }).reduce(function(t, a){ try { return t + pointsOf(a); } catch(e){ return t; } }, 0));
+    const prev = []; for (let k = 1; k <= 12; k++){ const v = wkTot[w0 - k*7*864e5] || 0; if (v > 0) prev.push(v); }
+    prev.sort(function(a, b){ return a - b; }); const usual = prev.length ? prev[Math.floor(prev.length/2)] : 0;
+    const scale = Math.max(usual, after, 1);
+    const name = fresh.length === 1 ? (fresh[0].name || fresh[0].type) : fresh.length + ' new sessions';
+    const el = document.createElement('button'); el.className = 'cm'; el.setAttribute('aria-live', 'polite');
+    el.innerHTML = carrotSvg(30) + '<span class="cm-t"><b>+' + Math.round(pts).toLocaleString() + ' carrots</b><span>' + String(name).replace(/[<>&"]/g, '') + '</span>'
+      + '<i class="cm-bar"><i style="width:' + (before/scale*100).toFixed(1) + '%"></i>' + (usual ? '<em style="left:' + Math.min(100, usual/scale*100).toFixed(1) + '%"></em>' : '') + '</i>'
+      + '<span class="cm-wk">' + Math.round(after).toLocaleString() + ' this week' + (usual ? (after >= usual ? ' · past a usual week' : ' · ' + Math.round(usual - after).toLocaleString() + ' to a usual week') : '') + '</span></span>';
+    document.body.appendChild(el);
+    requestAnimationFrame(function(){ el.classList.add('on'); setTimeout(function(){ const b = el.querySelector('.cm-bar > i'); if (b) b.style.width = (after/scale*100).toFixed(1) + '%'; }, 450); });
+    const bye = function(){ el.classList.remove('on'); setTimeout(function(){ el.remove(); }, 500); };
+    const t = setTimeout(bye, 5200);
+    el.addEventListener('click', function(){ clearTimeout(t); bye(); try { if (typeof showTab === 'function') showTab('progress'); } catch(e){} });
+  } catch(e){ console.warn('[carrots] moment', e); }
+}
+window.rhCarrotMoment = carrotMoment;
+/* also on opening the app: the server may have pulled a run in while it was closed */
+setTimeout(carrotMoment, 2600);
 function applyNewActivities(){
   let snap = null;
   try { snap = window.rhMotion && window.rhMotion.snap(); } catch(e){}
@@ -9223,6 +9277,7 @@ function applyNewActivities(){
   try { freezePoints(); } catch(e){}
   refreshAllViews();
   try { if (snap) window.rhMotion.update(snap); } catch(e){ console.warn('[motion]', e); }
+  setTimeout(carrotMoment, 600);
 }
 function autoSyncReload(){ applyNewActivities(); }
 /* WHERE NEW ACTIVITIES COME FROM NOW
@@ -21338,6 +21393,11 @@ render();
   .dk-g4 ~ .dk-grid .dk-chart .col.hi,.tr-ph ~ .dk-grid .dk-chart .col.hi{fill:var(--data-hi);}
 }
 
+/* ═══ v213 streak ═══ */
+.hm-streak{display:flex;align-items:center;gap:8px;margin:-8px 0 14px 27px;font-size:12px;color:var(--n3);}
+.hm-streak b{font:600 12px var(--fb);color:#ffb27a;padding:3px 9px;border-radius:999px;background:rgba(242,140,58,.12);border:1px solid rgba(242,140,58,.28);white-space:nowrap;}
+.hm-streak span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
 /* ═══ v212 the Today line ═══ */
 .hm-coach{display:flex;align-items:center;gap:12px;margin:2px 0 16px;padding:12px 14px;border-radius:14px;background:rgba(150,170,220,.06);border:1px solid rgba(170,196,226,.14);text-align:left;}
 .hm-coach p{margin:0;flex:1;min-width:0;font-size:14px;line-height:1.4;color:var(--n2);}
@@ -22664,6 +22724,16 @@ function renderHome(){
       rt += '<button class="hm-pts" data-go="points" title="Carrots: training load as a score. Tap for the full scoreboard.">' + carrotSvg(17) + '<b>' + Math.round(nowP).toLocaleString() + '</b><span>carrots this week</span>'
           + '<i class="bar"><i style="width:' + (nowP/scale*100).toFixed(1) + '%"></i>' + (usual ? '<em style="left:' + Math.min(100, usual/scale*100).toFixed(1) + '%"></em>' : '') + '</i>'
           + (todayP > 0 ? '<span class="td">+' + Math.round(todayP).toLocaleString() + ' today</span>' : note) + '</button>';
+      /* v213 STREAK: finished weeks in a row at or above the usual week as it
+         stood then (the median of the 12 weeks before each one) */
+      let streak = 0;
+      for (let k = 1; k <= 52; k++){
+        const wk = addDays(wk0, -7*k), v = wkT[iso(wk)] || 0, pr = [];
+        for (let j = 1; j <= 12; j++){ const x = wkT[iso(addDays(wk, -7*j))] || 0; if (x > 0) pr.push(x); }
+        const u = med(pr) || 0;
+        if (u > 0 && v >= u) streak++; else break;
+      }
+      if (streak >= 2) rt += '<div class="hm-streak"><b>' + streak + '-week streak</b><span>' + (usual && nowP >= usual ? 'this week already counts' : usual ? Math.round(usual - nowP).toLocaleString() + ' more to make it ' + (streak + 1) : '') + '</span></div>';
     }
   } catch(e){ console.error('[dsk] points meter', e); }
   /* today's sessions, ticked when a matching activity is in */
