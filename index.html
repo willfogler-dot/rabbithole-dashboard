@@ -7066,7 +7066,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v197';
+const RH_BUILD = 'v198';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -21421,9 +21421,10 @@ function renderTrain(){
      was a comb; 12 bars with their totals printed on top read at a glance.
      The 52-week chart stays on iPad and desktop. */
   const phW = !wide.matches;
-  const moEnd = isCur ? new Date(todayD.getFullYear(), todayD.getMonth(), 1) : new Date(y, 11, 1);
+  /* the calendar year being viewed, Jan to Dec (v198: Will wanted the year, not
+     a trailing 12 months); months still to come are left empty */
   const moD = [], moV = [];
-  for (let k = 11; k >= 0; k--) moD.push(new Date(moEnd.getFullYear(), moEnd.getMonth() - k, 1));
+  for (let k = 0; k < 12; k++) moD.push(new Date(y, k, 1));
   moD.forEach(function(d){ const e = new Date(d.getFullYear(), d.getMonth() + 1, 1); moV.push(R.reduce(function(t, a){ return a._date >= d && a._date < e ? t + M.of(a) : t; }, 0)); });
   const moPeak = moV.reduce(function(b, v, i){ return v > moV[b] ? i : b; }, 0);
   const moFmt = function(v){ return st.metric === 'elevation' ? (v >= 1000 ? Math.round(v/1000) + 'k' : String(Math.round(v))) : st.metric === 'points' ? (v >= 1000 ? (Math.round(v/100)/10) + 'k' : String(Math.round(v))) : String(Math.round(v)); };
@@ -21517,7 +21518,7 @@ function renderTrain(){
     +     '<div class="dk-chart" id="dkCum"></div></div>'
     +   '<div class="dk-card tall"><div class="dk-h"><h3>' + (isCur ? 'Where it is heading' : 'How it ended') + '</h3></div><div class="dk-facts">' + facts + '</div></div>'
     + '</div>'
-    + (phW ? '<div class="dk-grid"><div class="dk-card"><div class="dk-h"><h3>Month by month</h3><span>the last 12 months</span></div>'
+    + (phW ? '<div class="dk-grid"><div class="dk-card"><div class="dk-h"><h3>Month by month</h3><span>' + y + '</span></div>'
         + '<div class="dk-chart" id="dkWk"></div>'
         + '<div class="dk-note">Biggest month: <b>' + M.fine(moV[moPeak]) + ' ' + M.unit + '</b>, ' + MON[moD[moPeak].getMonth()] + ' ' + moD[moPeak].getFullYear() + '.</div></div></div>' : '')
     + (phW ? '' : '<div class="dk-grid"><div class="dk-card"><div class="dk-h"><h3>Week by week</h3><span>' + (isCur ? 'the last 52 weeks' : '52 weeks to the end of ' + y) + '</span></div>'
@@ -21563,10 +21564,10 @@ function renderTrain(){
   chartLine(document.getElementById('dkCum'), { h:250, n:dN, series:cumSeries, yf:yf, tf:function(v){ return M.fmt(v) + ' ' + M.unit; },
     tick:function(i){ const m = firstOf.indexOf(i); return m >= 0 ? MON[m] : null; },
     tipTitle:function(i){ return dateOfDay(i).toLocaleDateString(undefined, { month:'long', day:'numeric' }); } });
-  if (phW) chartCols(document.getElementById('dkWk'), { h:190, vals:moV, yf:yf, hi: isCur ? 11 : -1, barMax:20, axis:false, padL:0,
+  if (phW) chartCols(document.getElementById('dkWk'), { h:190, vals:moV, yf:yf, hi: isCur ? todayD.getMonth() : -1, barMax:20, axis:false, padL:0,
     cap:moFmt, tick:function(i){ return MON[moD[i].getMonth()].charAt(0); },
     tipTitle:function(i){ return MON[moD[i].getMonth()] + ' ' + moD[i].getFullYear(); },
-    tipRows:function(i){ return [{ color:'var(--data)', val:M.fine(moV[i]) + ' ' + M.unit, label: (isCur && i === 11) ? 'so far' : 'that month' }]; } });
+    tipRows:function(i){ return [{ color:'var(--data)', val:M.fine(moV[i]) + ' ' + M.unit, label: (isCur && i === todayD.getMonth()) ? 'so far' : 'that month' }]; } });
   else chartCols(document.getElementById('dkWk'), { h:210, vals:wkVals, line:wkAvg, yf:yf, hi: isCur ? 51 : -1, barMax:16,
     tick:function(i){ const d = wkDate(i); return d.getDate() <= 7 ? MON[d.getMonth()] : null; },
     tipTitle:function(i){ const d = wkDate(i), e2 = addDays(d, 6); return d.toLocaleDateString(undefined, { month:'short', day:'numeric' }) + ' – ' + e2.toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' }); },
