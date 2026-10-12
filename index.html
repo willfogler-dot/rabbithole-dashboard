@@ -7176,7 +7176,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v208';
+const RH_BUILD = 'v209';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -21331,11 +21331,14 @@ render();
   .rb-trend > div{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0;}
   .rb-trend > div + div{border-left:1px solid var(--line);}
   .rb-rn{font-size:11px;color:var(--n3);white-space:nowrap;}
-  .rb-trend b{font:650 17px var(--fd);font-variant-numeric:tabular-nums;color:var(--n1);white-space:nowrap;}
-  .rb-trend b i{font-style:normal;font-size:10px;margin-right:3px;vertical-align:2px;}
-  .rb-trend b.up{color:var(--pos);} .rb-trend b.dn{color:var(--neg);}
-  .rb-ra{font-size:10.5px;color:var(--n4);white-space:nowrap;}
-  .rb-cap{margin-top:12px;font-size:11px;color:var(--n4);text-align:center;}
+  .rb-now{font:650 21px/1.1 var(--fd);font-variant-numeric:tabular-nums;color:var(--n1);white-space:nowrap;margin-top:2px;}
+  .rb-now small{font:500 11px var(--fb);color:var(--n3);margin-left:2px;}
+  .rb-was{font-size:11px;color:var(--n4);white-space:nowrap;font-variant-numeric:tabular-nums;}
+  .rb-chg{margin-top:5px;font:600 11.5px var(--fb);font-style:normal;padding:3px 8px;border-radius:999px;background:var(--n6);color:var(--n3);white-space:nowrap;font-variant-numeric:tabular-nums;}
+  .rb-chg i{font-style:normal;font-size:9px;margin-right:3px;}
+  .rb-chg.up{background:color-mix(in srgb,var(--pos) 15%,transparent);color:var(--pos);}
+  .rb-chg.dn{background:color-mix(in srgb,var(--neg) 14%,transparent);color:var(--neg);}
+  .rb-cap{margin-top:14px;font-size:11px;line-height:1.45;color:var(--n4);text-align:center;}
 }
 
 /* ═══ v202 COLOUR SYSTEM (phone) ═══ see the note in the main stylesheet:
@@ -22391,8 +22394,13 @@ function renderRec(){
     const trend = cmp.map(function(c){
       let ch = '—', cls = '', ar = '';
       if (c.now != null && c.then){ const p = (c.now/c.then - 1)*100; if (Math.abs(p) < 2){ ch = 'flat'; } else { ar = p >= 0 ? '▲' : '▼'; ch = Math.abs(p).toFixed(Math.abs(p) < 10 ? 1 : 0) + '%'; cls = (p >= 0) === c.m.goodUp ? 'up' : 'dn'; } }
-      return '<div><span class="rb-rn">' + (c.m.k === 'score' ? 'Score' : c.m.k === 'rhr' ? 'Rest HR' : c.m.name) + '</span><b class="' + cls + '">' + (ar ? '<i>' + ar + '</i>' : '') + ch + '</b>'
-        + '<span class="rb-ra">' + (c.now != null ? c.m.f(c.now) + (c.m.unit ? ' ' + c.m.unit : '') : '—') + '</span></div>';
+      /* v209: the window's average is the headline, the one before it sits
+         underneath as "was", and the change is a chip. Before, only the % was
+         big and it was not clear which of the two numbers was now. */
+      return '<div><span class="rb-rn">' + (c.m.k === 'score' ? 'Score' : c.m.k === 'rhr' ? 'Rest HR' : c.m.name) + '</span>'
+        + '<b class="rb-now">' + (c.now != null ? c.m.f(c.now) : '—') + (c.m.unit && c.now != null ? '<small>' + c.m.unit + '</small>' : '') + '</b>'
+        + '<span class="rb-was">' + (c.then ? 'was ' + c.m.f(c.then) : 'no earlier data') + '</span>'
+        + '<em class="rb-chg ' + cls + '">' + (ar ? '<i>' + ar + '</i>' : '') + ch + '</em></div>';
     }).join('');
     const rng = [[30, '30d'], [90, '90d'], [180, '6mo'], [365, '1y']].map(function(o){ return '<button data-range="' + o[0] + '"' + (hs.range === o[0] ? ' class="on"' : '') + '>' + o[1] + '</button>'; }).join('');
     return '<div class="dk-grid rb-ph"><div class="dk-card">'
@@ -22404,7 +22412,7 @@ function renderRec(){
       + '<div class="dk-grid rb-ph"><div class="dk-card">'
       + '<div class="rb-th"><h3>Trend</h3><div class="rb-range">' + rng + '</div></div>'
       + '<div class="rb-trend">' + trend + '</div>'
-      + '<div class="rb-cap">average of the last ' + (n === 180 ? '6 months' : n === 365 ? 'year' : n + ' days') + ' against the ' + (n === 180 ? '6 months' : n === 365 ? 'year' : n + ' days') + ' before</div>'
+      + '<div class="rb-cap">Average of the last ' + (n === 180 ? '6 months' : n === 365 ? 'year' : n + ' days') + ' · was = the ' + (n === 180 ? '6 months' : n === 365 ? 'year' : n + ' days') + ' before</div>'
       + '</div></div>';
   })();
 
