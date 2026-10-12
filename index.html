@@ -682,6 +682,10 @@ a,button,.set,.lrow,.row,.dayrow,.ycard,.food-row,.sup-row,.vdot,.seg button,
    a lot \u2014 the week view, the race info, the food list \u2014 and none of it needs
    to exist until it is on screen. */
 .sheet:not(.on){content-visibility:auto;}
+.sh-body{padding:0 0 10px;}
+.sh-img{display:block;width:72%;max-width:300px;margin:0 auto 16px;border-radius:14px;box-shadow:0 10px 30px -10px rgba(0,0,0,.7);background:#0e111a;aspect-ratio:4/5;}
+.sh-acts{display:flex;gap:8px;} .sh-acts .btn{flex:1;}
+.sh-hint{margin-top:10px;font-size:12px;color:var(--n3);text-align:center;min-height:16px;}
 .sheet-grip{width:38px;height:4px;border-radius:99px;background:var(--ink4);margin:0 auto 14px;}
 .sheet-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;}
 .sheet-date{font-family:var(--fd);font-size:18px;font-weight:600;}
@@ -2424,6 +2428,18 @@ body.sheet-open::after{z-index:19;}
 .portal::before{content:'';position:absolute;inset:0;border-radius:50%;
   box-shadow:inset 0 1px 0 rgba(230,236,255,.06);pointer-events:none;z-index:2;}
 
+/* ── v201 · TOUCH ──
+   Every tappable thing on the phone answers the finger the same way: a quick
+   press-in, no hover states (there is no hover), and a hit area of at least
+   32px even where the drawn control is smaller. */
+@media (hover:none){
+  .dk-txt:active,.tb-tile:active,.dk-row:active,.tl-mets button:active,.rb-range button:active,.tl-ticks button:active,.dk-seg button:active,.vol-seg button:active,.dk-nav:active,.plx-seg button:active,.sh-acts .btn:active{transform:scale(.96);transition:transform .08s;}
+  .tl-mets button,.rb-range button{min-height:32px;padding-top:0;padding-bottom:0;}
+  .tl-ticks button{padding:8px 10px;margin-top:-8px;}
+  .rb-head{min-height:34px;}
+}
+/* the tab that comes in fades up a touch, so a switch reads as a move and not a flash */
+
 /* ── 13 · BLUR AS A MATERIAL ───────────────────────────────────
    Blur means "this is floating above the page". Applied consistently
    to every floating surface, and to nothing else. */
@@ -2951,6 +2967,14 @@ body.sheet-open::after{z-index:19;}
   </div>
 </div>
 
+<div class="sheet-bd" id="shBd"></div>
+<div class="sheet" id="shSheet">
+  <div class="sheet-grip"></div>
+  <div class="sheet-head"><div><div class="sheet-date">Share</div><div class="sheet-sub" id="shSub"></div></div>
+    <button class="sheet-x" id="shClose" aria-label="Close">✕</button></div>
+  <div class="sh-body"><img id="shImg" alt="Your card" class="sh-img"><div class="sh-acts"><button class="btn pri" id="shGo">Share</button><button class="btn" id="shCopy">Copy image</button></div>
+    <div class="sh-hint" id="shHint"></div></div>
+</div>
 <div class="sheet-bd" id="wkBd"></div>
 <div class="sheet" id="wkSheet">
   <div class="sheet-grip"></div>
@@ -7066,7 +7090,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v200';
+const RH_BUILD = 'v201';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -8544,6 +8568,110 @@ function toast(msg){
 
 /* ═══════════ DAY SHEET ═══════════ */
 let sheetDate = null;
+/* ── SHARE CARD (v201) ──
+   A 1080 x 1350 image (the 4:5 the photo apps use) drawn on a canvas from
+   whatever the page is showing, then handed to the phone's share sheet. Built
+   for the Progress scoreboard first; `spec` is plain data so other pages can
+   use it: { eyebrow, big, unit, chip, chipTone, facts:[{l,v}], series:[nums],
+   seriesLabel, foot }. Drawn, not screenshotted: a screenshot of the app is a
+   screenshot of a phone; a card is a thing you would post. */
+let _shBlob = null;
+function drawShareCard(spec){
+  const W = 1080, H = 1350, c = document.createElement('canvas'); c.width = W; c.height = H;
+  const g = c.getContext('2d');
+  const FD = '"Space Grotesk", system-ui, sans-serif', FB = 'Inter, system-ui, sans-serif';
+  const bg = g.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#171b27'); bg.addColorStop(1, '#070910');
+  g.fillStyle = bg; g.fillRect(0, 0, W, H);
+  /* a soft pool of light behind the number */
+  const pool = g.createRadialGradient(W*0.32, 420, 0, W*0.32, 420, 620); pool.addColorStop(0, 'rgba(143,154,232,.22)'); pool.addColorStop(1, 'rgba(143,154,232,0)');
+  g.fillStyle = pool; g.fillRect(0, 0, W, H);
+  const PAD = 84;
+  g.textBaseline = 'alphabetic';
+  /* eyebrow */
+  g.fillStyle = '#959db2'; g.font = '600 30px ' + FD; g.letterSpacing = '5px';
+  g.fillText(String(spec.eyebrow || '').toUpperCase(), PAD, 160);
+  g.letterSpacing = '0px';
+  /* the big number in the app gradient */
+  g.font = '700 236px ' + FD;
+  const bigW = g.measureText(spec.big).width;
+  const grad = g.createLinearGradient(PAD, 0, PAD + bigW, 0); grad.addColorStop(0, '#7fd9bd'); grad.addColorStop(.5, '#8f9ae8'); grad.addColorStop(1, '#b39ae8');
+  g.fillStyle = grad; g.fillText(spec.big, PAD - 8, 420);
+  if (spec.unit){ g.fillStyle = '#a8b0c4'; g.font = '500 64px ' + FD; g.fillText(spec.unit, PAD + bigW + 14, 420); }
+  /* the chip */
+  let y = 500;
+  if (spec.chip){
+    g.font = '600 34px ' + FB; const tw = g.measureText(spec.chip).width, cw = tw + 56, ch = 70;
+    const tone = spec.chipTone === 'dn' ? ['rgba(240,138,153,.16)', '#f08a99'] : spec.chipTone === 'up' ? ['rgba(127,217,189,.16)', '#7fd9bd'] : ['rgba(150,170,220,.12)', '#a8b0c4'];
+    g.fillStyle = tone[0]; g.beginPath(); g.roundRect(PAD, y - 48, cw, ch, 35); g.fill();
+    g.fillStyle = tone[1]; g.fillText(spec.chip, PAD + 28, y); y += 60;
+  }
+  /* the line: the year so far, filled underneath */
+  const ser = (spec.series || []).filter(function(v){ return v != null; });
+  const top = y + 40, bot = 940;
+  if (ser.length > 2){
+    const mx = Math.max.apply(null, ser) || 1, X = function(i){ return PAD + i/(ser.length - 1)*(W - 2*PAD); }, Y = function(v){ return bot - v/mx*(bot - top); };
+    g.beginPath(); g.moveTo(X(0), Y(ser[0])); for (let i = 1; i < ser.length; i++) g.lineTo(X(i), Y(ser[i]));
+    const line = new Path2D(); line.moveTo(X(0), Y(ser[0])); for (let i = 1; i < ser.length; i++) line.lineTo(X(i), Y(ser[i]));
+    g.lineTo(X(ser.length - 1), bot); g.lineTo(X(0), bot); g.closePath();
+    const fill = g.createLinearGradient(0, top, 0, bot); fill.addColorStop(0, 'rgba(143,154,232,.34)'); fill.addColorStop(1, 'rgba(143,154,232,0)');
+    g.fillStyle = fill; g.fill();
+    const lg = g.createLinearGradient(PAD, 0, W - PAD, 0); lg.addColorStop(0, '#7fd9bd'); lg.addColorStop(.5, '#8f9ae8'); lg.addColorStop(1, '#b39ae8');
+    g.strokeStyle = lg; g.lineWidth = 7; g.lineJoin = 'round'; g.lineCap = 'round'; g.stroke(line);
+    const ex = X(ser.length - 1), ey = Y(ser[ser.length - 1]);
+    g.fillStyle = '#b39ae8'; g.beginPath(); g.arc(ex, ey, 22, 0, Math.PI*2); g.fill();
+    g.fillStyle = '#f6f4ff'; g.beginPath(); g.arc(ex, ey, 11, 0, Math.PI*2); g.fill();
+    g.strokeStyle = 'rgba(150,170,220,.18)'; g.lineWidth = 2; g.beginPath(); g.moveTo(PAD, bot + 1); g.lineTo(W - PAD, bot + 1); g.stroke();
+    if (spec.seriesLabel){ g.fillStyle = '#737b90'; g.font = '500 26px ' + FB; g.fillText(spec.seriesLabel, PAD, bot + 44); }
+  }
+  /* the facts row */
+  const facts = spec.facts || [], fy = 1090, colW = (W - 2*PAD)/Math.max(1, facts.length);
+  facts.forEach(function(f, k){
+    const x = PAD + colW*k;
+    if (k){ g.strokeStyle = 'rgba(150,170,220,.16)'; g.lineWidth = 2; g.beginPath(); g.moveTo(x - 20, fy - 60); g.lineTo(x - 20, fy + 50); g.stroke(); }
+    g.fillStyle = f.tone === 'up' ? '#7fd9bd' : f.tone === 'dn' ? '#f08a99' : '#e6e9f2'; g.font = '650 58px ' + FD; g.fillText(f.v, x, fy);
+    g.fillStyle = '#959db2'; g.font = '500 27px ' + FB; g.fillText(f.l, x, fy + 46);
+  });
+  /* the footer: the app's mark and the date */
+  g.fillStyle = '#737b90'; g.font = '500 28px ' + FB; g.fillText(spec.foot || '', PAD, H - 90);
+  g.textAlign = 'right'; g.fillStyle = '#a8b0c4'; g.font = '600 30px ' + FD; g.fillText('Rabbit Hole', W - PAD, H - 90); g.textAlign = 'left';
+  return c;
+}
+function openShare(spec){
+  const img = document.getElementById('shImg'), sub = document.getElementById('shSub'), hint = document.getElementById('shHint');
+  if (!img) return;
+  const draw = function(){
+    const c = drawShareCard(spec);
+    img.src = c.toDataURL('image/png');
+    c.toBlob(function(b){ _shBlob = b; }, 'image/png');
+  };
+  const f = document.fonts;
+  if (f && f.load) Promise.all([f.load('700 100px "Space Grotesk"'), f.load('600 30px Inter')]).then(draw, draw); else draw();
+  sub.textContent = spec.subtitle || '';
+  const can = !!(navigator.share && navigator.canShare);
+  hint.textContent = can ? '' : 'Press and hold the card to save it.';
+  document.getElementById('shBd').classList.add('on'); document.getElementById('shSheet').classList.add('on');
+  scrollSheetTop('shSheet');
+}
+function closeShare(){ document.getElementById('shBd').classList.remove('on'); document.getElementById('shSheet').classList.remove('on'); }
+(function(){
+  const x = document.getElementById('shClose'), bd = document.getElementById('shBd'), go = document.getElementById('shGo'), cp = document.getElementById('shCopy');
+  if (!x) return;
+  x.addEventListener('click', closeShare); bd.addEventListener('click', closeShare);
+  go.addEventListener('click', function(){
+    if (!_shBlob) return;
+    const file = new File([_shBlob], 'rabbit-hole.png', { type:'image/png' });
+    if (navigator.share && navigator.canShare && navigator.canShare({ files:[file] })){
+      navigator.share({ files:[file], title:'Rabbit Hole' }).catch(function(){});
+    } else {
+      /* no share sheet (desktop): open the image in its own tab to save */
+      const u = URL.createObjectURL(_shBlob); window.open(u, '_blank'); setTimeout(function(){ URL.revokeObjectURL(u); }, 60000);
+    }
+  });
+  cp.addEventListener('click', function(){
+    if (!_shBlob || !navigator.clipboard || !window.ClipboardItem){ toast('Press and hold the card to copy it'); return; }
+    navigator.clipboard.write([new ClipboardItem({ 'image/png': _shBlob })]).then(function(){ toast('Copied'); }, function(){ toast('Press and hold the card to copy it'); });
+  });
+})();
 function scrollSheetTop(id){
   const el = document.getElementById(id);
   if (el) el.scrollTop = 0;
@@ -21402,6 +21530,24 @@ function renderTrain(){
           + (T ? '<div class="dk-fact"><span>Against the target</span><b class="' + (tot >= T ? 'up' : 'dn') + '">' + Math.round(tot/T*100) + '%<small>of ' + M.fmt(T) + ' ' + M.unit + '</small></b></div>' : '');
   }
 
+  /* ── the share card (v201): the year so far in one image ── */
+  try {
+    const doneV = cumA[lastDay - 1] || 0, unit = PTSMODE ? '' : M.unit;
+    let chip = '', chipTone = '';
+    if (T && isCur){ const g = Math.round((doneV - T*lastDay/dN)/(T/dN)); chip = Math.abs(g) + ' day' + (Math.abs(g) === 1 ? '' : 's') + ' ' + (g >= 0 ? 'ahead of' : 'behind') + ' ' + M.fmt(T) + (unit ? ' ' + unit : ''); chipTone = g >= 0 ? 'up' : 'dn'; }
+    else if (T) { chip = Math.round(doneV/T*100) + '% of ' + M.fmt(T); chipTone = doneV >= T ? 'up' : ''; }
+    const prevV = sum(prevTo, st.metric), pct = prevV > 0 ? Math.round((doneV/prevV - 1)*100) : null;
+    const fx = [];
+    fx.push({ l:'vs ' + (y - 1), v: pct == null ? '—' : (pct >= 0 ? '+' : '−') + Math.abs(pct) + '%', tone: pct == null ? '' : pct >= 0 ? 'up' : 'dn' });
+    if (!PTSMODE){ fx.push({ l:'vert', v: MET.elevation.fmt(sum(inYear, 'elevation')) + ' ft' }); fx.push({ l:'hours', v: MET.time.fmt(sum(inYear, 'time')) + ' h' }); fx.push({ l:'runs', v: String(nRuns) }); }
+    else { fx.push({ l:'this week', v: M.fmt(R.reduce(function(t, a){ return t + (a._ts >= weekStart(todayD).getTime() ? M.of(a) : 0); }, 0)) }); fx.push({ l:'sessions', v: String(inYear.length) }); }
+    /* the line is sampled to a few hundred points so the card draws fast */
+    const stepS = Math.max(1, Math.floor(lastDay/300)), serS = []; for (let i = 0; i < lastDay; i += stepS) serS.push(cumA[i]); serS.push(cumA[lastDay - 1]);
+    st.share = { eyebrow: y + (isCur ? ' so far' : '') + ' · ' + M.label, big: M.fmt(doneV), unit: unit, chip: chip, chipTone: chipTone, facts: fx, series: serS,
+      seriesLabel: 'Jan 1 to ' + todayD.toLocaleDateString('en-US', { month:'short', day:'numeric' }), foot: todayD.toLocaleDateString('en-US', { month:'long', day:'numeric', year:'numeric' }),
+      subtitle: M.label + ' · ' + y };
+  } catch(e){ st.share = null; console.error('[dsk] share spec', e); }
+
   /* ── 52 weeks ── */
   const endMon = isCur ? weekStart(todayD) : weekStart(new Date(y, 11, 31));
   const wk0 = addDays(endMon, -51*7), wkVals = new Array(52).fill(0), wkLong = new Array(52).fill(0);
@@ -21570,7 +21716,7 @@ function renderTrain(){
        page, so they sit behind one button (v153). */
     +   '<div class="dk-more"><button class="dk-txt dk-morebtn' + (st.menu ? ' on' : '') + '" data-go="menu" aria-label="More" aria-expanded="' + !!st.menu + '">Options<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>'
     +     (st.menu ? '<div class="dk-menu" role="menu"><button data-go="goals"><b>Goals</b><span>Annual and monthly targets</span></button><button data-go="records"><b>Records</b><span>Fastest and biggest efforts</span></button>'
-    +       '<button data-go="recap"><b>' + y + ' recap</b><span>The year in one page</span></button><button data-go="acts"><b>All activities</b><span>Search and edit every activity</span></button></div>' : '')
+    +       '<button data-go="recap"><b>' + y + ' recap</b><span>The year in one page</span></button><button data-go="acts"><b>All activities</b><span>Search and edit every activity</span></button><button data-go="share"><b>Share a card</b><span>Your ' + y + ' so far, as an image</span></button></div>' : '')
     +   '</div>'
     + '</div>'
     + phoneBoard
@@ -21687,6 +21833,7 @@ if ($train){
       else if (go === 'records') openRecordsPage();
       else if (go === 'recap') openYear(st.year);
       else if (go === 'acts') openActivities();
+      else if (go === 'share' && st.share && typeof openShare === 'function') openShare(st.share);
     }
   });
   /* a tap anywhere else closes the menu */
