@@ -2498,6 +2498,20 @@ body.sheet-open::after{z-index:19;}
   body.hdr-scored .hdr-score{opacity:1;transform:none;pointer-events:auto;}
 }
 
+/* ── v206 · SEGMENTED CONTROLS SLIDE ──
+   Week / Month, Wk / Mo / Yr / Trail and the rest: one thumb that travels to
+   the option you tapped, instead of the old one switching off and the new one
+   switching on. See syncSegThumbs. Phone only. */
+@media (max-width:759px){
+  .seg.has-thumb,.dk-seg.has-thumb,.plx-seg.has-thumb{position:relative;}
+  .seg-thumb{position:absolute;top:3px;bottom:3px;left:0;width:0;border-radius:9px;background:var(--a);z-index:0;pointer-events:none;
+    box-shadow:0 2px 10px rgba(143,154,232,.32),inset 0 1px 0 rgba(255,255,255,.22);
+    transition:transform .42s cubic-bezier(.34,1.32,.5,1),width .42s cubic-bezier(.34,1.32,.5,1);}
+  .has-thumb > button{position:relative;z-index:1;}
+  .has-thumb > button.on{background:transparent !important;box-shadow:none !important;animation:none !important;color:#0b0f18 !important;}
+}
+@media (prefers-reduced-motion:reduce){.seg-thumb{transition:none;}}
+
 /* ── 13 · BLUR AS A MATERIAL ───────────────────────────────────
    Blur means "this is floating above the page". Applied consistently
    to every floating surface, and to nothing else. */
@@ -7151,7 +7165,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v205';
+const RH_BUILD = 'v206';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -8514,6 +8528,35 @@ function placeNavPill(){
   window.addEventListener('scroll', upd, { passive:true });
   hs.addEventListener('click', function(){ window.scrollTo({ top:0, behavior:'smooth' }); });
   window._hdrScoreUpd = upd;
+})();
+/* Each control gets a thumb behind its buttons. Most of these controls are
+   rebuilt from scratch whenever their section re-renders, which would make a
+   new thumb appear in place with nothing to slide from. So the last position
+   is remembered per control (by where it sits on the page) and a new thumb
+   starts there, then moves. */
+const _segLast = {};
+function syncSegThumbs(){
+  if (window.innerWidth >= 760) return;
+  document.querySelectorAll('.seg, .dk-seg, .plx-seg.view').forEach(function(seg){
+    const on = seg.querySelector(':scope > button.on'); if (!on || !seg.offsetParent) return;
+    let th = seg.querySelector(':scope > .seg-thumb'); const fresh = !th;
+    if (fresh){ th = document.createElement('span'); th.className = 'seg-thumb'; seg.insertBefore(th, seg.firstChild); seg.classList.add('has-thumb'); }
+    const host = seg.closest('[id]'), key = (host ? host.id : '') + '|' + seg.className.replace(' has-thumb', '') + '|' + seg.children.length;
+    const to = { x:on.offsetLeft, w:on.offsetWidth }, last = _segLast[key];
+    if (fresh && last && (last.x !== to.x || last.w !== to.w)){
+      th.style.transition = 'none'; th.style.width = last.w + 'px'; th.style.transform = 'translateX(' + last.x + 'px)';
+      void th.offsetWidth; th.style.transition = '';
+    }
+    th.style.width = to.w + 'px'; th.style.transform = 'translateX(' + to.x + 'px)';
+    _segLast[key] = to;
+  });
+}
+(function(){
+  let q = 0;
+  const later = function(){ if (q) return; q = requestAnimationFrame(function(){ q = 0; syncSegThumbs(); }); };
+  if (window.MutationObserver) new MutationObserver(later).observe(document.body, { childList:true, subtree:true, attributes:true, attributeFilter:['class'] });
+  window.addEventListener('resize', later);
+  later();
 })();
 function showTab(key){
   if (key === _tabCur){ window.scrollTo({top:0, behavior:'smooth'}); return; }
