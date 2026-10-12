@@ -7165,7 +7165,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v210';
+const RH_BUILD = 'v211';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -18131,8 +18131,11 @@ window.closeLoadDetail = closeLoadDetail;
     obs.observe(s, { attributes:true, attributeFilter:['class'] });
   });
 
-  /* pull down to sync */
-  initPullRefresh(function(){
+  /* pull down to sync: switched off in v211. On the phone it rode on top of
+     iOS's own bounce at the top of the page and felt glitchy (v207 then added a
+     second copy with the same class, which made it worse; that copy is gone).
+     initPullRefresh is kept, unused, in case it returns. */
+  if (false) initPullRefresh(function(){
     return Promise.all([
       typeof loadHealth === 'function' ? loadHealth() : null,
       typeof reconcilePlan === 'function' ? reconcilePlan() : null,
