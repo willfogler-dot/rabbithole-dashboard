@@ -7066,7 +7066,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v199';
+const RH_BUILD = 'v200';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -20952,6 +20952,48 @@ render();
   .tb-ts{font-size:10.5px;color:var(--n4);white-space:nowrap;}
 }
 
+/* ═══ RECOVERY BOARD ON THE PHONE (v200) ═══ see recBoard in renderRec */
+.rb-ph{display:none;}
+@media (max-width:759px){
+  #dskRec .rb-ph{display:grid;}
+  #dskRec .dk-g5,#dskRec .dk-g21,#dskHealthTop .rc-range{display:none;}
+  #dskRec .rb-ph .dk-card{padding:18px 16px 16px;}
+  .rb-head{display:flex;align-items:center;justify-content:space-between;width:100%;background:none;border:none;padding:0;color:inherit;font:inherit;cursor:pointer;}
+  .rb-head span{font:600 11.5px var(--fd);letter-spacing:.14em;text-transform:uppercase;color:var(--n3);}
+  .rb-head em{font:600 12px var(--fb);font-style:normal;padding:5px 10px;border-radius:999px;background:var(--n6);color:var(--n2);}
+  .rb-head em.up{background:color-mix(in srgb,var(--pos) 16%,transparent);color:var(--pos);}
+  .rb-head em.dn{background:color-mix(in srgb,var(--neg) 14%,transparent);color:var(--neg);}
+  .rb-big{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:8px 0 6px;}
+  .rb-big b{font:700 52px/1 var(--fd);letter-spacing:-.035em;font-variant-numeric:tabular-nums;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .rb-big span{font-size:12.5px;color:var(--n3);white-space:nowrap;}
+  .rb-big strong{color:var(--n1);font-weight:600;}
+  .rb-line{display:block;width:100%;height:auto;margin:2px 0 12px;}
+  .rb-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}
+  .rb-tile{background:var(--n6);border:1px solid var(--line);border-radius:14px;padding:11px 12px 10px;min-width:0;}
+  .rb-tn{display:flex;align-items:center;justify-content:space-between;gap:6px;}
+  .rb-tn span{font-size:12px;font-weight:600;color:var(--n2);white-space:nowrap;}
+  .rb-tn em{font:600 11px var(--fb);font-style:normal;color:var(--n3);white-space:nowrap;}
+  .rb-tn em.up{color:var(--pos);} .rb-tn em.dn{color:var(--neg);}
+  .rb-tv{display:flex;align-items:baseline;gap:3px;margin-top:6px;}
+  .rb-tv b{font:650 26px/1 var(--fd);font-variant-numeric:tabular-nums;color:var(--n1);letter-spacing:-.02em;}
+  .rb-tv small{font-size:12px;color:var(--n3);}
+  .rb-ts{margin-top:4px;font-size:11px;color:var(--n4);white-space:nowrap;}
+  .rb-th{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;}
+  .rb-th h3{margin:0;}
+  .rb-range{display:flex;gap:4px;}
+  .rb-range button{font:600 11.5px var(--fb);color:var(--n3);background:none;border:1px solid var(--n5);border-radius:999px;padding:5px 9px;cursor:pointer;}
+  .rb-range button.on{color:#080a12;border-color:transparent;background:var(--grad);}
+  .rb-trend{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));}
+  .rb-trend > div{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0;}
+  .rb-trend > div + div{border-left:1px solid var(--line);}
+  .rb-rn{font-size:11px;color:var(--n3);white-space:nowrap;}
+  .rb-trend b{font:650 17px var(--fd);font-variant-numeric:tabular-nums;color:var(--n1);white-space:nowrap;}
+  .rb-trend b i{font-style:normal;font-size:10px;margin-right:3px;vertical-align:2px;}
+  .rb-trend b.up{color:var(--pos);} .rb-trend b.dn{color:var(--neg);}
+  .rb-ra{font-size:10.5px;color:var(--n4);white-space:nowrap;}
+  .rb-cap{margin-top:12px;font-size:11px;color:var(--n4);text-align:center;}
+}
+
 /* ═══ PHONE ═══ kept last so it wins over the wide rules above without !important */
 @media (max-width:759px){
   .dsk .dk-card{padding:15px 15px 14px;border-radius:16px;}
@@ -21898,8 +21940,80 @@ function renderRec(){
   const sl30 = vSl.slice(-30), sl30d = dates.slice(-30), slUsual = med(hist.map(HM[2].of).filter(function(v){ return v != null; }));
   const short = sl30.filter(function(v){ return v != null && v < 6; }).length;
 
+  /* ── PHONE RECOVERY BOARD (v200) ──
+     The same treatment Progress got in v195. The phone page was a readiness
+     tile, four rows each ending in a sentence ("right on your usual 42 bpm"),
+     then four more rows of "This stretch" with sentences under the numbers.
+     Now it answers two questions at a glance:
+       1. how recovered am I today: the score, its last 30 nights as one smooth
+          line, and the four overnight measures as a 2 x 2 grid, each with a
+          chip saying how far it sits from your usual (green or red by which
+          direction is good for that measure, so resting HR down is green)
+       2. which way is it heading: one row of four arrows, this window against
+          the one before, with the window picker (30d / 90d / 6mo / 1y) moved
+          into that panel because it only changes that panel.
+     Sleep night by night stays below. iPad and desktop keep the full page. */
+  const recBoard = (function(){
+    let ser = []; try { ser = readinessSeries(30).map(function(x){ return x.score; }); } catch(e){}
+    const sc = R && typeof R.score === 'number' ? R.score : null;
+    const tone = sc == null ? '' : sc >= 78 ? 'up' : sc >= 62 ? '' : 'dn';
+    /* the 30-night line: a smooth curve through the scores, today's dot at the end */
+    let line = '';
+    if (ser.length >= 3){
+      const W = 340, H = 64, lo = Math.min.apply(null, ser) - 4, hi = Math.max.apply(null, ser) + 4;
+      const X = function(i){ return 4 + i/(ser.length - 1)*(W - 12); }, Y = function(v){ return 6 + (1 - (v - lo)/((hi - lo) || 1))*(H - 12); };
+      const p = ser.map(function(v, i){ return [X(i), Y(v)]; });
+      let d = 'M' + p[0][0].toFixed(1) + ' ' + p[0][1].toFixed(1);
+      for (let i = 0; i < p.length - 1; i++){
+        const a = p[i - 1] || p[i], b = p[i], c = p[i + 1], e = p[i + 2] || c;
+        d += ' C' + (b[0] + (c[0] - a[0])/6).toFixed(1) + ' ' + (b[1] + (c[1] - a[1])/6).toFixed(1) + ' ' + (c[0] - (e[0] - b[0])/6).toFixed(1) + ' ' + (c[1] - (e[1] - b[1])/6).toFixed(1) + ' ' + c[0].toFixed(1) + ' ' + c[1].toFixed(1);
+      }
+      const last = p[p.length - 1], y80 = Y(80);
+      line = '<svg class="rb-line" viewBox="0 0 ' + W + ' ' + H + '" aria-label="Readiness, last 30 nights">'
+        + '<defs><linearGradient id="rbL" x1="0" x2="1"><stop offset="0" stop-color="#7fd9bd"/><stop offset=".5" stop-color="#8f9ae8"/><stop offset="1" stop-color="#b39ae8"/></linearGradient>'
+        + '<linearGradient id="rbA" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#8f9ae8" stop-opacity=".28"/><stop offset="1" stop-color="#8f9ae8" stop-opacity="0"/></linearGradient></defs>'
+        + (y80 > 4 && y80 < H - 4 ? '<line x1="4" x2="' + (W - 8) + '" y1="' + y80.toFixed(1) + '" y2="' + y80.toFixed(1) + '" stroke="var(--n4)" stroke-dasharray="2 4" stroke-width="1"/>'
+            : '')
+        + '<path d="' + d + ' L' + last[0].toFixed(1) + ' ' + H + ' L' + p[0][0].toFixed(1) + ' ' + H + ' Z" fill="url(#rbA)"/>'
+        + '<path d="' + d + '" fill="none" stroke="url(#rbL)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>'
+        + '<circle cx="' + last[0].toFixed(1) + '" cy="' + last[1].toFixed(1) + '" r="4.5" fill="#f6f4ff" stroke="#b39ae8" stroke-width="2"/>'
+        + (y80 > 4 && y80 < H - 4 ? '<text x="4" y="' + (y80 - 4).toFixed(1) + '" style="fill:var(--n3);font-size:10px;paint-order:stroke;stroke:#141829;stroke-width:4px;stroke-linejoin:round">normal 80</text>' : '') + '</svg>';
+    }
+    const l7 = ser.slice(-7), avg7 = l7.length ? Math.round(l7.reduce(function(a, b){ return a + b; }, 0)/l7.length) : null;
+    /* the four overnight measures, last night against the 60 before it */
+    const tile = function(m){
+      const cur = m.of(latest), base = hist.map(m.of).filter(function(v){ return v != null; }), usual = base.length >= 5 ? mean(base) : null;
+      let chip = '', cls = '';
+      if (cur != null && usual){ const p = (cur/usual - 1)*100;
+        if (Math.abs(p) < 3) chip = 'usual'; else { chip = (p >= 0 ? '▲ ' : '▼ ') + Math.abs(Math.round(p)) + '%'; cls = (p >= 0) === m.goodUp ? 'up' : 'dn'; } }
+      return '<div class="rb-tile"><div class="rb-tn"><span>' + m.name + '</span>' + (chip ? '<em class="' + cls + '">' + chip + '</em>' : '') + '</div>'
+        + '<div class="rb-tv"><b>' + (cur != null ? m.f(cur) : '—') + '</b>' + (m.unit ? '<small>' + m.unit + '</small>' : '') + '</div>'
+        + '<div class="rb-ts">' + (usual ? 'usual ' + m.f(usual) + (m.unit ? ' ' + m.unit : '') : '&nbsp;') + '</div></div>';
+    };
+    /* which way it is heading: this window against the one before */
+    const trend = cmp.map(function(c){
+      let ch = '—', cls = '', ar = '';
+      if (c.now != null && c.then){ const p = (c.now/c.then - 1)*100; if (Math.abs(p) < 2){ ch = 'flat'; } else { ar = p >= 0 ? '▲' : '▼'; ch = Math.abs(p).toFixed(Math.abs(p) < 10 ? 1 : 0) + '%'; cls = (p >= 0) === c.m.goodUp ? 'up' : 'dn'; } }
+      return '<div><span class="rb-rn">' + (c.m.k === 'score' ? 'Score' : c.m.k === 'rhr' ? 'Rest HR' : c.m.name) + '</span><b class="' + cls + '">' + (ar ? '<i>' + ar + '</i>' : '') + ch + '</b>'
+        + '<span class="rb-ra">' + (c.now != null ? c.m.f(c.now) + (c.m.unit ? ' ' + c.m.unit : '') : '—') + '</span></div>';
+    }).join('');
+    const rng = [[30, '30d'], [90, '90d'], [180, '6mo'], [365, '1y']].map(function(o){ return '<button data-range="' + o[0] + '"' + (hs.range === o[0] ? ' class="on"' : '') + '>' + o[1] + '</button>'; }).join('');
+    return '<div class="dk-grid rb-ph"><div class="dk-card">'
+      + '<button class="rb-head" data-go="ready"><span>Readiness</span>' + (R && R.label ? '<em class="' + tone + '">' + E(R.label) + '</em>' : '') + '</button>'
+      + '<div class="rb-big"><b>' + (sc != null ? sc : '—') + '</b>' + (avg7 != null ? '<span>7-night average <strong>' + avg7 + '</strong></span>' : '') + '</div>'
+      + line
+      + '<div class="rb-grid">' + HM.map(tile).join('') + '</div>'
+      + '</div></div>'
+      + '<div class="dk-grid rb-ph"><div class="dk-card">'
+      + '<div class="rb-th"><h3>Trend</h3><div class="rb-range">' + rng + '</div></div>'
+      + '<div class="rb-trend">' + trend + '</div>'
+      + '<div class="rb-cap">average of the last ' + (n === 180 ? '6 months' : n === 365 ? 'year' : n + ' days') + ' against the ' + (n === 180 ? '6 months' : n === 365 ? 'year' : n + ' days') + ' before</div>'
+      + '</div></div>';
+  })();
+
   $rec.innerHTML =
-      (age > 1 ? '<div class="dk-card" style="margin-bottom:14px;padding:12px 18px"><div class="dk-note" style="margin:0"><b>Nothing overnight since ' + latestD.toLocaleDateString(undefined, { month:'short', day:'numeric' })
+      recBoard
+    + (age > 1 ? '<div class="dk-card" style="margin-bottom:14px;padding:12px 18px"><div class="dk-note" style="margin:0"><b>Nothing overnight since ' + latestD.toLocaleDateString(undefined, { month:'short', day:'numeric' })
         + '.</b> Open Garmin Connect on your phone so the watch syncs. Everything below is as of that night.</div></div>' : '')
     + '<div class="dk-grid dk-g5">' + tiles + '</div>'
     + '<div class="dk-grid dk-g21">'
@@ -21924,6 +22038,7 @@ function renderRec(){
     +     '<div class="dk-note">Deep and REM minutes, Body Battery and calories are not shown: the Garmin link that feeds this app does not carry them.</div></div>'
     + '</div>';
 
+  $rec.querySelectorAll('.rb-range [data-range]').forEach(function(b){ b.addEventListener('click', function(){ hs.range = +b.dataset.range; tipHide(); renderRec(); }); });
   const step = n <= 30 ? 5 : n <= 90 ? 14 : n <= 180 ? 30 : 0;
   const tick = function(i){
     const d = dates[i];
