@@ -4307,6 +4307,7 @@ async function loadHealth(){
        limit and localStorage does not, so an unbounded cache eventually throws
        a quota error and takes the whole load path down with it. */
     try { lsSet(HEALTH_CACHE, { at: Date.now(), rows: HEALTH.slice(-400) }); } catch(e){}
+    try { if (window.rhFreshness) window.rhFreshness(); } catch(e){}
     if(st){ st.className='conn ok'; st.textContent='● Connected'; }
     if (HEALTH.length >= 4999){
       console.warn('[health] hit the row ceiling \u2014 raise the Range header');
@@ -7196,7 +7197,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v215';
+const RH_BUILD = 'v216';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -9285,6 +9286,26 @@ function carrotMoment(){
 window.rhCarrotMoment = carrotMoment;
 /* also on opening the app: the server may have pulled a run in while it was closed */
 setTimeout(carrotMoment, 2600);
+/* ── HOW FRESH IS THIS (v216) ──
+   One quiet line under the date on Overview: when the app last checked for new
+   activities and overnight data, or that you are offline and looking at what
+   was saved. Without it there was no way to tell a quiet morning from a sync
+   that had not happened. */
+window.rhFreshness = function(){
+  const el = document.getElementById('hmFresh'); if (!el) return;
+  const t = Math.max(lsGet('rh_acts_checked_v1', 0) || 0, lsGet(STRAVA_SYNCED, 0) || 0, ((lsGet(HEALTH_CACHE, null) || {}).at) || 0);
+  const off = navigator.onLine === false;
+  if (!t){ el.textContent = off ? 'Offline' : ''; el.className = 'hm-fresh' + (off ? ' off' : ''); return; }
+  const d = new Date(t), mins = Math.round((Date.now() - t)/60000);
+  const when = mins < 1 ? 'just now' : mins < 60 ? mins + ' min ago'
+    : (d.toDateString() === new Date().toDateString() ? d.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' }).toLowerCase()
+    : d.toLocaleDateString('en-US', { weekday:'short' }) + ' ' + d.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' }).toLowerCase());
+  el.textContent = off ? 'Offline · showing data from ' + when : 'Updated ' + when;
+  el.className = 'hm-fresh' + (off ? ' off' : (mins > 180 ? ' stale' : ''));
+};
+window.addEventListener('online', function(){ window.rhFreshness(); });
+window.addEventListener('offline', function(){ window.rhFreshness(); });
+setInterval(function(){ if (!document.hidden) window.rhFreshness(); }, 60000);
 function applyNewActivities(){
   let snap = null;
   try { snap = window.rhMotion && window.rhMotion.snap(); } catch(e){}
@@ -9325,7 +9346,8 @@ async function pullCloudActivities(){
     /* name and type are what gets edited on Strava after the fact */
     if (prev.name !== rec.name || prev.type !== rec.type){ byId.set(key, Object.assign({}, prev, { name:rec.name, type:rec.type })); updated++; }
   });
-  if (!added && !updated) return false;
+  lsSet('rh_acts_checked_v1', Date.now());   /* v216: "updated" means checked, even when nothing was new */
+  if (!added && !updated){ if (window.rhFreshness) window.rhFreshness(); return false; }
   lsSet(STRAVA_ACTS_KEY, Array.from(byId.values()));
   lsSet(STRAVA_SYNCED, Date.now());
   console.log('[strava] from the server: ' + added + ' new, ' + updated + ' updated');
@@ -21002,6 +21024,10 @@ render();
 .hm-head{display:flex;align-items:center;gap:10px;margin:0 2px 16px;}
 .hm-head h2{font-family:var(--fd);font-size:26px;font-weight:600;color:var(--n1);letter-spacing:-.02em;margin:0;line-height:1.15;}
 .hm-head h2 span{color:var(--n3);font-weight:500;}
+.hm-ht{display:flex;flex-direction:column;gap:2px;min-width:0;}
+.hm-fresh{font-size:12px;color:var(--n4);white-space:nowrap;min-height:15px;}
+.hm-fresh.stale{color:var(--warn,#e8c58f);}
+.hm-fresh.off{color:var(--neg);}
 .hm-share{width:38px;height:38px;flex:0 0 auto;border-radius:50%;display:grid;place-items:center;background:rgba(150,170,220,.08);border:1px solid rgba(170,196,226,.16);color:var(--n2);cursor:pointer;transition:transform .12s cubic-bezier(.2,.8,.2,1),background .2s;}
 .hm-share svg{width:18px;height:18px;}
 .hm-share:active{transform:scale(.9);background:rgba(150,170,220,.16);}
@@ -22892,7 +22918,7 @@ function renderHome(){
   }).join('');
 
   borrowed.forEach(function(b){ if (b.node.parentNode) b.node.parentNode.removeChild(b.node); });
-  $home.innerHTML = '<div class="hm-head"><h2>' + todayD.toLocaleDateString(undefined, { weekday:'long' }) + ' <span>' + MON[todayD.getMonth()] + ' ' + todayD.getDate() + '</span></h2><span class="dk-sp"></span>'
+  $home.innerHTML = '<div class="hm-head"><div class="hm-ht"><h2>' + todayD.toLocaleDateString(undefined, { weekday:'long' }) + ' <span>' + MON[todayD.getMonth()] + ' ' + todayD.getDate() + '</span></h2><span class="hm-fresh" id="hmFresh"></span></div><span class="dk-sp"></span>'
     /* v208: share the week as an image (openWeekShare in the main script) */
     + '<button class="hm-share" data-go="share-week" aria-label="Share this week"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 8l5-5 5 5"/><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg></button>'
     + '</div>'   /* the phone's Week button (this week / last week sheet) was here until v181 */
@@ -22906,6 +22932,7 @@ function renderHome(){
     + '<div class="hm-side"><div class="dk-card"><div class="dk-h"><h3>Insights</h3></div><div class="dk-facts hm-ins">' + insights + '</div></div>'
     + '<div class="dk-card"><div class="dk-h"><h3>Recent</h3><span class="dk-sp"></span><button class="dk-txt" data-go="acts" style="margin:-6px -6px 0 0">All activities</button></div><div class="dk-list hm-recent">' + (recent || '<div class="dk-empty">No activities yet.<br>Connect Strava under Profile and they appear here on their own.</div>') + '</div></div></div></div>';
   lend();
+  try { if (window.rhFreshness) window.rhFreshness(); } catch(e){}
 }
 if ($home){
   $home.addEventListener('click', function(e){
