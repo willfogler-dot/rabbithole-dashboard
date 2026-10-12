@@ -7181,7 +7181,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v213';
+const RH_BUILD = 'v214';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -8802,17 +8802,17 @@ function openShare(spec){
   scrollSheetTop('shSheet');
 }
 /* the week as a card (v208), from the share button beside the date on Overview */
-function openWeekShare(){
-  const w0 = weekStart(todayD).getTime(), DAYMS = 864e5;
+function openWeekShare(wkIso){
+  const w0 = (wkIso ? new Date(wkIso + 'T00:00:00') : weekStart(todayD)).getTime(), DAYMS = 864e5;
   const run = function(a){ return a && RUNLIKE.has(a.type); };
   let mi = 0, ft = 0, sec = 0, runsN = 0, pts = 0;
-  ACTS.forEach(function(a){ if (!a || !(a._ts >= w0)) return; try { pts += pointsOf(a); } catch(e){} if (run(a)){ mi += a.distance_mi || 0; ft += a.elevation_ft || 0; sec += a.moving_time || 0; runsN++; } });
+  ACTS.forEach(function(a){ if (!a || !(a._ts >= w0) || a._ts >= w0 + 7*DAYMS) return; try { pts += pointsOf(a); } catch(e){} if (run(a)){ mi += a.distance_mi || 0; ft += a.elevation_ft || 0; sec += a.moving_time || 0; runsN++; } });
   const ser = []; for (let k = 11; k >= 0; k--){ const s0 = w0 - k*7*DAYMS, s1 = s0 + 7*DAYMS; ser.push(ACTS.reduce(function(t, a){ return a && run(a) && a._ts >= s0 && a._ts < s1 ? t + (a.distance_mi || 0) : t; }, 0)); }
   let R = null; try { R = computeReadiness(); } catch(e){}
   const sc = R && typeof R.score === 'number' ? R.score : null;
   const mon = new Date(w0), sun = new Date(w0 + 6*DAYMS), md = function(d){ return d.toLocaleDateString('en-US', { month:'short', day:'numeric' }); };
   const hh = Math.floor(sec/3600), mm = Math.round(sec/60 - hh*60);
-  openShare({ eyebrow:'This week · ' + md(mon) + '–' + md(sun).replace(/^[A-Za-z]+ /, mon.getMonth() === sun.getMonth() ? '' : md(sun).split(' ')[0] + ' '),
+  openShare({ eyebrow:(wkIso && w0 < weekStart(todayD).getTime() ? 'Last week · ' : 'This week · ') + md(mon) + '–' + md(sun).replace(/^[A-Za-z]+ /, mon.getMonth() === sun.getMonth() ? '' : md(sun).split(' ')[0] + ' '),
     big: (Math.round(mi*10)/10).toString(), unit:'mi',
     chip: sc != null ? 'Readiness ' + sc + ' · ' + R.label : '', chipTone: sc == null ? '' : sc >= 78 ? 'up' : sc >= 62 ? '' : 'dn',
     series: ser, seriesLabel:'Miles a week, the last 12 weeks',
@@ -21393,6 +21393,20 @@ render();
   .dk-g4 ~ .dk-grid .dk-chart .col.hi,.tr-ph ~ .dk-grid .dk-chart .col.hi{fill:var(--data-hi);}
 }
 
+/* ═══ v214 the week, wrapped ═══ */
+.hm-recap{margin-top:16px;padding:14px;border-radius:16px;background:linear-gradient(135deg,rgba(242,140,58,.10),rgba(143,154,232,.08));border:1px solid rgba(242,140,58,.24);text-align:left;}
+.hm-rh{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.hm-rh span{font:600 11px var(--fd);letter-spacing:.12em;text-transform:uppercase;color:#ffb27a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hm-rx{width:30px;height:30px;margin:-6px -6px -6px 0;border:none;background:none;color:var(--n3);font-size:13px;cursor:pointer;border-radius:50%;}
+.hm-rg{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;}
+.hm-rg b{display:flex;align-items:center;gap:6px;font:650 24px/1.1 var(--fd);color:var(--n1);font-variant-numeric:tabular-nums;}
+.hm-rg span{display:block;margin-top:3px;font-size:12px;color:var(--n3);white-space:nowrap;}
+.hm-rg em{font-style:normal;font-weight:600;} .hm-rg em.up{color:var(--pos);} .hm-rg em.dn{color:var(--neg);}
+.hm-rb{margin-top:10px;font-size:13px;color:var(--n2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hm-rb b{color:var(--n1);font-weight:600;}
+.hm-rs{margin-top:12px;width:100%;height:40px;border:none;border-radius:12px;background:var(--a);color:#0b0f18;font:600 14px var(--fb);cursor:pointer;transition:transform .12s;}
+.hm-rs:active{transform:scale(.97);}
+
 /* ═══ v213 streak ═══ */
 .hm-streak{display:flex;align-items:center;gap:8px;margin:-8px 0 14px 27px;font-size:12px;color:var(--n3);}
 .hm-streak b{font:600 12px var(--fb);color:#ffb27a;padding:3px 9px;border-radius:999px;background:rgba(242,140,58,.12);border:1px solid rgba(242,140,58,.28);white-space:nowrap;}
@@ -22748,6 +22762,32 @@ function renderHome(){
   tActs.forEach(function(a){ if (tUsed.has(a.id)) return; const k = kOf(a.type);
     tRows += '<div class="hm-td done"' + (k ? ' style="--k:' + k + '"' : '') + '><i></i><span>' + E(a.name || a.type) + '</span><b>' + E(valOf(a.distance_mi, a.moving_time)) + '</b></div>'; });
   rt += '<div class="hm-today"><label>Today</label>' + (tRows || '<div class="hm-td none"><span>Nothing planned</span></div>') + '</div>';
+  /* ── THE WEEK, WRAPPED (v214) ──
+     From Sunday 5 pm through Monday, a short recap of the week: carrots against
+     a usual week, the best session, runs and miles, and a Share button that
+     makes it a card. Closing it hides it for that week only. */
+  try {
+    const dow = todayD.getDay(), hr = new Date().getHours();
+    const recapWk = dow === 0 && hr >= 17 ? weekStart(todayD) : dow === 1 ? addDays(weekStart(todayD), -7) : null;
+    let hidden = null; try { hidden = localStorage.getItem('rh_recap_hidden'); } catch(e){}
+    if (recapWk && hidden !== iso(recapWk)){
+      const w0 = recapWk.getTime(), w1 = w0 + 7*864e5;
+      const inWk = ACTS.filter(function(a){ return a && a._ts >= w0 && a._ts < w1; });
+      let pts = 0, best = null, bestP = 0, mi = 0, nRun = 0;
+      inWk.forEach(function(a){ let p = 0; try { p = pointsOf(a); } catch(e){} pts += p; if (p > bestP){ bestP = p; best = a; } if (RUNLIKE.has(a.type)){ mi += a.distance_mi || 0; nRun++; } });
+      const wkT2 = {}; ACTS.forEach(function(a){ if (!a || !a._date) return; const k = iso(weekStart(a._date)); try { wkT2[k] = (wkT2[k] || 0) + pointsOf(a); } catch(e){} });
+      const pr = []; for (let j = 1; j <= 12; j++){ const x = wkT2[iso(addDays(recapWk, -7*j))] || 0; if (x > 0) pr.push(x); }
+      const u = med(pr) || 0, pct = u ? Math.round((pts/u - 1)*100) : null;
+      const end = addDays(recapWk, 6), md2 = function(d){ return MON[d.getMonth()] + ' ' + d.getDate(); };
+      if (inWk.length){
+        rt += '<div class="hm-recap"><div class="hm-rh"><span>' + (dow === 0 ? 'Your week, wrapped' : 'Last week, wrapped') + ' · ' + md2(recapWk) + '–' + (end.getMonth() === recapWk.getMonth() ? end.getDate() : md2(end)) + '</span><button class="hm-rx" data-recap="hide" data-wk="' + iso(recapWk) + '" aria-label="Hide">✕</button></div>'
+          + '<div class="hm-rg"><div><b>' + carrotSvg(15) + Math.round(pts).toLocaleString() + '</b><span>carrots' + (pct != null ? ' · <em class="' + (pct >= 0 ? 'up' : 'dn') + '">' + (pct >= 0 ? '+' : '−') + Math.abs(pct) + '%</em> on usual' : '') + '</span></div>'
+          + '<div><b>' + (Math.round(mi*10)/10) + ' mi</b><span>' + nRun + ' run' + (nRun === 1 ? '' : 's') + '</span></div></div>'
+          + (best ? '<div class="hm-rb">Best session: <b>' + E(best.name || best.type) + '</b> · ' + Math.round(bestP) + ' carrots</div>' : '')
+          + '<button class="hm-rs" data-recap="share" data-wk="' + iso(recapWk) + '">Share the week</button></div>';
+      }
+    }
+  } catch(e){ console.error('[dsk] recap', e); }
   /* the written briefing was shown here until v158 */
   const nights = (HEALTH || []).filter(function(r){ return r && r.date && (r.hrv_last_night_avg > 0 || r.sleep_seconds > 0 || r.resting_hr > 0); })
                                .sort(function(a,b){ return a.date < b.date ? -1 : 1; });
@@ -22815,6 +22855,11 @@ function renderHome(){
   lend();
 }
 if ($home){
+  $home.addEventListener('click', function(e){
+    const r = e.target.closest('[data-recap]'); if (!r) return;
+    if (r.dataset.recap === 'hide'){ try { localStorage.setItem('rh_recap_hidden', r.dataset.wk); } catch(err){} const box = r.closest('.hm-recap'); if (box) box.remove(); }
+    else if (r.dataset.recap === 'share' && typeof openWeekShare === 'function') openWeekShare(r.dataset.wk);
+  });
   $home.addEventListener('click', function(e){
     const b = e.target.closest('[data-coach]'); if (!b) return;
     if (b.dataset.coach === 'move' && window.rhMoveSession) window.rhMoveSession(b.dataset.id, b.dataset.to);
