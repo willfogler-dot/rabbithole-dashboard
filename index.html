@@ -7066,7 +7066,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v198';
+const RH_BUILD = 'v199';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -7653,6 +7653,9 @@ function paintVolHeader(data, meta){
   const wks = d.weeks || 1;
   document.getElementById('volAvg').textContent = volFmt(bucketVal / wks);
 }
+/* v199 polish: one date style for lists and sub-lines ("Oct 4, 2026"). Several
+   rows used toLocaleDateString() bare, which printed 10/4/2026 on the phone. */
+function rhDate(d){ try { return (d instanceof Date ? d : new Date(d)).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }); } catch(e){ return String(d); } }
 function renderVolChart(){
   const data = volSeries();
   if (!data.length) return;
@@ -7676,16 +7679,21 @@ function renderVolChart(){
   /* the average of the finished periods on screen: the line consistency is judged against */
   const done = data.slice(0, n-1).map(d=>d.v);
   const avgV = done.length >= 3 ? done.reduce((s,v)=>s+v,0)/done.length : null;
-  const max = Math.max(...data.map(d=>d.v), planV || 0, 1) * 1.06;
+  /* v199: gridlines on round numbers (0, 25, 50...). The axis used to be the
+     peak divided into quarters, which printed labels like 31, 61, 92, 123. */
+  const rawMax = Math.max(...data.map(d=>d.v), planV || 0, 1) * 1.06;
+  const _raw = rawMax/4, _p = Math.pow(10, Math.floor(Math.log10(_raw))), _f = _raw/_p;
+  const step = (_f <= 1 ? 1 : _f <= 2 ? 2 : _f <= 2.5 ? 2.5 : _f <= 5 ? 5 : 10)*_p;
+  const max = step*Math.ceil(rawMax/step - 1e-9);
   const x = i => padL + (n===1 ? plotW/2 : i*plotW/(n-1));
   const y = v => padT + (1 - v/max)*plotH;
 
   if (volSel == null || volSel >= n) volSel = n-1;
 
-  const ticks = 4;
+  const ticks = Math.round(max/step);
   let g = '';
   for (let t=0;t<=ticks;t++){
-    const v = max*t/ticks, gy = y(v);
+    const v = step*t, gy = y(v);
     g += '<line x1="5" y1="'+gy+'" x2="'+(W-5)+'" y2="'+gy+'" stroke="rgba(255,255,255,'+(t===0?'.10':'.045')+')" stroke-width="1"/>';
     if (t>0) g += '<text x="6" y="'+(gy-5)+'" font-size="11" fill="var(--ink3)" font-family="var(--fd)">'
       + (meta.metric==='elevation' ? fmtK(v) : meta.metric==='distance' || meta.metric==='count' || meta.metric==='points'
@@ -7992,9 +8000,9 @@ function openYear(y){
 
   h += '<div class="hsec" style="margin:20px 0 10px"><span>Standouts</span><i></i></div><div class="survey" style="box-shadow:none">';
   if (S.longest) h += '<div class="lrow yr-act" data-act="'+S.longest.id+'"><div class="ic">'+Math.round(S.longest.distance_mi)+'</div><div class="m"><div class="t">'+(S.longest.name||'Longest run')+'</div>'
-    + '<div class="s">longest \u00b7 '+S.longest._date.toLocaleDateString()+'</div></div><div class="rt">'+f1(S.longest.distance_mi)+'<span class="u"> mi</span></div></div>';
+    + '<div class="s">longest \u00b7 '+rhDate(S.longest._date)+'</div></div><div class="rt">'+f1(S.longest.distance_mi)+'<span class="u"> mi</span></div></div>';
   if (S.climbiest) h += '<div class="lrow yr-act" data-act="'+S.climbiest.id+'"><div class="ic" style="color:var(--sky)">\u25b2</div><div class="m"><div class="t">'+(S.climbiest.name||'Biggest climb')+'</div>'
-    + '<div class="s">most vert \u00b7 '+S.climbiest._date.toLocaleDateString()+'</div></div><div class="rt">'+fmtK(S.climbiest.elevation_ft)+'<span class="u"> ft</span></div></div>';
+    + '<div class="s">most vert \u00b7 '+rhDate(S.climbiest._date)+'</div></div><div class="rt">'+fmtK(S.climbiest.elevation_ft)+'<span class="u"> ft</span></div></div>';
   h += '<div class="lrow"><div class="ic" style="color:var(--sage)">'+S.streak+'</div><div class="m"><div class="t">Longest streak</div>'
     + '<div class="s">consecutive days with training</div></div><div class="rt">'+S.streak+'<span class="u"> d</span></div></div>';
   h += '</div>';
@@ -8074,7 +8082,7 @@ function renderRecords(){
     const hh = Math.floor(t/3600), mm = Math.floor(t%3600/60), ss = Math.round(t%60);
     const tstr = (hh?hh+':':'') + String(mm).padStart(hh?2:1,'0') + ':' + String(ss).padStart(2,'0');
     return '<div class="lrow"><div class="ic">'+label+'</div><div class="m"><div class="t">'+tstr+'</div>'
-      + '<div class="s">'+best.name+' \u00b7 '+best._date.toLocaleDateString()+'</div></div>'
+      + '<div class="s">'+best.name+' \u00b7 '+rhDate(best._date)+'</div></div>'
       + '<div class="rt">'+paceStr(d, t)+'<span class="u"> /mi</span></div></div>';
   }).filter(Boolean);
   document.getElementById('recordList').innerHTML = rows.join('')
@@ -8354,12 +8362,12 @@ function renderProfile(){
   const runs2026 = ACTS.filter(a=>RUNLIKE.has(a.type) && a._date.getFullYear()===YEAR && a.distance_mi>0);
   const dup = window._dupCount || 0;
   document.getElementById('actCount').textContent =
-    ACTS.length.toLocaleString() + ' activities · ' + Math.round(yrMiles()) + ' running mi in ' + YEAR
+    ACTS.length.toLocaleString() + ' activities · ' + Math.round(yrMiles()).toLocaleString() + ' running mi in ' + YEAR
     + (dup ? ' · ' + dup + ' duplicate' + (dup>1?'s':'') + ' merged' : '');
   const last = ACTS[0];
-  document.getElementById('lastAct').textContent = last ? (last.name + ' · ' + last._date.toLocaleDateString()) : '—';
+  document.getElementById('lastAct').textContent = last ? (last.name + ' · ' + rhDate(last._date)) : '—';
   const bt = document.getElementById('rhBuildTag'); if (bt) bt.textContent = 'Build ' + RH_BUILD;
-  document.getElementById('profSub').textContent = 'Trail & Ultra · ' + Math.round(yrMiles()) + ' mi in ' + YEAR;
+  document.getElementById('profSub').textContent = 'Trail & Ultra · ' + Math.round(yrMiles()).toLocaleString() + ' mi in ' + YEAR;
 }
 
 /* nav */
@@ -8656,7 +8664,7 @@ function refreshConnStatus(){
     else { st.className='conn no'; st.textContent='\u25cf Not connected'; sub.textContent='press Sync to connect (one time)'; }
   }).catch(e => { st.className='conn no'; st.textContent='\u25cf Unavailable'; sub.textContent=String(e.message||e); });
   const hs = document.getElementById('setHealthStatus'), hsub = document.getElementById('setHealthSub');
-  if (HEALTH.length){ hs.className='conn ok'; hs.textContent='\u25cf Connected'; hsub.textContent='last night ' + HEALTH[HEALTH.length-1].date; }
+  if (HEALTH.length){ hs.className='conn ok'; hs.textContent='\u25cf Connected'; hsub.textContent='last night ' + rhDate(new Date(HEALTH[HEALTH.length-1].date + 'T00:00:00')); }
   else { hs.className='conn no'; hs.textContent='\u25cf No data'; hsub.textContent='check Supabase config'; }
 }
 
@@ -10020,7 +10028,7 @@ function renderSavedRoutes(){
   host.innerHTML = routes.slice().reverse().map(function(r){
     return '<div class="lrow" data-rt="'+r.id+'" style="cursor:pointer"><div class="ic">'+Math.round(r.miles)+'</div>'
       + '<div class="m"><div class="t">'+r.name+'</div><div class="s">'+f1(r.miles)+' mi'
-      + (r.gain ? ' · '+r.gain.toLocaleString()+' ft' : '')+' · '+new Date(r.saved).toLocaleDateString()+'</div></div>'
+      + (r.gain ? ' · '+r.gain.toLocaleString()+' ft' : '')+' · '+rhDate(new Date(r.saved))+'</div></div>'
       + '<div class="rt" style="font-size:13px;color:var(--ink4)">›</div></div>';
   }).join('');
   host.querySelectorAll('[data-rt]').forEach(function(el){
@@ -10935,7 +10943,7 @@ function refreshProfileRows(){
   const set = Object.keys(GOAL_SPEC).filter(t => ['distance','time','elevation','count'].some(m=>goalRaw(t,m,'year')));
   const g = document.getElementById('rowGoalsSub');
   if (g) g.textContent = set.length
-    ? (mi ? Math.round(yrMiles())+' of '+Math.round(mi).toLocaleString()+' mi \u00b7 '+set.length+' sport'+(set.length>1?'s':'')
+    ? (mi ? Math.round(yrMiles()).toLocaleString()+' of '+Math.round(mi).toLocaleString()+' mi \u00b7 '+set.length+' sport'+(set.length>1?'s':'')
           : set.length+' sport'+(set.length>1?'s':'')+' with targets')
     : 'no targets set yet';
   const runs = ACTS.filter(a=>RUNLIKE.has(a.type)&&a.distance_mi>0);
@@ -13098,7 +13106,7 @@ function renderRaceList(){
     ph.innerHTML = past.length ? past.map(function(r){
       const d = new Date(r.date+'T00:00:00');
       return '<div class="lrow" data-race="'+r.id+'" style="cursor:pointer"><div class="ic">\u2713</div>'
-        + '<div class="m"><div class="t">'+r.name+'</div><div class="s">'+d.toLocaleDateString()+'</div></div>'
+        + '<div class="m"><div class="t">'+r.name+'</div><div class="s">'+rhDate(d)+'</div></div>'
         + '<div class="rt">'+(r.distance_mi?f1(r.distance_mi)+'<span class="u"> mi</span>':'')+'</div></div>';
     }).join('') : '<div class="empty">No races logged yet.<br>Finished races land here automatically once the date passes.</div>';
     ph.querySelectorAll('[data-race]').forEach(function(el){
@@ -19461,7 +19469,7 @@ function renderWeekView(ix){
   if (W.past) sub = hasGoal ? 'the plan was ' + fmt1(goal) + ' ' + m.unit : 'no plan was set';
   else if (!hasGoal) sub = 'No plan set for this week';
   else if (W.future) sub = 'this is the week’s goal';
-  else sub = fmt1(W.done) + ' run so far · ' + fmt1(Math.max(0, goal - W.done)) + ' to go';
+  else sub = fmt1(W.done) + ' ' + m.unit + ' run so far · ' + fmt1(Math.max(0, goal - W.done)) + ' to go';
   const scale = Math.max(goal, W.done, 1);
   const pc = function(v){ return Math.min(100, Math.max(0, v/scale*100)).toFixed(1); };
 
@@ -19506,7 +19514,9 @@ function renderWeekView(ix){
     const pct = (W.head/P.head - 1)*100;
     ramp = (pct >= 0 ? '+' : '') + Math.round(pct) + '%';
     /* a jump only matters once the base is big enough for a percentage to mean something */
-    rampCls = (pct > 15 && W.head >= 15) ? 'warn' : (pct >= -40 ? 'ok' : '');
+    /* v199: only a big jump gets a colour. A drop was green, which read as
+       "good" when it only meant "not a risky jump" */
+    rampCls = (pct > 15 && W.head >= 15) ? 'warn' : '';
     rampSub = 'from ' + fmt1(P.head) + ' ' + m.unit;
   }
   const oTxt = other === 'elevation' ? feet(O.head) + ' ft' : miles(O.head) + ' mi';
@@ -20812,6 +20822,18 @@ render();
   #dskHome .hm-r1 > .dk-card:not(.hm-ready){border-radius:18px 18px 0 0;border-bottom:none;}
   #dskHome .hm-side > .dk-card:first-child{border-top:1px solid var(--line);border-bottom:none;}
   #dskHome .hm-side > .dk-card:last-child{border-top:1px solid var(--line);border-radius:0 0 18px 18px;}
+  /* v199: a 12px flex gap sat between "Last night", "Insights" and "Recent",
+     so the panel meant to be one surface showed gaps with open, square edges */
+  #dskHome.dsk{row-gap:0;}
+  #dskHome.dsk .hm-head{margin-bottom:14px;}   /* a later 12px gap won over the gap:0 above; the panels carry their own margins */
+  /* the volume measures were boxed buttons inside the panel; now plain, with
+     the charted one picked out by a soft fill (panels hold no cards) */
+  #dskHome #hmVolSlot .vm{background:none;border:none;border-radius:10px;box-shadow:none;}
+  #dskHome #hmVolSlot .vm.lead{background:rgba(143,154,232,.09);}
+  #dskHome #hmVolSlot .vol-metrics{gap:4px;}
+  /* "Training load" repeated what the readiness chip and the carrot meter
+     already say a screen above it */
+  #dskHome #loadCard{display:none;}
 }
 
 /* v174: ONE INSET. Measured, the first line of text sat 21 to 25px in from a
@@ -21147,7 +21169,7 @@ function chartCols(el, c){
   if (c.ref != null){
     const y = Math.round(f.Y(c.ref)) + .5;
     s += '<line x1="' + f.L + '" x2="' + (f.W - f.R) + '" y1="' + y + '" y2="' + y + '" stroke="var(--n2)" stroke-width="1"/>'
-       + (c.refLabel ? '<text x="' + (f.W - f.R) + '" y="' + (y - 5) + '" text-anchor="end">' + E(c.refLabel) + '</text>' : '');
+       + (c.refLabel ? '<text x="' + (f.W - f.R) + '" y="' + (y - 5) + '" text-anchor="end" style="paint-order:stroke;stroke:var(--bg-mid,#10131f);stroke-width:4px;stroke-linejoin:round">' + E(c.refLabel) + '</text>' : '');
   }
   if (c.line){
     let d = '', pen = false;
@@ -21548,7 +21570,7 @@ function renderTrain(){
     + '<div class="dk-grid dk-g11 tr-mix">'
     +   '<div class="dk-card"><div class="dk-h"><h3>' + (PTSMODE ? 'Where the carrots came from' : 'Where the hours went') + '</h3><span>' + y + ', all activity</span></div><div class="dk-list">'
     +     (mixKeys.length ? mixKeys.map(function(k){ return '<div class="dk-row" style="cursor:default;--k:' + kOf(k) + '"><span class="nm"><i class="dk-dot"></i>' + E(k) + '</span><span class="vv">' + Math.round(mix[k]).toLocaleString() + '<small>' + (PTSMODE ? '' : 'h') + '</small></span>'
-            + '<span class="mt">' + Math.round(mix[k]/mixTot*100) + '% of the year’s ' + (PTSMODE ? 'carrots' : 'training time') + '</span><span></span><span class="br"><i style="width:' + (mix[k]/mixMax*100).toFixed(1) + '%"></i></span></div>'; }).join('')
+            + '<span class="mt">' + (mix[k]/mixTot*100 < 1 ? 'under 1' : Math.round(mix[k]/mixTot*100)) + '% of the year’s ' + (PTSMODE ? 'carrots' : 'training time') + '</span><span></span><span class="br"><i style="width:' + (mix[k]/mixMax*100).toFixed(1) + '%"></i></span></div>'; }).join('')
           : '<div class="dk-empty">Nothing logged in ' + y + ' yet.</div>') + '</div></div>'
     +   '<div class="dk-card"><div class="dk-h"><h3>Which days carry the load</h3><span>' + y + ' running ' + M.label.toLowerCase() + ' by weekday</span></div>'
     +     '<div class="dk-chart" id="dkDow"></div>'
