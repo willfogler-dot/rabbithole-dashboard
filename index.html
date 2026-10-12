@@ -7176,7 +7176,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v207';
+const RH_BUILD = 'v208';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -8796,6 +8796,25 @@ function openShare(spec){
   document.getElementById('shBd').classList.add('on'); document.getElementById('shSheet').classList.add('on');
   scrollSheetTop('shSheet');
 }
+/* the week as a card (v208), from the share button beside the date on Overview */
+function openWeekShare(){
+  const w0 = weekStart(todayD).getTime(), DAYMS = 864e5;
+  const run = function(a){ return a && RUNLIKE.has(a.type); };
+  let mi = 0, ft = 0, sec = 0, runsN = 0, pts = 0;
+  ACTS.forEach(function(a){ if (!a || !(a._ts >= w0)) return; try { pts += pointsOf(a); } catch(e){} if (run(a)){ mi += a.distance_mi || 0; ft += a.elevation_ft || 0; sec += a.moving_time || 0; runsN++; } });
+  const ser = []; for (let k = 11; k >= 0; k--){ const s0 = w0 - k*7*DAYMS, s1 = s0 + 7*DAYMS; ser.push(ACTS.reduce(function(t, a){ return a && run(a) && a._ts >= s0 && a._ts < s1 ? t + (a.distance_mi || 0) : t; }, 0)); }
+  let R = null; try { R = computeReadiness(); } catch(e){}
+  const sc = R && typeof R.score === 'number' ? R.score : null;
+  const mon = new Date(w0), sun = new Date(w0 + 6*DAYMS), md = function(d){ return d.toLocaleDateString('en-US', { month:'short', day:'numeric' }); };
+  const hh = Math.floor(sec/3600), mm = Math.round(sec/60 - hh*60);
+  openShare({ eyebrow:'This week · ' + md(mon) + '–' + md(sun).replace(/^[A-Za-z]+ /, mon.getMonth() === sun.getMonth() ? '' : md(sun).split(' ')[0] + ' '),
+    big: (Math.round(mi*10)/10).toString(), unit:'mi',
+    chip: sc != null ? 'Readiness ' + sc + ' · ' + R.label : '', chipTone: sc == null ? '' : sc >= 78 ? 'up' : sc >= 62 ? '' : 'dn',
+    series: ser, seriesLabel:'Miles a week, the last 12 weeks',
+    facts:[ { l:'carrots', v:Math.round(pts).toLocaleString() }, { l:'runs', v:String(runsN) }, { l:'vert', v:(ft >= 1000 ? (Math.round(ft/100)/10) + 'k' : Math.round(ft)) + ' ft' }, { l:'moving', v: hh + ':' + String(mm).padStart(2, '0') } ],
+    foot: todayD.toLocaleDateString('en-US', { month:'long', day:'numeric', year:'numeric' }), subtitle:'This week' });
+}
+window.openWeekShare = openWeekShare;
 function closeShare(){ document.getElementById('shBd').classList.remove('on'); document.getElementById('shSheet').classList.remove('on'); }
 (function(){
   const x = document.getElementById('shClose'), bd = document.getElementById('shBd'), go = document.getElementById('shGo'), cp = document.getElementById('shCopy');
@@ -20904,6 +20923,9 @@ render();
 .hm-head{display:flex;align-items:center;gap:10px;margin:0 2px 16px;}
 .hm-head h2{font-family:var(--fd);font-size:26px;font-weight:600;color:var(--n1);letter-spacing:-.02em;margin:0;line-height:1.15;}
 .hm-head h2 span{color:var(--n3);font-weight:500;}
+.hm-share{width:38px;height:38px;flex:0 0 auto;border-radius:50%;display:grid;place-items:center;background:rgba(150,170,220,.08);border:1px solid rgba(170,196,226,.16);color:var(--n2);cursor:pointer;transition:transform .12s cubic-bezier(.2,.8,.2,1),background .2s;}
+.hm-share svg{width:18px;height:18px;}
+.hm-share:active{transform:scale(.9);background:rgba(150,170,220,.16);}
 .hm-row{display:grid;gap:14px;margin-bottom:14px;align-items:stretch;}
 .hm-r1{grid-template-columns:minmax(0,1fr) minmax(0,1.5fr);}
 .hm-r3{grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);}
@@ -22678,6 +22700,8 @@ function renderHome(){
 
   borrowed.forEach(function(b){ if (b.node.parentNode) b.node.parentNode.removeChild(b.node); });
   $home.innerHTML = '<div class="hm-head"><h2>' + todayD.toLocaleDateString(undefined, { weekday:'long' }) + ' <span>' + MON[todayD.getMonth()] + ' ' + todayD.getDate() + '</span></h2><span class="dk-sp"></span>'
+    /* v208: share the week as an image (openWeekShare in the main script) */
+    + '<button class="hm-share" data-go="share-week" aria-label="Share this week"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 8l5-5 5 5"/><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg></button>'
     + '</div>'   /* the phone's Week button (this week / last week sheet) was here until v181 */
     + '<div class="hm-row hm-r1 hm-panel"><div class="dk-card hm-ready' + (hasScore ? (Rd.score >= 78 ? ' tone-up' : Rd.score >= 62 ? ' tone-mid' : ' tone-dn') : '') + '">' + ring + '<div class="hm-rtxt">' + rt + '</div></div>'
     + '<div class="dk-card"><div class="dk-h" style="margin-bottom:14px"><h3>Last night</h3><span>' + (nDate ? nDate.toLocaleDateString(undefined, { weekday:'short', month:'short', day:'numeric' }) + ' · against your last 4 weeks' : '') + '</span></div>' + nightCard + '</div></div>'
@@ -22710,6 +22734,7 @@ if ($home){
     else if (k === 'jarvis') openJarvis();
     else if (k === 'week') openWeek();
     else if (k === 'acts') openActivities();
+    else if (k === 'share-week'){ if (typeof openWeekShare === 'function') openWeekShare(); }
     else showTab(k);
   });
 }
