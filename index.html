@@ -7165,7 +7165,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v211';
+const RH_BUILD = 'v212';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -8804,6 +8804,22 @@ function openWeekShare(){
     foot: todayD.toLocaleDateString('en-US', { month:'long', day:'numeric', year:'numeric' }), subtitle:'This week' });
 }
 window.openWeekShare = openWeekShare;
+/* ── MOVE A SESSION FROM OVERVIEW (v212) ──
+   The Today line on Overview can offer to push a hard session to tomorrow when
+   readiness is low. One move is remembered so the same line can offer Undo. */
+window.rhMoveSession = function(id, to){
+  const w = PLANNED.find(function(x){ return String(x.id) === String(id); });
+  if (!w || !to) return false;
+  window._rhMoved = { id:String(id), from:w.date, to:to, title:w.title || w.type };
+  w.date = to; savePlanned(); refreshAllViews();
+  return true;
+};
+window.rhUndoMove = function(){
+  const m = window._rhMoved; if (!m) return;
+  const w = PLANNED.find(function(x){ return String(x.id) === m.id; });
+  if (w && w.date === m.to){ w.date = m.from; savePlanned(); }
+  window._rhMoved = null; refreshAllViews();
+};
 function closeShare(){ document.getElementById('shBd').classList.remove('on'); document.getElementById('shSheet').classList.remove('on'); }
 (function(){
   const x = document.getElementById('shClose'), bd = document.getElementById('shBd'), go = document.getElementById('shGo'), cp = document.getElementById('shCopy');
@@ -21322,6 +21338,16 @@ render();
   .dk-g4 ~ .dk-grid .dk-chart .col.hi,.tr-ph ~ .dk-grid .dk-chart .col.hi{fill:var(--data-hi);}
 }
 
+/* ═══ v212 the Today line ═══ */
+.hm-coach{display:flex;align-items:center;gap:12px;margin:2px 0 16px;padding:12px 14px;border-radius:14px;background:rgba(150,170,220,.06);border:1px solid rgba(170,196,226,.14);text-align:left;}
+.hm-coach p{margin:0;flex:1;min-width:0;font-size:14px;line-height:1.4;color:var(--n2);}
+.hm-coach p b{color:var(--n1);font-weight:600;}
+.hm-coach.t-up{border-color:color-mix(in srgb,var(--pos) 30%,transparent);background:color-mix(in srgb,var(--pos) 7%,transparent);}
+.hm-coach.t-dn{border-color:color-mix(in srgb,var(--neg) 32%,transparent);background:color-mix(in srgb,var(--neg) 7%,transparent);}
+.hm-coach-b{flex:0 0 auto;height:34px;padding:0 13px;border-radius:10px;border:none;background:var(--a);color:#0b0f18;font:600 13px var(--fb);cursor:pointer;white-space:nowrap;transition:transform .12s;}
+.hm-coach-b:active{transform:scale(.95);}
+.hm-coach.t-dn .hm-coach-b{background:var(--n1);}
+
 /* ═══ v205 readiness chips you can tap ═══ */
 .hm-chip[data-x]{cursor:pointer;transition:transform .14s cubic-bezier(.2,.8,.2,1),background .2s,border-color .2s;}
 .hm-chip[data-x]:active{transform:scale(.95);}
@@ -22564,6 +22590,47 @@ function renderHome(){
   const verdict = !hasScore ? 'Waiting on last night' : Rd.score >= 88 ? 'Well above your normal' : Rd.score >= 78 ? 'Right around your best' : Rd.score >= 66 ? 'A little under your normal' : Rd.score >= 52 ? 'Below your normal' : 'Well below your normal';
   let rt = '<div class="hm-verdict">' + verdict + '</div>';
   if (sEl && sEl.textContent) rt += '<p class="warn">' + E(sEl.textContent) + '</p>';
+  /* ── TODAY, AS ADVICE (v212) ──
+     The score and the plan sat side by side and left the sum to him. This line
+     adds them up: what is on today and what the score says about it. On a
+     strained or depleted morning with a hard run planned it offers to move
+     that run to tomorrow (rhMoveSession in the main script), and then offers
+     Undo. "Hard" is a run of 8 mi or more, or one named or typed as a tempo,
+     interval, hill, long or race session. */
+  try {
+    if (hasScore){
+      const sc = Rd.score, tIsoC = iso(todayD), tmr = addDays(todayD, 1), tmrIso = iso(tmr), tmrLbl = tmr.toLocaleDateString('en-US', { weekday:'short' });
+      const tActsC = ACTS.filter(function(a){ return a && a._iso === tIsoC; });
+      const todayPlans = plans.filter(function(w){ return w && w.date === tIsoC; });
+      const doneOf = function(w){ return tActsC.some(function(a){ return typesMatch(a, w); }); };
+      const open = todayPlans.filter(function(w){ return !doneOf(w); });
+      const runs = open.filter(function(w){ return RUNLIKE.has(w.type); }).sort(function(a, b){ return (parseFloat(b.distance_mi) || 0) - (parseFloat(a.distance_mi) || 0); });
+      const next = runs[0] || open[0] || null;
+      const dist = next ? (parseFloat(next.distance_mi) || 0) : 0;
+      const hard = !!next && RUNLIKE.has(next.type) && (dist >= 8 || /tempo|interval|hill|long|race|speed|fartlek|threshold/i.test(String(next.session || '') + ' ' + String(next.title || '')));
+      const nm = next ? '<b>' + E(next.title || next.type) + (dist > 0 ? ' · ' + (Math.round(dist*10)/10) + ' mi' : '') + '</b>' : '';
+      const mv = window._rhMoved;
+      let line = '', act = '', tone = sc >= 78 ? 'up' : sc >= 66 ? 'mid' : 'dn';
+      if (mv && plans.some(function(w){ return String(w.id) === mv.id && w.date === mv.to; })){
+        line = 'Moved <b>' + E(mv.title) + '</b> to ' + new Date(mv.to + 'T00:00:00').toLocaleDateString('en-US', { weekday:'long' }) + '.';
+        act = '<button class="hm-coach-b" data-coach="undo">Undo</button>'; tone = 'mid';
+      } else if (todayPlans.length && !open.length){
+        let pts = 0; tActsC.forEach(function(a){ try { pts += pointsOf(a); } catch(e){} });
+        line = 'All done for today' + (pts > 0 ? ' · <b>+' + Math.round(pts) + '</b> carrots' : '') + '.'; tone = 'up';
+      } else if (sc >= 78){
+        line = next ? 'Good day for it: ' + nm + '.' : 'Nothing planned, and you are ready if you want something.';
+      } else if (sc >= 66){
+        line = next ? nm + ' is fine. Keep the effort easy.' : 'Nothing planned. An easy day suits you.';
+      } else if (sc >= 52){
+        if (hard){ line = 'Your body is behind today. Move ' + nm + ' to ' + tmrLbl + '?'; act = '<button class="hm-coach-b" data-coach="move" data-id="' + E(next.id) + '" data-to="' + tmrIso + '">Move to ' + tmrLbl + '</button>'; }
+        else line = next ? 'Keep ' + nm + ' short and easy.' : 'A lighter day. Good call having nothing planned.';
+      } else {
+        if (next && RUNLIKE.has(next.type)){ line = 'Rest is the training today. Move ' + nm + ' to ' + tmrLbl + '?'; act = '<button class="hm-coach-b" data-coach="move" data-id="' + E(next.id) + '" data-to="' + tmrIso + '">Move to ' + tmrLbl + '</button>'; }
+        else line = 'Rest is the training today.';
+      }
+      if (line) rt += '<div class="hm-coach t-' + tone + '"><p>' + line + '</p>' + act + '</div>';
+    }
+  } catch(e){ console.error('[dsk] coach line', e); }
   /* what moved the score: each overnight measure against his own baseline, and training load */
   let chips = '';
   if (Rd && Rd.mets) Rd.mets.forEach(function(x){
@@ -22678,6 +22745,11 @@ function renderHome(){
   lend();
 }
 if ($home){
+  $home.addEventListener('click', function(e){
+    const b = e.target.closest('[data-coach]'); if (!b) return;
+    if (b.dataset.coach === 'move' && window.rhMoveSession) window.rhMoveSession(b.dataset.id, b.dataset.to);
+    else if (b.dataset.coach === 'undo' && window.rhUndoMove) window.rhUndoMove();
+  });
   /* v205: tap a readiness chip to read what it means, right under the chips.
      The detail used to live only in a hover title, which a phone never shows. */
   $home.addEventListener('click', function(e){
