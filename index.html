@@ -2512,17 +2512,6 @@ body.sheet-open::after{z-index:19;}
 }
 @media (prefers-reduced-motion:reduce){.seg-thumb{transition:none;}}
 
-/* ── v207 · PULL TO SYNC ── see the script beside syncStrava */
-.ptr{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 54px);z-index:30;display:flex;align-items:center;gap:8px;padding:8px 14px 8px 10px;border-radius:999px;
-  background:rgba(22,27,40,.9);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);border:1px solid rgba(170,196,226,.16);box-shadow:0 10px 30px -10px rgba(0,0,0,.7);
-  font:600 13px var(--fb);color:var(--n2);pointer-events:none;opacity:0;transform:translate(-50%,-30px) scale(.9);transition:opacity .2s,transform .35s cubic-bezier(.34,1.4,.5,1);}
-.ptr.show{opacity:1;}
-.ptr.ready{color:var(--n1);}
-.ptr svg{transition:transform .08s linear;}
-.ptr.spin svg{animation:ptrSpin .8s linear infinite;}
-@keyframes ptrSpin{to{transform:rotate(360deg);}}
-@media (min-width:760px){.ptr{display:none;}}
-
 /* ── 13 · BLUR AS A MATERIAL ───────────────────────────────────
    Blur means "this is floating above the page". Applied consistently
    to every floating surface, and to nothing else. */
@@ -7176,7 +7165,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v209';
+const RH_BUILD = 'v210';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -9002,48 +8991,11 @@ async function stravaToken(){
   return d.access_token;
 }
 
-/* PULL TO SYNC (v207). Drag down from the very top of any tab on the phone and
-   let go past the mark: it runs the same Strava sync as the Sync button on
-   Profile and says what it found. A tall pull is needed (90px) so an ordinary
-   scroll back to the top never fires it. Ignored inside sheets, sliders and the
-   planner's draggable sessions. */
-(function(){
-  if (!('ontouchstart' in window)) return;
-  const el = document.createElement('div'); el.className = 'ptr';
-  el.innerHTML = (typeof carrotSvg === 'function' ? carrotSvg(20) : '') + '<span>Pull to sync</span>';
-  document.body.appendChild(el);
-  const txt = el.querySelector('span'), ico = el.querySelector('svg');
-  let y0 = null, x0 = 0, d = 0, busy = false;
-  const TH = 90;
-  window.addEventListener('touchstart', function(e){
-    if (busy || window.innerWidth >= 760 || window.scrollY > 0) { y0 = null; return; }
-    const t = e.target;
-    if (t.closest && t.closest('.sheet.on, .sheet, input, textarea, select, .plx-chip, .dk-chart, .tl-curve, .car, [data-nopull]')){ y0 = null; return; }
-    y0 = e.touches[0].clientY; x0 = e.touches[0].clientX; d = 0;
-  }, { passive:true });
-  window.addEventListener('touchmove', function(e){
-    if (y0 == null) return;
-    const dy = e.touches[0].clientY - y0, dx = Math.abs(e.touches[0].clientX - x0);
-    if (window.scrollY > 0 || dy <= 0 || dx > dy){ d = 0; el.classList.remove('show', 'ready'); return; }
-    d = dy;
-    const k = Math.min(1, d/TH);
-    el.classList.add('show'); el.classList.toggle('ready', d >= TH);
-    el.style.transform = 'translate(-50%,' + (-30 + 40*k) + 'px) scale(' + (.9 + .1*k) + ')';
-    if (ico) ico.style.transform = 'rotate(' + Math.round(d*3) + 'deg)';
-    txt.textContent = d >= TH ? 'Release to sync' : 'Pull to sync';
-  }, { passive:true });
-  window.addEventListener('touchend', function(){
-    if (y0 == null) return; y0 = null;
-    if (d < TH){ el.classList.remove('show', 'ready'); el.style.transform = ''; return; }
-    busy = true; el.classList.add('spin'); txt.textContent = 'Syncing Strava';
-    if (ico) ico.style.transform = '';
-    try { if (navigator.vibrate) navigator.vibrate(10); } catch(e){}
-    Promise.resolve(syncStrava(false)).catch(function(){}).then(function(){
-      busy = false; el.classList.remove('spin', 'show', 'ready'); el.style.transform = '';
-    });
-    d = 0;
-  });
-})();
+/* PULL TO SYNC was here (v207) and was removed in v210: on the phone it fought
+   iOS's own bounce at the top of the page and felt glitchy. The Sync button on
+   Profile and the automatic sync on open are unchanged. If it comes back, it
+   needs to own the scroll at the top (overscroll-behavior) rather than ride
+   on top of the native bounce. */
 async function syncStrava(quiet){
   quiet = quiet === true;            /* the button passes a click event here, which is not "quiet" */
   const btn = document.getElementById('stvSync'), prog = document.getElementById('stvProgress');
