@@ -2485,6 +2485,19 @@ body.sheet-open::after{z-index:19;}
 .nav-in.has-pill a.on svg{filter:none;}
 @media (prefers-reduced-motion:reduce){.nav-pill{transition:none;animation:none;}}
 
+/* ── v205 · THE SCORE STAYS WITH YOU ──
+   Scroll past the ring on Overview and today's score slides into the top bar,
+   so it is never more than a glance away. Tapping it jumps back up. */
+.hdr-score{display:none;}
+@media (max-width:759px){
+  .hdr-score{display:flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:999px;background:rgba(150,170,220,.08);border:1px solid rgba(170,196,226,.16);
+    font:500 12.5px var(--fb);color:var(--n2);opacity:0;transform:translateY(-6px) scale(.96);pointer-events:none;transition:opacity .25s,transform .35s cubic-bezier(.34,1.4,.5,1);}
+  .hdr-score b{font:600 13.5px var(--fd);color:var(--n1);}
+  .hdr-score i{width:7px;height:7px;border-radius:50%;background:var(--a);box-shadow:0 0 8px var(--a);}
+  .hdr-score i.up{background:var(--pos);box-shadow:0 0 8px var(--pos);} .hdr-score i.dn{background:var(--neg);box-shadow:0 0 8px var(--neg);}
+  body.hdr-scored .hdr-score{opacity:1;transform:none;pointer-events:auto;}
+}
+
 /* ── 13 · BLUR AS A MATERIAL ───────────────────────────────────
    Blur means "this is floating above the page". Applied consistently
    to every floating surface, and to nothing else. */
@@ -2619,6 +2632,7 @@ body.sheet-open::after{z-index:19;}
   <div class="hdr">
     <div class="brand">
       <span class="brand-orb"><span class="brand-orb-in"></span></span>The Rabbit Hole</div>
+    <button class="hdr-score" id="hdrScore" aria-label="Readiness" tabindex="-1"></button>
 
   </div>
 
@@ -6827,6 +6841,8 @@ function renderPortal(){
     window._rrShown = R.score;
     rhRing(host, R.score, R.label, { numEl: document.getElementById('pnum'), still: !fresh });
   }
+  const hs = document.getElementById('hdrScore');
+  if (hs){ hs.innerHTML = '<i class="' + (R.score >= 78 ? 'up' : R.score >= 62 ? '' : 'dn') + '"></i><b>' + R.score + '</b> ' + R.label; }
   if (!host) document.getElementById('pnum').textContent = R.score;
   document.getElementById('plbl').textContent = R.label;
 }
@@ -7135,7 +7151,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v204';
+const RH_BUILD = 'v205';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -8492,6 +8508,13 @@ function placeNavPill(){
   requestAnimationFrame(placeNavPill);
   window.addEventListener('resize', placeNavPill);
 })();
+(function(){
+  const hs = document.getElementById('hdrScore'); if (!hs) return;
+  const upd = function(){ document.body.classList.toggle('hdr-scored', _tabCur === 'overview' && window.scrollY > 300 && !!hs.textContent); };
+  window.addEventListener('scroll', upd, { passive:true });
+  hs.addEventListener('click', function(){ window.scrollTo({ top:0, behavior:'smooth' }); });
+  window._hdrScoreUpd = upd;
+})();
 function showTab(key){
   if (key === _tabCur){ window.scrollTo({top:0, behavior:'smooth'}); return; }
   _tabScroll[_tabCur] = window.scrollY;      /* remember where he was */
@@ -8508,6 +8531,7 @@ function showTab(key){
   /* jump, never smooth-scroll: a smooth scroll on a tab change is an animation
      you have to sit through before you can read anything */
   window.scrollTo(0, _tabScroll[key] || 0);
+  if (window._hdrScoreUpd) window._hdrScoreUpd();
 
   /* everything below is deferred past the paint that shows the new tab */
   requestAnimationFrame(function(){
@@ -21222,6 +21246,14 @@ render();
   .dk-g4 ~ .dk-grid .dk-chart .col.hi,.tr-ph ~ .dk-grid .dk-chart .col.hi{fill:var(--data-hi);}
 }
 
+/* ═══ v205 readiness chips you can tap ═══ */
+.hm-chip[data-x]{cursor:pointer;transition:transform .14s cubic-bezier(.2,.8,.2,1),background .2s,border-color .2s;}
+.hm-chip[data-x]:active{transform:scale(.95);}
+.hm-chip.open{background:rgba(143,154,232,.16);border-color:rgba(143,154,232,.5);}
+.hm-explain{overflow:hidden;max-height:0;opacity:0;font-size:13px;line-height:1.45;color:var(--n2);text-align:center;transition:max-height .35s cubic-bezier(.2,.8,.2,1),opacity .25s,margin .35s;}
+.hm-explain.on{max-height:60px;opacity:1;margin:-4px 0 14px;}
+@media (min-width:760px){ .hm-explain{text-align:left;} }
+
 /* ═══ PHONE ═══ kept last so it wins over the wide rules above without !important */
 @media (max-width:759px){
   .dsk .dk-card{padding:15px 15px 14px;border-radius:16px;}
@@ -22458,12 +22490,12 @@ function renderHome(){
     /* prefixed: the app already has .up, .dn and .fl classes that mean other things */
     const tone = x.z >= 0.25 ? 't-up' : x.z <= -0.25 ? 't-dn' : 't-fl';
     let dv = ''; try { dv = pctDev(x.cur, x.mean, true); } catch(e){}
-    chips += '<span class="hm-chip ' + tone + '" title="' + E(x.m.label) + ': ' + E(String(x.m.fmt(x.cur))) + E(x.m.unit || '') + ', usually ' + E(String(x.m.fmt(x.mean))) + '"><i>' + (tone === 't-up' ? '▲' : tone === 't-dn' ? '▼' : '•') + '</i>' + E(x.m.label) + ' <b>' + E(dv) + '</b></span>';
+    chips += '<span class="hm-chip ' + tone + '" role="button" tabindex="0" data-x="' + E(x.m.label + ' last night: ' + String(x.m.fmt(x.cur)).trim() + (x.m.unit ? ' ' + x.m.unit.trim() : '') + ' · your usual ' + String(x.m.fmt(x.mean)).trim() + (x.m.unit ? ' ' + x.m.unit.trim() : '')) + '" title="' + E(x.m.label) + ': ' + E(String(x.m.fmt(x.cur))) + E(x.m.unit || '') + ', usually ' + E(String(x.m.fmt(x.mean))) + '"><i>' + (tone === 't-up' ? '▲' : tone === 't-dn' ? '▼' : '•') + '</i>' + E(x.m.label) + ' <b>' + E(dv) + '</b></span>';
   });
-  if (L) chips += '<span class="hm-chip ' + (L.adj > 0.5 ? 't-up' : L.adj < -0.5 ? 't-dn' : 't-fl') + '" title="' + Math.round(L.acute) + ' carrots in the last 7 days. A usual week lately is ' + Math.round(L.chronic) + '."><i>' + (L.adj > 0.5 ? '▲' : L.adj < -0.5 ? '▼' : '•') + '</i>'
+  if (L) chips += '<span class="hm-chip ' + (L.adj > 0.5 ? 't-up' : L.adj < -0.5 ? 't-dn' : 't-fl') + '" role="button" tabindex="0" data-x="' + E(Math.round(L.acute).toLocaleString() + ' carrots in the last 7 days · a usual week lately is ' + Math.round(L.chronic).toLocaleString() + (L.adj > 0.5 ? '. Lighter than usual, which lifts the score a little.' : L.adj < -0.5 ? '. Heavier than usual, which pulls the score down a little.' : '.')) + '" title="' + Math.round(L.acute) + ' carrots in the last 7 days. A usual week lately is ' + Math.round(L.chronic) + '."><i>' + (L.adj > 0.5 ? '▲' : L.adj < -0.5 ? '▼' : '•') + '</i>'
     /* the load that nudges readiness is the carrot count, so say it in carrots */
     + (typeof carrotSvg === 'function' ? carrotSvg(13) : 'Load') + '<b>' + Math.round(L.acute).toLocaleString() + '</b> in 7 days · <b>' + L.ratio.toFixed(1) + '×</b> usual</span>';
-  if (chips) rt += '<div class="hm-chips">' + chips + '</div>';
+  if (chips) rt += '<div class="hm-chips">' + chips + '</div><div class="hm-explain" aria-live="polite"></div>';
   /* THE WEEK'S POINTS, on the first card he sees: the running score, how far
      it is from a usual week (the mark on the bar), and what today added. It
      turns into a call-out when the week passes his usual or becomes his best
@@ -22563,6 +22595,16 @@ function renderHome(){
   lend();
 }
 if ($home){
+  /* v205: tap a readiness chip to read what it means, right under the chips.
+     The detail used to live only in a hover title, which a phone never shows. */
+  $home.addEventListener('click', function(e){
+    const c = e.target.closest('.hm-chip[data-x]'); if (!c) return;
+    const box = $home.querySelector('.hm-explain'); if (!box) return;
+    const was = c.classList.contains('open');
+    $home.querySelectorAll('.hm-chip.open').forEach(function(x){ x.classList.remove('open'); });
+    if (was){ box.classList.remove('on'); return; }
+    c.classList.add('open'); box.textContent = c.dataset.x; box.classList.add('on');
+  });
   $home.addEventListener('click', function(e){
     const a = e.target.closest('[data-act]'); if (a){ openActDetail(a.dataset.act); return; }
     const g = e.target.closest('[data-go]'); if (!g) return;
