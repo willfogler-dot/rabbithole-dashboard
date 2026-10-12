@@ -2465,6 +2465,26 @@ body.sheet-open::after{z-index:19;}
   :root:not([data-theme="light"]){--data-hi:#d4d8ff;--data:#9ca5ee;--data-lo:#5f68a8;--data-dim:#2f3456;}
 }
 
+/* ── v204 · ONE PILL THAT SLIDES ──
+   The active tab's pill used to grow out of nothing under the new tab while
+   the old one shrank away. Now there is one pill and it travels to the tab you
+   tapped, on a spring, the way the iOS tab controls move. The per-tab pill
+   (.nav a::before) is hidden when the sliding one is in place. */
+.nav-in{position:relative;}
+.nav-pill{position:absolute;top:7px;bottom:7px;left:0;width:0;border-radius:999px;z-index:0;pointer-events:none;
+  background:linear-gradient(115deg,#7fd9bd 0%,var(--a) 30%,#c2c9ff 48%,#9ac8e0 78%,#7fd9bd 100%);background-size:260% 100%;
+  box-shadow:0 3px 14px rgba(143,154,232,.4),0 0 18px rgba(127,184,148,.18),inset 0 1px 0 rgba(255,255,255,.32);
+  animation:navSheen 9s ease-in-out infinite;
+  transition:transform .48s cubic-bezier(.34,1.32,.5,1),width .48s cubic-bezier(.34,1.32,.5,1);}
+.nav-in.has-pill .nav-pill{opacity:1;}
+.nav-in.has-pill a::before{display:none;}
+.nav-in.has-pill a{position:relative;z-index:1;}
+/* the label on the pill was pale lavender on pale lavender (a later rule set
+   .nav a.on to --a-hi), which is why "Overview" was hard to read in the bar */
+.nav-in.has-pill a.on{color:#0b0f18;text-shadow:none;}
+.nav-in.has-pill a.on svg{filter:none;}
+@media (prefers-reduced-motion:reduce){.nav-pill{transition:none;animation:none;}}
+
 /* ── 13 · BLUR AS A MATERIAL ───────────────────────────────────
    Blur means "this is floating above the page". Applied consistently
    to every floating surface, and to nothing else. */
@@ -7115,7 +7135,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v203';
+const RH_BUILD = 'v204';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -8456,6 +8476,22 @@ const _tabRender = {
 };
 const _tabDone = { overview:true };
 
+/* the sliding nav pill (v204): measured from the active tab, re-measured while
+   its label opens, since the tab's width changes as the label grows */
+function placeNavPill(){
+  const island = document.querySelector('.nav-in'); if (!island) return;
+  let pill = island.querySelector('.nav-pill');
+  if (!pill){ pill = document.createElement('span'); pill.className = 'nav-pill'; island.insertBefore(pill, island.firstChild); island.classList.add('has-pill'); }
+  const on = island.querySelector('a.on'); if (!on) return;
+  pill.style.width = on.offsetWidth + 'px';
+  pill.style.transform = 'translateX(' + on.offsetLeft + 'px)';
+}
+(function(){
+  const island = document.querySelector('.nav-in'); if (!island) return;
+  if (window.ResizeObserver){ const ro = new ResizeObserver(function(){ placeNavPill(); }); island.querySelectorAll('a').forEach(function(a){ ro.observe(a); }); }
+  requestAnimationFrame(placeNavPill);
+  window.addEventListener('resize', placeNavPill);
+})();
 function showTab(key){
   if (key === _tabCur){ window.scrollTo({top:0, behavior:'smooth'}); return; }
   _tabScroll[_tabCur] = window.scrollY;      /* remember where he was */
@@ -8468,6 +8504,7 @@ function showTab(key){
      programmatically (from a sheet, a deep link, etc.), not only from a nav tap */
   var _navKey = (key === 'routes') ? 'profile' : key;   /* route builder lives under Profile now */
   document.querySelectorAll('.nav a').forEach(function(x){ x.classList.toggle('on', x.dataset.s === _navKey); });
+  placeNavPill();
   /* jump, never smooth-scroll: a smooth scroll on a tab change is an animation
      you have to sit through before you can read anything */
   window.scrollTo(0, _tabScroll[key] || 0);
@@ -8495,6 +8532,7 @@ document.querySelectorAll('.nav a').forEach(function(a){
     if (!a.classList.contains('on')){
       document.querySelectorAll('.nav a').forEach(function(x){ x.classList.remove('on'); });
       a.classList.add('on');
+      placeNavPill();
       const island = document.querySelector('.nav-in');
       if (island){ island.classList.remove('squeeze'); void island.offsetWidth; island.classList.add('squeeze'); }
       if (navigator.vibrate) navigator.vibrate(8);
