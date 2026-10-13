@@ -7214,7 +7214,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v227';
+const RH_BUILD = 'v228';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -22346,6 +22346,38 @@ render();
   #s-overview #dskHome .hm-recent .dk-row{margin:0;padding:12px 0;border-radius:0;}
   #s-overview #dskHome .hm-recent .dk-row + .dk-row{box-shadow:inset 0 1px 0 var(--hl);border-top:none;}
   #s-overview #dskHome .dk-card .dk-h .dk-txt{border:none;background:none;box-shadow:none;padding:4px 2px;margin:0 0 0 auto!important;color:var(--n3);font-weight:500;}
+}
+
+
+/* ═══ v228 · LESS CHROME ON THE OTHER PHONE TABS ═══
+   Today's treatment (v227) as one rule set: a card's frame goes, its heading
+   sits above, and everything under the heading becomes one soft surface
+   (consecutive pieces join, rounded only at the outer ends). Lists get
+   hairlines instead of rules. Scoped per tab with two IDs so each tab is
+   switched on in its own build. */
+@media (max-width:759px){
+  #s-progress #dskTrain{--sf:color-mix(in srgb,var(--n1) 4.5%,transparent);--hl:color-mix(in srgb,var(--n1) 8%,transparent);}
+  #s-progress #dskTrain .dk-grid{background:none;border:none;box-shadow:none;border-radius:0;margin:0 0 28px;-webkit-backdrop-filter:none;backdrop-filter:none;}
+  #s-progress #dskTrain .dk-grid > .dk-card{background:none;border:none;box-shadow:none;padding:0;border-radius:0;-webkit-backdrop-filter:none;backdrop-filter:none;}
+  #s-progress #dskTrain .dk-grid > .dk-card::before,#s-progress #dskTrain .dk-grid > .dk-card::after{display:none;}
+  #s-progress #dskTrain .dk-card > .dk-h{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 10px;margin:0 4px 9px;}
+  #s-progress #dskTrain .dk-card > .dk-h h3{font:600 17px var(--fd);letter-spacing:-.01em;color:var(--n1);}
+  #s-progress #dskTrain .dk-card > .dk-h > span:not(.dk-sp){font-size:12.5px;color:var(--n3);}
+  #s-progress #dskTrain .dk-card > :not(.dk-h){background:var(--sf);padding:14px 16px;margin:0;border-radius:0;}
+  #s-progress #dskTrain .dk-card > .dk-h + *{border-top-left-radius:20px;border-top-right-radius:20px;}
+  #s-progress #dskTrain .dk-card > :last-child:not(.dk-h){border-bottom-left-radius:20px;border-bottom-right-radius:20px;}
+  #s-progress #dskTrain .dk-card > .dk-note{padding-top:0;color:var(--n3);}
+  #s-progress #dskTrain .dk-list{padding-top:2px;padding-bottom:2px;gap:0;}
+  #s-progress #dskTrain .dk-list .dk-row{margin:0;padding:12px 0;border-radius:0;}
+  #s-progress #dskTrain .dk-list .dk-row + .dk-row{box-shadow:inset 0 1px 0 var(--hl);border-top:none;}
+  /* the year's scoreboard is the hero: no frame, no surface */
+  #s-progress #dskTrain .tr-ph .dk-card > *{background:none;padding-left:4px;padding-right:4px;border-radius:0;}
+  #s-progress #dskTrain .tr-ph .dk-card > .tb-tiles{padding:0;}
+  #s-progress #dskTrain .tb-facts{border-top:none;margin-top:14px;padding-top:4px;}
+  #s-progress #dskTrain .tb-facts div + div{border-left:none;}
+  #s-progress #dskTrain .tb-tile{background:var(--sf);border:none;border-radius:18px;}
+  /* year stepper and options: soft, no outlines */
+  #s-progress #dskTrain .dk-top .dk-nav,#s-progress #dskTrain .dk-top .dk-txt{background:var(--sf);border-color:transparent;box-shadow:none;}
 }
 
 /* ═══ v214 the week, wrapped ═══ */
