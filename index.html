@@ -7214,7 +7214,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v225';
+const RH_BUILD = 'v226';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -18859,7 +18859,7 @@ if ('serviceWorker' in navigator){
 #cbScrim.on{opacity:1;pointer-events:auto;}
 #cb{--e-easy:#7fd9bd;--e-steady:#8f9ae8;--e-tempo:#b39ae8;--e-threshold:#e3a83a;--e-hard:#f08a99;--e-allout:#ff5d7a;
   position:fixed;z-index:301;left:50%;top:50%;width:min(760px,calc(100% - 32px));max-height:calc(100% - 40px);display:flex;flex-direction:column;
-  transform:translate(-50%,-48%) scale(.98);opacity:0;pointer-events:none;transition:transform .26s cubic-bezier(.2,.8,.2,1),opacity .2s;
+  transform:translate(-50%,-50%) scale(.86);opacity:0;pointer-events:none;transition:transform .34s cubic-bezier(.2,.9,.3,1),opacity .22s;
   background:linear-gradient(180deg,#171c2d,#121624);border:1px solid rgba(170,185,230,.2);border-radius:26px;box-shadow:0 40px 90px -20px rgba(0,0,0,.85),inset 0 1px 0 rgba(230,236,255,.06);overflow:hidden;color:var(--n1);font-family:var(--fb);font-size:14px;line-height:1.45;text-align:left;}
 #cb.on{transform:translate(-50%,-50%);opacity:1;pointer-events:auto;}
 #cb::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:var(--c);opacity:.9;}
@@ -19350,8 +19350,10 @@ if ('serviceWorker' in navigator){
 /* ── popover ── */
 .plx-pop{position:absolute;z-index:40;width:320px;background:color-mix(in srgb,var(--bg-lift) 88%,transparent);border:1px solid rgba(170,196,226,.24);border-radius:16px;
   -webkit-backdrop-filter:blur(22px) saturate(150%);backdrop-filter:blur(22px) saturate(150%);
-  box-shadow:0 24px 54px rgba(0,0,0,.66),0 0 0 1px rgba(3,5,10,.4),inset 0 1px 0 rgba(230,236,255,.1);padding:13px;animation:plxPop .14s cubic-bezier(.2,.8,.2,1);}
-@keyframes plxPop{from{opacity:0;transform:translateY(-4px) scale(.98);}to{opacity:1;transform:none;}}
+  box-shadow:0 24px 54px rgba(0,0,0,.66),0 0 0 1px rgba(3,5,10,.4),inset 0 1px 0 rgba(230,236,255,.1);padding:13px;animation:plxPop .22s cubic-bezier(.2,.9,.3,1);}
+/* v226: grows out of the thing that opened it (origin set in placePop), in
+   whichever direction it sits, instead of always dropping down 4px */
+@keyframes plxPop{from{opacity:0;transform:scale(.92);}to{opacity:1;transform:none;}}
 @media (prefers-reduced-motion:reduce){ .plx-pop{animation:none;} .plx-chip:hover{transform:none;} }
 .plx-pop::before{content:'';position:absolute;left:16px;right:16px;top:-1px;height:1px;background:linear-gradient(90deg,transparent,rgba(127,217,189,.6),rgba(143,154,232,.8),rgba(179,154,232,.6),transparent);}
 .plx-pop[hidden]{display:none;}
@@ -20561,6 +20563,11 @@ function placePop(){
   }
   x = Math.max(8, Math.min(x, vw - pw - 8));
   $pop.style.left = (x - rr.left) + 'px'; $pop.style.top = (y - rr.top) + 'px';
+  /* the point of the popover nearest its anchor: it grows from there */
+  const cx = Math.max(0, Math.min(pw, ar.left + ar.width/2 - x));
+  const oy = y >= ar.bottom ? 0 : (y + ph <= ar.top ? ph : Math.max(0, Math.min(ph, ar.top + ar.height/2 - y)));
+  const ox = (y >= ar.bottom || y + ph <= ar.top) ? cx : (x >= ar.right ? 0 : pw);
+  $pop.style.transformOrigin = ox.toFixed(0) + 'px ' + oy.toFixed(0) + 'px';
 }
 function closePop(){ st.pop = null; $pop.hidden = true; $pop.innerHTML = ''; }
 
@@ -20846,11 +20853,11 @@ function renderLib(){
   const nl = $lib.querySelector('.lb-list'); if (nl) nl.scrollTop = keep;
 }
 $lib && $lib.addEventListener('click', function(e){
-  if (e.target.closest('[data-lbnew]')){ cbOpen(null); return; }
+  if (e.target.closest('[data-lbnew]')){ cbOpen(null, e.target.closest('[data-lbnew]')); return; }
   const card = e.target.closest('.lb-card');
   if (card && !e.target.closest('[data-tpldel]')){
     if (drag.moved) return;                         /* the end of a drag, not a click */
-    cbOpen(card.dataset.tpl);
+    cbOpen(card.dataset.tpl, card);
     return;
   }
   const x = e.target.closest('[data-tpldel]'); if (!x) return;
@@ -21390,7 +21397,16 @@ document.body.insertAdjacentHTML('beforeend',
 const $cb = document.getElementById('cb'), $cbBody = document.getElementById('cbBody'), $cbName = document.getElementById('cbName');
 let CB = null, cbEditing = null;
 function cbBlank(){ return { type:'Run', session:'easy', distance_mi:'', elevation_ft:'', duration_min:'', pace:'', notes:'', segments:[], exercises:[] }; }
-function cbOpen(tplId){
+/* v226: the builder comes out of whatever opened it (+ New, or the card) and
+   goes back into it on close: same path both ways. */
+function cbOrigin(fromEl){
+  const vw = window.innerWidth, vh = window.innerHeight, w = $cb.offsetWidth || Math.min(760, vw - 32), h = $cb.offsetHeight || 600;
+  if (!fromEl || !fromEl.getBoundingClientRect){ $cb.style.transformOrigin = '50% 50%'; return; }
+  const r = fromEl.getBoundingClientRect();
+  const ox = r.left + r.width/2 - (vw - w)/2, oy = r.top + r.height/2 - (vh - h)/2;
+  $cb.style.transformOrigin = ox.toFixed(0) + 'px ' + oy.toFixed(0) + 'px';
+}
+function cbOpen(tplId, fromEl){
   closePop();
   cbEditing = tplId != null ? TEMPLATES.find(function(t){ return String(t.tplId) === String(tplId); }) : null;
   CB = Object.assign(cbBlank(), cbEditing ? JSON.parse(JSON.stringify(cbEditing)) : {});
@@ -21401,6 +21417,7 @@ function cbOpen(tplId){
   $cbName.value = cbEditing ? (cbEditing.tplName || cbEditing.title || '') : '';
   $cbName.placeholder = 'Name this workout';
   cbDraw(); $cbBody.scrollTop = 0;
+  cbOrigin(fromEl || null); void $cb.offsetWidth;     /* origin committed before the transition starts */
   document.getElementById('cbScrim').classList.add('on'); $cb.classList.add('on');
   setTimeout(function(){ $cbName.focus(); }, 60);
 }
