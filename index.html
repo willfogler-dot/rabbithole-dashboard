@@ -7214,7 +7214,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v226';
+const RH_BUILD = 'v227';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -22284,6 +22284,70 @@ render();
   .dk-g4 ~ .dk-grid .dk-chart .col.hi,.tr-ph ~ .dk-grid .dk-chart .col.hi{fill:var(--data-hi);}
 }
 
+
+/* ═══ v227 · TODAY, WITH LESS CHROME (phone) ═══
+   From the approved mock. Spacing and one soft surface do the grouping; the
+   1px outlines go. The ring stands on its own (it is the one big thing, so it
+   needs no frame), the five bordered chips read as one sentence, and each
+   section is a heading over a surface instead of a box. Two IDs on every
+   selector because this lands on top of several earlier phone passes. */
+.hm-trh{display:none;}
+@media (max-width:759px){
+  #s-overview #dskHome{--sf:color-mix(in srgb,var(--n1) 4.5%,transparent);--hl:color-mix(in srgb,var(--n1) 8%,transparent);}
+  /* hero: no card, the verdict's light stays behind the ring */
+  #s-overview #dskHome .hm-r1 > .dk-card.hm-ready{background:none;border:none;box-shadow:none;padding:0;margin:0;overflow:visible;}
+  #s-overview #dskHome .hm-ringslot .portal{zoom:1.06;}
+  #s-overview #dskHome .hm-verdict{font-size:23px;letter-spacing:-.02em;margin:8px 0 6px;}
+  /* five chips become one line, carrots the second */
+  #s-overview #dskHome .hm-chips{display:block;text-align:center;margin:0;line-height:1.6;}
+  #s-overview #dskHome .hm-chip{display:inline-block;padding:0;border:none;background:none;border-radius:0;font-size:13px;color:var(--n3);box-shadow:none;}
+  #s-overview #dskHome .hm-chip i{display:none;}
+  #s-overview #dskHome .hm-chip b{font-family:var(--fb);color:var(--n1);}
+  #s-overview #dskHome .hm-chip.t-up:not(.ld) b{color:var(--pos);}
+  #s-overview #dskHome .hm-chip.t-dn:not(.ld) b{color:var(--neg);}
+  /* spacing, not dots, between items: a dot left at the start of a wrapped line looks broken */
+  #s-overview #dskHome .hm-chip:not(.ld){margin:0 6px;}
+  #s-overview #dskHome .hm-chip.ld{display:block;width:max-content;margin:0 auto;}
+  #s-overview #dskHome .hm-chip.ld svg{vertical-align:-2px;margin-right:3px;}
+  /* the week's carrots move to the Training heading */
+  #s-overview #dskHome .hm-pts{display:none;}
+  /* section headings: one style for all five */
+  #s-overview #dskHome .hm-today label,#s-overview #dskHome .hm-trh b,#s-overview #dskHome .dk-card .dk-h h3{font:600 17px var(--fd);letter-spacing:-.01em;color:var(--n1);}
+  #s-overview #dskHome .dk-card .dk-h{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 10px;margin:0 4px 9px!important;}
+  #s-overview #dskHome .dk-card .dk-h > span:not(.dk-sp){font-size:12.5px;color:var(--n3);}
+  #s-overview #dskHome .hm-trh{display:flex;order:2;align-items:baseline;justify-content:space-between;margin:28px 4px 9px;}
+  #s-overview #dskHome .hm-trh-r{border:none;background:none;padding:0;font:500 12.5px var(--fb);color:var(--n3);cursor:pointer;}
+  /* Today: rows on one surface, hairlines between */
+  #s-overview #dskHome .hm-today{margin-top:26px;text-align:left;width:100%;}
+  #s-overview #dskHome .hm-today label{display:block;margin:0 4px 9px;}
+  #s-overview #dskHome .hm-td{background:var(--sf);border:none;border-radius:0;padding:13px 16px;margin:0;gap:12px;}
+  #s-overview #dskHome .hm-td + .hm-td{box-shadow:inset 0 1px 0 var(--hl);}
+  #s-overview #dskHome .hm-today label + .hm-td{border-radius:20px 20px 0 0;}
+  #s-overview #dskHome .hm-td:last-child{border-radius:0 0 20px 20px;}
+  #s-overview #dskHome .hm-today label + .hm-td:last-child{border-radius:20px;}
+  #s-overview #dskHome .hm-td span{font-size:15px;font-weight:500;}
+  #s-overview #dskHome .hm-td b{font-size:15px;font-weight:600;color:var(--n1);}
+  /* Training: one soft surface, no outline; the picker reads as a title */
+  #s-overview #dskHome #hmVolSlot{margin:0;}
+  #s-overview #dskHome #hmVolSlot > .ov-volume{background:var(--sf);border:none;box-shadow:none;border-radius:20px;-webkit-backdrop-filter:none;backdrop-filter:none;}
+  /* "Sleep Score" reads as "Score" after "Sleep even", so the line fits one row */
+  #s-overview #dskHome .hm-chip .l-full{display:none;}
+  #s-overview #dskHome #hmVolSlot .vol-sel{flex:0 1 auto;width:auto;background-color:transparent;border-color:transparent;box-shadow:none;padding:6px 22px 6px 2px;font:600 15px var(--fd);color:var(--n1);
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238a93a9' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")!important;background-repeat:no-repeat;background-position:right 4px center;}
+  #s-overview #dskHome #hmVolSlot .vm,#s-overview #dskHome #hmVolSlot .vm.lead{background:none;border-color:transparent;box-shadow:none;}
+  /* Last night, Insights, Recent: a heading over a surface, not a box */
+  #s-overview #dskHome .hm-r1 > .dk-card:not(.hm-ready),#s-overview #dskHome .hm-side > .dk-card{background:none!important;border:none!important;border-radius:0!important;box-shadow:none;padding:0!important;margin:28px 0 0!important;}
+  #s-overview #dskHome .hm-night{gap:8px!important;row-gap:8px!important;}
+  #s-overview #dskHome .hm-nt,#s-overview #dskHome .hm-nt:nth-child(odd){background:var(--sf);border:none;border-radius:18px;padding:14px 14px 10px;}
+  #s-overview #dskHome .hm-ins{background:var(--sf);border-radius:20px;padding:2px 16px;gap:0;}
+  #s-overview #dskHome .hm-ins .dk-fact{padding:12px 0;margin:0;}
+  #s-overview #dskHome .hm-ins .dk-fact + .dk-fact{box-shadow:inset 0 1px 0 var(--hl);border-top:none;}
+  #s-overview #dskHome .hm-recent{background:var(--sf);border-radius:20px;padding:2px 16px;gap:0;}
+  #s-overview #dskHome .hm-recent .dk-row{margin:0;padding:12px 0;border-radius:0;}
+  #s-overview #dskHome .hm-recent .dk-row + .dk-row{box-shadow:inset 0 1px 0 var(--hl);border-top:none;}
+  #s-overview #dskHome .dk-card .dk-h .dk-txt{border:none;background:none;box-shadow:none;padding:4px 2px;margin:0 0 0 auto!important;color:var(--n3);font-weight:500;}
+}
+
 /* ═══ v214 the week, wrapped ═══ */
 .hm-recap{margin-top:16px;padding:14px;border-radius:16px;background:linear-gradient(135deg,rgba(242,140,58,.10),rgba(143,154,232,.08));border:1px solid rgba(242,140,58,.24);text-align:left;}
 .hm-rh{display:flex;align-items:center;justify-content:space-between;gap:8px;}
@@ -23475,6 +23539,7 @@ function progBar(done, target, paceFrac){
     + (paceFrac != null ? '<em style="left:' + Math.min(100, paceFrac*100).toFixed(1) + '%"></em>' : '') + '</div>';
 }
 function renderHome(){
+  let hmNowP = null;     /* this week's carrots, for the phone's Training heading (v227) */
   /* every width: the phone uses this page too (see the note in the stylesheet) */
   if (!$home || !oHost.classList.contains('on')) return;
   const mon = weekStart(todayD), tIso = iso(todayD), y = todayD.getFullYear(), mo = todayD.getMonth();
@@ -23571,9 +23636,9 @@ function renderHome(){
     /* prefixed: the app already has .up, .dn and .fl classes that mean other things */
     const tone = x.z >= 0.25 ? 't-up' : x.z <= -0.25 ? 't-dn' : 't-fl';
     let dv = ''; try { dv = pctDev(x.cur, x.mean, true); } catch(e){}
-    chips += '<span class="hm-chip ' + tone + '" role="button" tabindex="0" data-x="' + E(x.m.label + ' last night: ' + String(x.m.fmt(x.cur)).trim() + (x.m.unit ? ' ' + x.m.unit.trim() : '') + ' · your usual ' + String(x.m.fmt(x.mean)).trim() + (x.m.unit ? ' ' + x.m.unit.trim() : '')) + '" title="' + E(x.m.label) + ': ' + E(String(x.m.fmt(x.cur))) + E(x.m.unit || '') + ', usually ' + E(String(x.m.fmt(x.mean))) + '"><i>' + (tone === 't-up' ? '▲' : tone === 't-dn' ? '▼' : '•') + '</i>' + E(x.m.label) + ' <b>' + E(dv) + '</b></span>';
+    chips += '<span class="hm-chip ' + tone + '" role="button" tabindex="0" data-x="' + E(x.m.label + ' last night: ' + String(x.m.fmt(x.cur)).trim() + (x.m.unit ? ' ' + x.m.unit.trim() : '') + ' · your usual ' + String(x.m.fmt(x.mean)).trim() + (x.m.unit ? ' ' + x.m.unit.trim() : '')) + '" title="' + E(x.m.label) + ': ' + E(String(x.m.fmt(x.cur))) + E(x.m.unit || '') + ', usually ' + E(String(x.m.fmt(x.mean))) + '"><i>' + (tone === 't-up' ? '▲' : tone === 't-dn' ? '▼' : '•') + '</i>' + (x.m.label === 'Sleep Score' ? '<span class="l-full">Sleep </span>Score' : E(x.m.label)) + ' <b>' + E(dv) + '</b></span>';
   });
-  if (L) chips += '<span class="hm-chip ' + (L.adj > 0.5 ? 't-up' : L.adj < -0.5 ? 't-dn' : 't-fl') + '" role="button" tabindex="0" data-x="' + E(Math.round(L.acute).toLocaleString() + ' carrots in the last 7 days · a usual week lately is ' + Math.round(L.chronic).toLocaleString() + (L.adj > 0.5 ? '. Lighter than usual, which lifts the score a little.' : L.adj < -0.5 ? '. Heavier than usual, which pulls the score down a little.' : '.')) + '" title="' + Math.round(L.acute) + ' carrots in the last 7 days. A usual week lately is ' + Math.round(L.chronic) + '."><i>' + (L.adj > 0.5 ? '▲' : L.adj < -0.5 ? '▼' : '•') + '</i>'
+  if (L) chips += '<span class="hm-chip ld ' + (L.adj > 0.5 ? 't-up' : L.adj < -0.5 ? 't-dn' : 't-fl') + '" role="button" tabindex="0" data-x="' + E(Math.round(L.acute).toLocaleString() + ' carrots in the last 7 days · a usual week lately is ' + Math.round(L.chronic).toLocaleString() + (L.adj > 0.5 ? '. Lighter than usual, which lifts the score a little.' : L.adj < -0.5 ? '. Heavier than usual, which pulls the score down a little.' : '.')) + '" title="' + Math.round(L.acute) + ' carrots in the last 7 days. A usual week lately is ' + Math.round(L.chronic) + '."><i>' + (L.adj > 0.5 ? '▲' : L.adj < -0.5 ? '▼' : '•') + '</i>'
     /* the load that nudges readiness is the carrot count, so say it in carrots */
     + (typeof carrotSvg === 'function' ? carrotSvg(13) : 'Load') + '<b>' + Math.round(L.acute).toLocaleString() + '</b> in 7 days · <b>' + L.ratio.toFixed(1) + '×</b> usual</span>';
   if (chips) rt += '<div class="hm-chips">' + chips + '</div><div class="hm-explain" aria-live="polite"></div>';
@@ -23586,6 +23651,7 @@ function renderHome(){
     ACTS.forEach(function(a){ if (!a || !a._date) return; const p = pointsOf(a); if (!p) return;
       const k = iso(weekStart(a._date)); wkT[k] = (wkT[k] || 0) + p; if (a._iso === tIso) todayP += p; });
     const nowP = wkT[iso(wk0)] || 0, prev = [];
+    hmNowP = nowP;
     for (let i=1;i<=12;i++){ const v = wkT[iso(addDays(wk0, -7*i))] || 0; if (v > 0) prev.push(v); }
     const usual = med(prev) || 0;
     let bestOther = 0; Object.keys(wkT).forEach(function(k){ if (k !== iso(wk0) && wkT[k] > bestOther) bestOther = wkT[k]; });
@@ -23708,7 +23774,7 @@ function renderHome(){
     + '<div class="hm-panel hm-wkp"><div class="hm-tiles">' + tiles + '</div>'
     + '<div class="dk-card hm-weekcard"><div class="dk-h"><h3>This week</h3><span>' + MON[mon.getMonth()] + ' ' + mon.getDate() + ' – ' + (sun.getMonth() !== mon.getMonth() ? MON[sun.getMonth()] + ' ' : '') + sun.getDate() + '</span>'
     + '<span class="dk-sp"></span><button class="dk-txt" data-go="plan">Open planner</button></div><div class="hm-days">' + days + '</div></div></div>'
-    + '<div class="hm-row hm-r3 hm-panel"><div id="hmVolSlot"></div>'
+    + '<div class="hm-row hm-r3 hm-panel"><div class="hm-trh"><b>Training</b>' + (hmNowP != null ? '<button class="hm-trh-r" data-go="points">' + Math.round(hmNowP).toLocaleString() + ' carrots this week</button>' : '') + '</div><div id="hmVolSlot"></div>'
     + '<div class="hm-side"><div class="dk-card"><div class="dk-h"><h3>Insights</h3></div><div class="dk-facts hm-ins">' + insights + '</div></div>'
     + '<div class="dk-card"><div class="dk-h"><h3>Recent</h3><span class="dk-sp"></span><button class="dk-txt" data-go="acts" style="margin:-6px -6px 0 0">All activities</button></div><div class="dk-list hm-recent">' + (recent || '<div class="dk-empty">No activities yet.<br>Connect Strava under Profile and they appear here on their own.</div>') + '</div></div></div></div>';
   lend();
