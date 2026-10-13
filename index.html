@@ -7214,7 +7214,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v230';
+const RH_BUILD = 'v231';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -19567,6 +19567,41 @@ if ('serviceWorker' in navigator){
   /* the summary's three parts get real headings, like every other tab */
   #s-plan #plx .plx-hx-l{font:600 17px var(--fd);letter-spacing:-.01em;color:var(--n1);}
   #s-plan #plx .plx-hx-l .plx-key{font:500 12px var(--fb);color:var(--n3);}
+}
+
+/* ═══ v231 · THE PLANNER AT WIDTH, WITH LESS CHROME ═══
+   From the approved mock. The week summary and the seven days sit on the page:
+   no frames, no hairlines between columns. Only today keeps a soft surface, so
+   it is the one column that stands out. "Other sessions" gets its own line
+   instead of being cut to "Sau…". "+ Add" waits for the pointer on devices
+   that can hover (seven dashed buttons were the busiest thing on the board);
+   on an iPad there is no hover, so it stays. The month grid keeps its lines:
+   a calendar needs them to be read. */
+@media (min-width:760px){
+  #s-plan #plx{--sf:color-mix(in srgb,var(--n1) 4.5%,transparent);}
+  #s-plan #plx .plx-hero{background:none;border:none;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none;margin-bottom:22px;}
+  #s-plan #plx .plx-hero::before,#s-plan #plx .plx-hero::after{display:none;}
+  #s-plan #plx .plx-hero > div{padding:4px 18px 0 4px;}
+  #s-plan #plx .plx-hero > div + div{border-left:none;border-top:none;}
+  #s-plan #plx .plx-fact:has(.mixv){flex-direction:column;align-items:flex-start;gap:3px;margin-top:4px;}
+  #s-plan #plx .plx-fact b.mixv{white-space:normal;text-align:left;overflow:visible;}
+  #s-plan #plx .plx-week{background:none;border:none;box-shadow:none;border-radius:0;gap:10px;}
+  #s-plan #plx .plx-day.plx-wd,#s-plan #plx .plx-day.plx-wd:not(.today),#s-plan #plx .plx-day.plx-wd.past:not(.today){background:none;border:none;border-radius:18px;}
+  #s-plan #plx .plx-day.plx-wd + .plx-day.plx-wd{border:none;}
+  #s-plan #plx .plx-day.plx-wd.today{background:var(--sf);border:none;border-radius:18px;}
+  #s-plan #plx .plx-day.plx-wd.today::before{display:none;}
+  #s-plan #plx .plx-day.plx-wd.past:not(.today) .plx-wdh{opacity:.6;}
+  #s-plan #plx .plx-chip.plx-card{border-top:none;border-right:none;border-bottom:none;border-radius:12px;}
+  /* nothing cut off: a card's lines wrap inside the column instead of ending in … */
+  #s-plan #plx .plx-chip.plx-card .c1 .nm,#s-plan #plx .plx-chip.plx-card .c2,#s-plan #plx .plx-chip.plx-card .c3{white-space:normal;overflow:visible;text-overflow:clip;}
+  /* rail and year strip: no outlines */
+  #s-plan #plxLib{background:var(--sf);border:none;box-shadow:none;}
+  #s-plan #plx .lb-card{border-top-color:transparent;border-right-color:transparent;border-bottom-color:transparent;}
+  #s-plan #plx .plx-mc.sel{background:none;border-color:transparent;box-shadow:none;}
+}
+@media (min-width:760px) and (hover:hover){
+  #s-plan #plx .plx-day.plx-wd .plx-wadd{opacity:0;transition:opacity .15s;}
+  #s-plan #plx .plx-day.plx-wd:hover .plx-wadd,#s-plan #plx .plx-day.plx-wd .plx-wadd:focus-visible{opacity:1;}
 }
 </style>
 
