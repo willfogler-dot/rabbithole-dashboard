@@ -7214,7 +7214,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v231';
+const RH_BUILD = 'v232';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -22460,6 +22460,25 @@ render();
   #s-health #dskRec .rb-ph:first-child .dk-card > *{background:none;padding-left:4px;padding-right:4px;border-radius:0;}
   #s-health #dskRec .rb-ph:first-child .dk-card > .rb-grid{padding:0;}
   #s-health #dskRec .rb-tile{background:var(--sf);border:none;border-radius:18px;}
+}
+
+
+/* ═══ v232 · PROFILE, WITH LESS CHROME (phone) ═══
+   Lifetime numbers are the hero: no frame, no dividers. The settings read like
+   iOS Settings: a plain heading over one soft surface with hairlines between
+   rows, instead of small caps with a trailing rule over an outlined box. */
+@media (max-width:759px){
+  #s-profile{--sf:color-mix(in srgb,var(--n1,#e6e9f2) 4.5%,transparent);--hl:color-mix(in srgb,var(--n1,#e6e9f2) 8%,transparent);}
+  #s-profile #dskLife .dk-grid{background:none;border:none;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none;gap:22px 16px;padding:4px 4px 0;}
+  #s-profile #dskLife .dk-grid > .dk-card{background:none;border:none;box-shadow:none;padding:0;border-radius:0;}
+  #s-profile #dskLife .dk-grid > .dk-card::before,#s-profile #dskLife .dk-grid > .dk-card::after{display:none;}
+  #s-profile .hsec{margin:30px 4px 9px;}
+  #s-profile .hsec span{font:600 17px var(--fd);letter-spacing:-.01em;text-transform:none;color:var(--n1,#e6e9f2);}
+  #s-profile .hsec i{display:none;}
+  #s-profile .survey{background:var(--sf);border:none;box-shadow:none;border-radius:20px;}
+  /* rows carried an elevation shadow from an earlier pass; it read as an outline */
+  #s-profile .survey .set{background:none;border:none!important;box-shadow:none!important;}
+  #s-profile .survey .set + .set{box-shadow:inset 0 1px 0 var(--hl)!important;}
 }
 
 /* ═══ v214 the week, wrapped ═══ */
