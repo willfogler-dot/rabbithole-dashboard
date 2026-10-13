@@ -2515,6 +2515,24 @@ body.sheet-open::after{z-index:19;}
   body.hdr-scored .hdr-score{opacity:1;transform:none;pointer-events:auto;}
 }
 
+/* ── v233 · TUCKED TITLE + FROSTED BAR (phone) ── */
+.hdr-title{display:none;}
+@media (max-width:759px){
+  .hdr .brand{transition:opacity .2s,transform .3s cubic-bezier(.2,.9,.3,1);}
+  .hdr-title{display:block;position:absolute;left:50%;bottom:9px;max-width:58vw;padding:4px 8px;border:none;background:none;
+    font:600 15.5px/1.2 var(--fd);letter-spacing:-.01em;color:var(--n1);white-space:nowrap;
+    opacity:0;transform:translate(-50%,8px);pointer-events:none;transition:opacity .2s,transform .34s cubic-bezier(.2,.9,.3,1);}
+  body.title-tucked .hdr-title{opacity:1;transform:translate(-50%,0);pointer-events:auto;}
+  body.title-tucked .hdr .brand{opacity:0;transform:translateY(-6px);}
+  /* the bar becomes a material: content stays visible, blurred, underneath */
+  .hdr{transition:background-color .25s;}
+  body.title-tucked .hdr{background:color-mix(in srgb,var(--bg-top) 70%,transparent);
+    -webkit-backdrop-filter:blur(22px) saturate(160%);backdrop-filter:blur(22px) saturate(160%);}
+}
+@media (max-width:759px) and (prefers-reduced-transparency:reduce){
+  body.title-tucked .hdr{background:var(--bg-top);-webkit-backdrop-filter:none;backdrop-filter:none;}
+}
+
 /* ── v206 · SEGMENTED CONTROLS SLIDE ──
    Week / Month, Wk / Mo / Yr / Trail and the rest: one thumb that travels to
    the option you tapped, instead of the old one switching off and the new one
@@ -2695,6 +2713,7 @@ body.sheet-open::after{z-index:19;}
     <div class="brand">
       <span class="brand-orb"><span class="brand-orb-in"></span></span>The Rabbit Hole</div>
     <button class="hdr-score" id="hdrScore" aria-label="Readiness" tabindex="-1"></button>
+    <button class="hdr-title" id="hdrTitle" aria-label="Back to top" tabindex="-1"></button>
 
   </div>
 
@@ -7214,7 +7233,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v232';
+const RH_BUILD = 'v233';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -8578,6 +8597,37 @@ function placeNavPill(){
   hs.addEventListener('click', function(){ window.scrollTo({ top:0, behavior:'smooth' }); });
   window._hdrScoreUpd = upd;
 })();
+/* ── v233 · THE TITLE TUCKS INTO THE BAR ──
+   Each phone tab opens with a large title. Once it has scrolled up under the
+   top bar, a small copy of it fades in, centred in the bar, and the bar turns
+   into a frosted material with the page sliding underneath. Before, the title
+   simply scrolled away and the bar said "The Rabbit Hole" on every tab, so
+   halfway down a long page nothing said where you were. Tapping the small
+   title goes back to the top, as tapping an iOS title bar does. */
+(function(){
+  const bar = document.querySelector('.hdr'), ht = document.getElementById('hdrTitle');
+  if (!bar || !ht) return;
+  const T = {
+    overview: { sel:'#dskHome .hm-head h2', txt:function(e){ return e.innerText.replace(/\s+/g, ' ').trim(); } },
+    progress: { sel:'#dskTrain .dk-top',     txt:function(e){ const y = (e.innerText.match(/\d{4}/) || [''])[0]; return 'Progress' + (y ? ' · ' + y : ''); } },
+    health:   { sel:'#dskHealthTop .rc-top', txt:function(){ return 'Recovery'; } },
+    plan:     { sel:'#plx .plx-mh h2',       txt:function(e){ return e.innerText.replace(/\s+/g, ' ').trim(); } },
+    profile:  { sel:'.prof-top .prof-n',     txt:function(){ return 'Profile'; } },
+  };
+  let tick = false, on = false;
+  const upd = function(){
+    tick = false;
+    const t = T[_tabCur], phone = window.innerWidth < 760;
+    const el = t && phone ? document.querySelector('#s-' + _tabCur + ' ' + t.sel) : null;
+    const tuck = !!el && el.getBoundingClientRect().bottom < bar.getBoundingClientRect().bottom - 2;
+    if (tuck){ const s = t.txt(el); if (ht.textContent !== s) ht.textContent = s; }
+    if (tuck !== on){ on = tuck; document.body.classList.toggle('title-tucked', tuck); }
+  };
+  window.addEventListener('scroll', function(){ if (!tick){ tick = true; requestAnimationFrame(upd); } }, { passive:true });
+  window.addEventListener('resize', upd);
+  ht.addEventListener('click', function(){ window.scrollTo({ top:0, behavior:'smooth' }); });
+  window._hdrTitleUpd = upd;
+})();
 /* Each control gets a thumb behind its buttons. Most of these controls are
    rebuilt from scratch whenever their section re-renders, which would make a
    new thumb appear in place with nothing to slide from. So the last position
@@ -8624,6 +8674,7 @@ function showTab(key){
      you have to sit through before you can read anything */
   window.scrollTo(0, _tabScroll[key] || 0);
   if (window._hdrScoreUpd) window._hdrScoreUpd();
+  if (window._hdrTitleUpd) window._hdrTitleUpd();
 
   /* everything below is deferred past the paint that shows the new tab */
   requestAnimationFrame(function(){
