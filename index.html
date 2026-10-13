@@ -7197,7 +7197,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v219';
+const RH_BUILD = 'v220';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -18841,6 +18841,13 @@ if ('serviceWorker' in navigator){
 .plx-mc b{display:block;font-family:var(--fd);font-size:15px;font-weight:600;color:var(--n1);font-variant-numeric:tabular-nums;margin:3px 0 7px;}
 .plx-mc u{display:block;text-decoration:none;height:3px;border-radius:2px;background:rgba(0,0,0,.4);box-shadow:var(--el0-sh);overflow:hidden;margin:0 14%;}
 .plx-mc s{display:block;text-decoration:none;height:100%;border-radius:2px;background:var(--data);}
+/* v220: run fill over a faint planned fill, plus a tick at the target */
+.plx-mc u{position:relative;overflow:visible;}
+.plx-mc u s{position:absolute;left:0;top:0;bottom:0;}
+.plx-mc u s.pl{background:color-mix(in srgb,var(--data) 32%,transparent);}
+.plx-mc u em{position:absolute;top:-3px;bottom:-3px;width:2px;margin-left:-1px;border-radius:1px;background:var(--n2);}
+.plx-mc b small{font-size:11px;font-weight:500;color:var(--n4);margin-left:1px;}
+.plx-mc b.tg{color:var(--n4);}
 
 .plx-kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border-bottom:1px solid var(--line);}
 .plx-k{padding:17px 20px 16px;border-left:1px solid var(--line);min-width:0;}
@@ -19657,13 +19664,24 @@ function renderYear(ix){
   if (!st.yearOpen){
     /* folded: twelve cells that still show the shape of the year and still
        switch the calendar, with nothing to edit by accident */
+    /* v220: the number is what the calendar adds up to (run + still planned), so
+       it always matches the week and month views. The typed target is still
+       there as "/70" and as a tick on the bar; a month with nothing on the
+       calendar yet shows its target alone, dimmed, so the year keeps its shape
+       before the weeks are written. Bar: solid = run, faint = planned, tick = target. */
     const cells = MON.map(function(nm, i){
       const isCur = (y === curY && i === todayD.getMonth());
-      const fut = (y > curY) || (y === curY && i > todayD.getMonth());
-      const pct = tg[i] ? Math.min(100, act[i]/tg[i]*100) : (act[i] > 0 ? 100 : 0);
-      return '<button class="plx-mc' + (i === st.month ? ' sel' : '') + (isCur ? ' cur' : '') + '" data-m="' + i + '" title="' + MON_FULL[i] + ': ' + (tg[i] != null ? 'target ' + fmt(tg[i]) + ' ' + m.unit : 'no target') + (fut ? '' : ', ' + fmt(act[i]) + ' run') + '">'
-        + '<i>' + nm + '</i><b>' + (tg[i] != null ? fmt(tg[i]) : '—') + '</b>'
-        + '<u><s style="width:' + (fut ? 0 : pct).toFixed(0) + '%"></s></u></button>';
+      const c = monthCal(ix, y, i), T = tg[i];
+      const has = c.total >= 0.05, scale = Math.max(c.total, T || 0, 0.0001);
+      const w = function(v){ return Math.min(100, v/scale*100).toFixed(1); };
+      const num = has ? '<b>' + fmt(c.total) + (T != null && Math.round(T) !== Math.round(c.total) ? '<small>/' + fmt(T) + '</small>' : '') + '</b>'
+                : '<b class="tg">' + (T != null ? fmt(T) : '—') + '</b>';
+      const tip = MON_FULL[i] + ': ' + (has ? fmt1(c.done) + ' run' + (c.togo > 0 ? ' + ' + fmt1(c.togo) + ' planned' : '') + ' = ' + fmt1(c.total) + ' ' + m.unit : 'nothing on the calendar')
+                + (T != null ? ' · target ' + fmt(T) : '');
+      return '<button class="plx-mc' + (i === st.month ? ' sel' : '') + (isCur ? ' cur' : '') + '" data-m="' + i + '" title="' + E(tip) + '">'
+        + '<i>' + nm + '</i>' + num
+        + '<u><s class="pl" style="width:' + w(c.total) + '%"></s><s style="width:' + w(c.done) + '%"></s>'
+        + (T != null && has ? '<em style="left:' + w(T) + '%"></em>' : '') + '</u></button>';
     }).join('');
     $year.innerHTML = top + '<div class="plx-strip">' + cells + '</div>';
     return;
@@ -19933,6 +19951,15 @@ function dayParts(ix, key){
 }
 
 /* the month's numbers as one sentence, shown beside the title in Month view */
+/* What a month adds up to on the calendar: run so far plus what is still planned.
+   Missed sessions drop out (dayRun counts past days by what was run), so this is
+   the same "on the calendar" figure the month header shows. */
+function monthCal(ix, y, mo){
+  const key = y + '-' + String(mo+1).padStart(2,'0'), dim = new Date(y, mo+1, 0).getDate();
+  let done = 0, togo = 0;
+  for (let d=1; d<=dim; d++){ const r = dayRun(ix, key + '-' + String(d).padStart(2,'0')); done += r.done; togo += r.togo; }
+  return { done:done, togo:togo, total:done + togo };
+}
 function monthStatHTML(ix){
   const y = st.year, mo = st.month, m = METRIC[st.metric];
   const mKey = y + '-' + String(mo+1).padStart(2,'0');
