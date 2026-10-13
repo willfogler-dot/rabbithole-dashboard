@@ -7197,7 +7197,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v221';
+const RH_BUILD = 'v222';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -18744,6 +18744,114 @@ if ('serviceWorker' in navigator){
      style and script blocks, so a fault here cannot stop the main script from
      running, and it can be removed by deleting everything between the markers. -->
 <style id="plx-style">
+/* ── CARD BUILDER (v222) ──
+   Replaces the composer-in-card-mode (v218), which was the phone's long form
+   with the date hidden. Name first and required; start from a preset; one row
+   each for sport and kind; numbers typed straight into big tiles; structure as
+   steps with a strip that draws the session. Cards carry no time: the time is
+   set on the day after a card is dropped. Prefixed cb- because the app already
+   uses .card, .step, .btn and friends. */
+#cbScrim{position:fixed;inset:0;z-index:300;background:rgba(5,7,12,.62);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);opacity:0;pointer-events:none;transition:opacity .22s;}
+#cbScrim.on{opacity:1;pointer-events:auto;}
+#cb{--e-easy:#7fd9bd;--e-steady:#8f9ae8;--e-tempo:#b39ae8;--e-threshold:#e3a83a;--e-hard:#f08a99;--e-allout:#ff5d7a;
+  position:fixed;z-index:301;left:50%;top:50%;width:min(760px,calc(100% - 32px));max-height:calc(100% - 40px);display:flex;flex-direction:column;
+  transform:translate(-50%,-48%) scale(.98);opacity:0;pointer-events:none;transition:transform .26s cubic-bezier(.2,.8,.2,1),opacity .2s;
+  background:linear-gradient(180deg,#171c2d,#121624);border:1px solid rgba(170,185,230,.2);border-radius:26px;box-shadow:0 40px 90px -20px rgba(0,0,0,.85),inset 0 1px 0 rgba(230,236,255,.06);overflow:hidden;color:var(--n1);font-family:var(--fb);font-size:14px;line-height:1.45;text-align:left;}
+#cb.on{transform:translate(-50%,-50%);opacity:1;pointer-events:auto;}
+#cb::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:var(--c);opacity:.9;}
+[data-theme="light"] #cb{background:#fff;box-shadow:0 40px 90px -20px rgba(20,25,40,.35);}
+#cb button,#cb input,#cb select,#cb textarea{font-family:inherit;}
+#cb button{cursor:pointer;}
+#cb input,#cb textarea{outline:none;}
+.cb-head{padding:22px 24px 14px;display:flex;gap:18px;align-items:flex-start;}
+.cb-head .ttl{flex:1;min-width:0;}
+.cb-eye{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--n4);}
+#cb .cb-name{display:block;width:100%;margin-top:4px;background:none;border:0;padding:0;font:600 28px/1.15 var(--fd);letter-spacing:-.02em;color:var(--n1);}
+#cb .cb-name::placeholder{color:var(--n4);}
+.cb-sum{margin-top:6px;font-size:13px;color:var(--n3);font-variant-numeric:tabular-nums;min-height:19px;}
+.cb-sum b{color:var(--n1);font-weight:600;}
+.cb-x{width:32px;height:32px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.03);color:var(--n3);font-size:15px;line-height:1;}
+.cb-x:hover{color:var(--n1);background:rgba(255,255,255,.07);}
+.cb-body{flex:1;overflow-y:auto;padding:4px 24px 22px;}
+.cb-sec{margin-top:18px;} .cb-sec:first-child{margin-top:4px;}
+.cb-lab{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--n4);}
+.cb-lab em{font-style:normal;text-transform:none;letter-spacing:0;font-weight:500;color:var(--n3);}
+.cb-sports{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;}
+.cb-sp{display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px 4px 9px;border-radius:13px;border:1px solid var(--line);background:rgba(255,255,255,.02);color:var(--n3);font-size:12px;font-weight:600;transition:all .15s;}
+.cb-sp svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+.cb-sp:hover{color:var(--n1);border-color:rgba(170,185,230,.2);}
+.cb-sp.on{color:var(--n1);border-color:color-mix(in srgb,var(--sc) 70%,transparent);background:color-mix(in srgb,var(--sc) 16%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--sc) 30%,transparent);}
+.cb-kinds{display:flex;flex-wrap:wrap;gap:6px;}
+.cb-kd{height:30px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:none;color:var(--n2);font-size:12.5px;font-weight:600;transition:all .14s;}
+.cb-kd:hover{border-color:rgba(170,185,230,.2);color:var(--n1);}
+.cb-kd.on{background:var(--n1);border-color:var(--n1);color:#10131c;}
+[data-theme="light"] .cb-kd.on{color:#fff;}
+.cb-nums{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;}
+.cb-num{position:relative;display:block;padding:12px 14px 11px;border-radius:15px;border:1px solid var(--line);background:rgba(0,0,0,.22);transition:border-color .15s,box-shadow .15s;cursor:text;}
+[data-theme="light"] .cb-num,[data-theme="light"] .cb-fld,[data-theme="light"] .cb-notes{background:rgba(22,26,36,.04);}
+.cb-num:focus-within{border-color:color-mix(in srgb,var(--a) 60%,transparent);box-shadow:0 0 0 3px rgba(143,154,232,.12);}
+.cb-num .k{font-size:11px;font-weight:600;color:var(--n3);display:flex;justify-content:space-between;}
+.cb-num .k i{font-style:normal;color:var(--n4);font-weight:500;}
+.cb-num .v{display:flex;align-items:baseline;gap:5px;margin-top:2px;}
+#cb .cb-num input{width:100%;min-width:0;background:none;border:0;padding:0;font:600 30px/1.1 var(--fd);letter-spacing:-.02em;color:var(--n1);font-variant-numeric:tabular-nums;}
+#cb .cb-num input::placeholder{color:var(--n5,#3d4457);}
+.cb-num .u{font-size:13px;color:var(--n3);font-weight:500;}
+#cb .cb-num.auto input,.cb-num.auto .k i{color:var(--a-hi);}
+.cb-strip{display:flex;gap:3px;height:34px;padding:4px;border-radius:12px;background:rgba(0,0,0,.28);border:1px solid var(--line);margin-bottom:10px;}
+.cb-strip i,.lb-tl i{display:block;border-radius:7px;min-width:6px;transition:flex-grow .3s cubic-bezier(.2,.8,.2,1);}
+.cb-strip i.rec,.lb-tl i.rec{opacity:.35;}
+.cb-steps{display:flex;flex-direction:column;gap:6px;}
+.cb-step{display:grid;grid-template-columns:4px 104px 64px minmax(0,1fr) 120px 112px 26px;gap:8px;align-items:center;padding:7px 8px 7px 7px;border-radius:13px;background:rgba(255,255,255,.025);border:1px solid var(--line);}
+.cb-step .cb-bar{display:block;width:4px;align-self:stretch;border-radius:2px;background:var(--ec);}
+#cb .cb-fld{height:32px;border-radius:9px;border:1px solid transparent;background:rgba(0,0,0,.25);padding:0 9px;font-size:13px;min-width:0;width:100%;transition:border-color .12s;}
+#cb .cb-fld:hover{border-color:rgba(170,185,230,.2);}
+#cb .cb-fld:focus{border-color:color-mix(in srgb,var(--a) 60%,transparent);}
+#cb .cb-fld::placeholder{color:var(--n4);}
+#cb .cb-fld:disabled{opacity:.5;}
+#cb .cb-fld.t{font-weight:600;font-size:12.5px;}
+.cb-reps{display:flex;align-items:center;gap:4px;} .cb-reps input{text-align:center;padding:0 4px!important;} .cb-reps span{color:var(--n4);font-size:13px;}
+#cb select.cb-fld{-webkit-appearance:none;appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--n3) 50%),linear-gradient(135deg,var(--n3) 50%,transparent 50%);background-position:calc(100% - 13px) 14px,calc(100% - 9px) 14px;background-size:4px 4px;background-repeat:no-repeat;padding-right:22px;}
+#cb select.cb-fld option{background:#171c2c;color:#e6e9f2;}
+.cb-rm{width:26px;height:26px;border:0;border-radius:8px;background:none;color:var(--n4);font-size:12px;}
+.cb-rm:hover{background:rgba(255,255,255,.07);color:var(--n1);}
+.cb-adds{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+.cb-add{height:30px;padding:0 11px;border-radius:9px;border:1px dashed rgba(170,185,230,.2);background:none;color:var(--n2);font-size:12px;font-weight:600;}
+.cb-add:hover{border-style:solid;color:var(--n1);background:rgba(255,255,255,.03);}
+.cb-add b{color:var(--ec,var(--a));margin-right:3px;}
+.cb-ex{display:grid;grid-template-columns:minmax(0,1fr) 64px 14px 72px 88px 26px;gap:8px;align-items:center;padding:7px 8px;border-radius:13px;background:rgba(255,255,255,.025);border:1px solid var(--line);}
+.cb-ex .x2{text-align:center;color:var(--n4);}
+#cb .cb-exq{height:38px;margin-top:8px;border-radius:11px;border:1px dashed rgba(170,185,230,.2);background:none;padding:0 12px;width:100%;font-size:13px;}
+#cb .cb-exq:focus{border-style:solid;border-color:color-mix(in srgb,var(--a) 60%,transparent);}
+.cb-sug{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+.cb-sug button{height:28px;padding:0 10px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.02);color:var(--n2);font-size:12px;}
+.cb-sug button:hover{color:var(--n1);border-color:rgba(170,185,230,.2);}
+#cb .cb-notes{width:100%;min-height:64px;resize:vertical;border-radius:13px;border:1px solid var(--line);background:rgba(0,0,0,.22);padding:10px 12px;font-size:13.5px;line-height:1.5;}
+#cb .cb-notes:focus{border-color:color-mix(in srgb,var(--a) 60%,transparent);}
+.cb-starts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;}
+.cb-st{text-align:left;padding:11px 12px;border-radius:14px;border:1px solid var(--line);background:linear-gradient(135deg,color-mix(in srgb,var(--c) 14%,transparent),transparent 70%);transition:transform .14s,border-color .14s;}
+.cb-st:hover{transform:translateY(-1px);border-color:rgba(170,185,230,.2);}
+.cb-st b{display:block;font-size:13px;font-weight:600;}
+.cb-st span{display:block;margin-top:2px;font-size:11.5px;color:var(--n3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cb-st .lb-tl{display:flex;height:4px;margin-top:8px;overflow:hidden;}
+.lb-tl{display:flex;gap:2px;height:4px;margin-top:6px;border-radius:2px;overflow:hidden;}
+.lb-tl i{border-radius:1px;}
+.cb-foot{display:flex;align-items:center;gap:10px;padding:14px 24px 18px;border-top:1px solid var(--line);background:rgba(0,0,0,.18);}
+.cb-foot .sp1{flex:1;}
+.cb-btn{height:40px;padding:0 18px;border-radius:12px;border:1px solid rgba(170,185,230,.2);background:rgba(255,255,255,.03);font-size:13.5px;font-weight:600;color:var(--n1);}
+.cb-btn:hover{background:rgba(255,255,255,.07);}
+.cb-btn.pri{border:0;background:linear-gradient(100deg,var(--g1,#7fd9bd),var(--g2,#8f9ae8) 55%,var(--g3,#b39ae8));color:#0d1020;padding:0 22px;box-shadow:0 8px 24px -8px rgba(143,154,232,.6);}
+.cb-btn.pri:hover{filter:brightness(1.08);}
+.cb-btn.del{border-color:transparent;background:none;color:#f08a99;padding:0 10px;}
+.cb-btn.del:hover{background:rgba(240,138,153,.1);}
+.cb-kbd{font-size:11px;color:var(--n4);}
+@keyframes cbIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:none;}}
+.cb-fade{animation:cbIn .25s ease;}
+@media (max-width:760px){
+  .cb-sports{grid-template-columns:repeat(4,minmax(0,1fr));} .cb-nums{grid-template-columns:repeat(2,minmax(0,1fr));} .cb-starts{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .cb-step{grid-template-columns:4px minmax(0,1fr) 64px 26px;} .cb-step .amt,.cb-step .eff,.cb-step .recv{grid-column:2/-1;}
+  .cb-ex{grid-template-columns:minmax(0,1fr) 56px 14px 64px 26px;} .cb-ex .wt{display:none;} .cb-kbd{display:none;}
+}
+
 /* One planner at every width. Until v148 the phone kept the older
    Today/Week/Month views and this one only existed from tablet width up; the
    phone now gets this planner restacked for a narrow screen (see the phone
@@ -20602,7 +20710,7 @@ function libMeta(w){
   if (mi) b.push(miles(mi) + ' mi');
   if (ft) b.push(feet(ft) + ' ft');
   if (!mi && min) b.push(Math.round(min) + ' min');
-  if (w.time) b.push(clock(w.time));
+  if (w.exercises && w.exercises.length) b.push(w.exercises.length + ' exercise' + (w.exercises.length > 1 ? 's' : ''));
   if (!b.length) b.push(sessLabel(w));
   return b.join(' · ');
 }
@@ -20623,7 +20731,8 @@ function renderLib(){
         return '<div class="lb-g">' + E(g) + '</div>' + groups[g].map(function(i){
           const it = LIBITEMS[i], w = it.proto, saved = w.tplId != null;
           return '<div class="lb-card" data-li="' + i + '" data-tpl="' + E(w.tplId) + '" style="--c:' + chipColor(w.type, w.session) + '" title="' + E(it.name) + (w.notes ? '\n' + E(w.notes) : '') + '">'
-            + '<span class="nm">' + E(it.name) + '</span><span class="mt">' + E(libMeta(w)) + '</span>'
+            + '<span class="nm">' + E(it.name) + '</span><span class="mt">' + E(cbMeta(w) || libMeta(w)) + '</span>'
+            + (w.segments && w.segments.length && cbRun(w.type) ? '<span class="lb-tl">' + cbShape(w.segments) + '</span>' : '')
             + (saved ? '<button class="lb-x" data-tpldel="' + E(w.tplId) + '" aria-label="Remove ' + E(it.name) + ' from your workouts">✕</button>' : '')
             + '</div>';
         }).join('');
@@ -20633,11 +20742,11 @@ function renderLib(){
   const nl = $lib.querySelector('.lb-list'); if (nl) nl.scrollTop = keep;
 }
 $lib && $lib.addEventListener('click', function(e){
-  if (e.target.closest('[data-lbnew]')){ if (window.openCardEditor) window.openCardEditor(null); return; }
+  if (e.target.closest('[data-lbnew]')){ cbOpen(null); return; }
   const card = e.target.closest('.lb-card');
   if (card && !e.target.closest('[data-tpldel]')){
     if (drag.moved) return;                         /* the end of a drag, not a click */
-    if (window.openCardEditor) window.openCardEditor(card.dataset.tpl);
+    cbOpen(card.dataset.tpl);
     return;
   }
   const x = e.target.closest('[data-tpldel]'); if (!x) return;
@@ -20966,7 +21075,9 @@ function dragEnd(copy){
   if (kind === 'card'){
     const it = LIBITEMS[li];
     if (!it || !over || !over.dataset || !over.dataset.date) return;
-    snap(); PLANNED.push(cloneOnto(it.proto, over.dataset.date)); commit(over.dataset.date);
+    /* cards carry no time (v222): it is set on the day, after the drop */
+    const rec = cloneOnto(it.proto, over.dataset.date); rec.time = '';
+    snap(); PLANNED.push(rec); commit(over.dataset.date);
     toast('Added ' + it.name + ' — ⌘Z undoes');
     return;
   }
@@ -21025,6 +21136,256 @@ document.addEventListener('pointercancel', function(e){
 /* once a finger is carrying a chip, the page must not scroll underneath it */
 document.addEventListener('touchmove', function(e){ if (drag.on) e.preventDefault(); }, { passive:false });
 $month.addEventListener('contextmenu', function(e){ if (e.target.closest('.plx-chip')) e.preventDefault(); });
+
+/* ═══ CARD BUILDER (v222) ═══
+   Saves the same shape the composer always has (segments, exercises), plus a
+   step label that segText ignores. No time on a card. Amounts stay free text
+   ("800m", "1.5 mi", "5 min") as before; for the strip and the auto distance
+   they are read as miles, and time at an easy 9:30/mi, so a minutes-based step
+   is an estimate. */
+const CB_EC = { easy:'var(--e-easy)', steady:'var(--e-steady)', tempo:'var(--e-tempo)', threshold:'var(--e-threshold)', hard:'var(--e-hard)', 'all-out':'var(--e-allout)' };
+const CB_STRUCT = { tempo:1, intervals:1, hills:1, fartlek:1, progression:1 };
+const CB_EXSTART = { legs:['Back squat','Romanian deadlift','Bulgarian split squat','Calf raise'], upper:['Overhead press','Pull-up','Dumbbell row','Push-up'],
+                     full:['Deadlift','Goblet squat','Pull-up','Push-up'], core:['Plank','Dead bug','Side plank','Russian twist'], mobility:[] };
+const CB_STARTS = [
+  { name:'Easy Run', type:'Run', session:'easy', distance_mi:5 },
+  { name:'Long Run', type:'Run', session:'long', distance_mi:14, elevation_ft:2000 },
+  { name:'6 × 800m', type:'Run', session:'intervals', segments:[
+      { label:'Warm-up', reps:1, amount:'1.5 mi', effort:'easy' }, { label:'Repeats', reps:6, amount:'800m', effort:'threshold', recovery:'400m jog' },
+      { label:'Cool-down', reps:1, amount:'1.5 mi', effort:'easy' } ] },
+  { name:'Tempo', type:'Run', session:'tempo', segments:[
+      { label:'Warm-up', reps:1, amount:'1.5 mi', effort:'easy' }, { label:'Tempo', reps:1, amount:'4 mi', effort:'tempo' },
+      { label:'Cool-down', reps:1, amount:'1 mi', effort:'easy' } ] },
+  { name:'Hill Repeats', type:'Run', session:'hills', elevation_ft:1400, segments:[
+      { label:'Warm-up', reps:1, amount:'2 mi', effort:'easy' }, { label:'Repeats', reps:8, amount:'90 sec', effort:'hard', recovery:'jog down' },
+      { label:'Cool-down', reps:1, amount:'1.5 mi', effort:'easy' } ] },
+  { name:'Leg Day', type:'Weight Training', session:'legs', duration_min:45, exercises:[
+      { name:'Back squat', sets:4, reps:'6', weight:'' }, { name:'Romanian deadlift', sets:3, reps:'8', weight:'' },
+      { name:'Bulgarian split squat', sets:3, reps:'8/side', weight:'' }, { name:'Calf raise', sets:3, reps:'15', weight:'' } ] },
+  { name:'Core Circuit', type:'Weight Training', session:'core', duration_min:15, exercises:[
+      { name:'Plank', sets:3, reps:'45s', weight:'' }, { name:'Dead bug', sets:3, reps:'10', weight:'' }, { name:'Side plank', sets:3, reps:'30s/side', weight:'' } ] },
+  { name:'Mobility', type:'Mobility', duration_min:15 },
+];
+function cbRun(t){ return t === 'Run' || t === 'Hike' || t === 'Trail Run'; }
+function cbAmt(a){
+  const s = String(a || '').toLowerCase().trim(), n = parseFloat(s); if (!(n > 0)) return 0;
+  if (/km/.test(s)) return n*0.621;
+  if (/mi|mile/.test(s)) return n;
+  if (/\d\s*m\b|meters?/.test(s)) return n/1609.34;
+  if (/sec|\ds\b/.test(s)) return n/60/9.5;
+  if (/min/.test(s)) return n/9.5;
+  return n;
+}
+function cbRec(r){ return /\d/.test(String(r || '')) ? cbAmt(r) : 0; }
+function cbTotal(segs){ return Math.round((segs || []).reduce(function(t, s){ const k = Math.max(1, parseInt(s.reps) || 1); return t + k*cbAmt(s.amount) + (k - 1)*cbRec(s.recovery); }, 0)*10)/10; }
+function cbShape(segs){
+  let h = '';
+  (segs || []).forEach(function(s){
+    const k = Math.max(1, parseInt(s.reps) || 1), m = Math.max(cbAmt(s.amount), .05), r = cbRec(s.recovery), c = CB_EC[s.effort] || 'var(--n4)';
+    for (let i = 0; i < k; i++){
+      h += '<i style="flex-grow:' + m.toFixed(3) + ';background:' + c + '"></i>';
+      if (i < k - 1) h += '<i class="rec" style="flex-grow:' + Math.max(r, .08).toFixed(3) + ';background:var(--n3)"></i>';
+    }
+  });
+  return h;
+}
+function cbMeta(c){
+  const b = [], run = cbRun(c.type);
+  const mi = run && c.segments && c.segments.length ? cbTotal(c.segments) : (parseFloat(c.distance_mi) || 0);
+  if (run && mi) b.push(miles(mi) + ' mi');
+  if (run && parseFloat(c.elevation_ft)) b.push(feet(parseFloat(c.elevation_ft)) + ' ft');
+  if (!run && parseFloat(c.duration_min)) b.push(Math.round(parseFloat(c.duration_min)) + ' min');
+  if (c.exercises && c.exercises.length) b.push(c.exercises.length + ' exercise' + (c.exercises.length > 1 ? 's' : ''));
+  if (run && c.segments && c.segments.length){
+    const main = c.segments.find(function(s){ return (parseInt(s.reps) || 1) > 1; }) || c.segments.find(function(s){ return s.effort && s.effort !== 'easy'; });
+    if (main) b.push(((parseInt(main.reps) || 1) > 1 ? main.reps + ' × ' : '') + main.amount);
+  }
+  return b.join(' · ');
+}
+function cbDisc(k){ return (typeof DISCIPLINES !== 'undefined' ? DISCIPLINES : []).find(function(d){ return d.key === k; }); }
+
+document.body.insertAdjacentHTML('beforeend',
+  '<div id="cbScrim"></div><div id="cb" role="dialog" aria-label="Workout card builder">'
+  + '<div class="cb-head"><div class="ttl"><div class="cb-eye" id="cbEye">New workout card</div>'
+  + '<input class="cb-name" id="cbName" placeholder="Name this workout" maxlength="40" autocomplete="off"><div class="cb-sum" id="cbSum"></div></div>'
+  + '<button class="cb-x" id="cbX" aria-label="Close">✕</button></div>'
+  + '<div class="cb-body" id="cbBody"></div>'
+  + '<div class="cb-foot"><button class="cb-btn del" id="cbDel">Delete card</button><span class="sp1"></span><span class="cb-kbd">⌘↵ to save</span>'
+  + '<button class="cb-btn" id="cbCancel">Cancel</button><button class="cb-btn pri" id="cbSave">Save card</button></div></div>');
+const $cb = document.getElementById('cb'), $cbBody = document.getElementById('cbBody'), $cbName = document.getElementById('cbName');
+let CB = null, cbEditing = null;
+function cbBlank(){ return { type:'Run', session:'easy', distance_mi:'', elevation_ft:'', duration_min:'', pace:'', notes:'', segments:[], exercises:[] }; }
+function cbOpen(tplId){
+  closePop();
+  cbEditing = tplId != null ? TEMPLATES.find(function(t){ return String(t.tplId) === String(tplId); }) : null;
+  CB = Object.assign(cbBlank(), cbEditing ? JSON.parse(JSON.stringify(cbEditing)) : {});
+  CB.segments = CB.segments || []; CB.exercises = CB.exercises || [];
+  ['distance_mi','elevation_ft','duration_min'].forEach(function(k){ if (CB[k] == null) CB[k] = ''; });
+  document.getElementById('cbEye').textContent = cbEditing ? 'Edit card' : 'New workout card';
+  document.getElementById('cbDel').style.display = cbEditing ? '' : 'none';
+  $cbName.value = cbEditing ? (cbEditing.tplName || cbEditing.title || '') : '';
+  $cbName.placeholder = 'Name this workout';
+  cbDraw(); $cbBody.scrollTop = 0;
+  document.getElementById('cbScrim').classList.add('on'); $cb.classList.add('on');
+  setTimeout(function(){ $cbName.focus(); }, 60);
+}
+function cbClose(){ document.getElementById('cbScrim').classList.remove('on'); $cb.classList.remove('on'); CB = null; cbEditing = null; }
+function cbDraw(){
+  const d = cbDisc(CB.type), run = cbRun(CB.type), kinds = sessionsFor(CB.type);
+  $cb.style.setProperty('--c', sportColor(CB.type));
+  let h = '';
+  if (!cbEditing && !CB._started){
+    h += '<div class="cb-sec cb-fade"><div class="cb-lab">Start from<em>or build from scratch below</em></div><div class="cb-starts">'
+      + CB_STARTS.map(function(s, i){ return '<button class="cb-st" data-cbstart="' + i + '" style="--c:' + sportColor(s.type) + '"><b>' + E(s.name) + '</b><span>' + E(cbMeta(s)) + '</span>'
+          + (s.segments ? '<span class="lb-tl">' + cbShape(s.segments) + '</span>' : '') + '</button>'; }).join('') + '</div></div>';
+  }
+  h += '<div class="cb-sec"><div class="cb-lab">Sport</div><div class="cb-sports">' + DISCIPLINES.map(function(x){
+      return '<button class="cb-sp' + (x.key === CB.type ? ' on' : '') + '" data-cbsport="' + E(x.key) + '" style="--sc:' + sportColor(x.key) + '"><svg viewBox="0 0 24 24"><path d="' + x.icon + '"/></svg>' + E(x.label) + '</button>'; }).join('') + '</div></div>';
+  if (kinds){
+    h += '<div class="cb-sec"><div class="cb-lab">' + (run ? 'Kind of run' : 'Focus') + '</div><div class="cb-kinds">' + kinds.map(function(k){
+      return '<button class="cb-kd' + (k.key === CB.session ? ' on' : '') + '" data-cbkind="' + k.key + '">' + E(k.label.replace(' / Vert', '')) + '</button>'; }).join('') + '</div></div>';
+  }
+  const auto = run && CB.segments.length > 0;
+  const tile = function(key, label, unit, opt, isAuto){
+    return '<label class="cb-num' + (isAuto ? ' auto' : '') + '"><span class="k">' + label + (isAuto ? '<i>from steps</i>' : opt ? '<i>optional</i>' : '') + '</span><span class="v"><input data-cbn="' + key + '" inputmode="decimal" placeholder="0" value="' + E(isAuto ? miles(cbTotal(CB.segments)) : (CB[key] == null ? '' : CB[key])) + '"' + (isAuto ? ' readonly title="Adds up from the steps below"' : '') + '><span class="u">' + unit + '</span></span></label>';
+  };
+  h += '<div class="cb-sec"><div class="cb-nums">';
+  if (run) h += tile('distance_mi', 'Distance', 'mi', false, auto) + tile('elevation_ft', 'Vert', 'ft', true)
+    + '<label class="cb-num"><span class="k">Pace<i>optional</i></span><span class="v"><input data-cbn="pace" placeholder="8:30" value="' + E(CB.pace || '') + '" style="font-size:24px"><span class="u">/mi</span></span></label>';
+  else h += tile('duration_min', 'Duration', 'min', false) + '<div></div><div></div>';
+  h += '</div></div>';
+  if (run && (CB_STRUCT[CB.session] || CB.segments.length)){
+    h += '<div class="cb-sec"><div class="cb-lab">Structure<em id="cbTot">' + (CB.segments.length ? miles(cbTotal(CB.segments)) + ' mi total' : 'optional') + '</em></div>'
+      + '<div class="cb-strip" id="cbStrip">' + cbShape(CB.segments) + '</div><div class="cb-steps">'
+      + CB.segments.map(function(s, i){
+          const k = parseInt(s.reps) || 1;
+          return '<div class="cb-step" data-i="' + i + '" style="--ec:' + (CB_EC[s.effort] || 'var(--n4)') + '"><span class="cb-bar"></span>'
+            + '<input class="cb-fld t" data-f="label" value="' + E(s.label || '') + '" placeholder="Step">'
+            + '<span class="cb-reps"><input class="cb-fld" data-f="reps" inputmode="numeric" value="' + k + '" title="Repeats"><span>×</span></span>'
+            + '<input class="cb-fld amt" data-f="amount" value="' + E(s.amount || '') + '" placeholder="800m, 1 mi, 5 min">'
+            + '<select class="cb-fld eff" data-f="effort">' + EFFORTS.map(function(e){ return '<option' + (e === s.effort ? ' selected' : '') + '>' + e + '</option>'; }).join('') + '</select>'
+            + '<input class="cb-fld recv" data-f="recovery" value="' + E(s.recovery || '') + '" placeholder="' + (k > 1 ? 'recovery' : '—') + '"' + (k > 1 ? '' : ' disabled') + '>'
+            + '<button class="cb-rm" data-cbrm="' + i + '" aria-label="Remove step">✕</button></div>'; }).join('')
+      + '</div><div class="cb-adds">' + [['wu','Warm-up','easy'],['rep','Repeats','threshold'],['blk','Steady block','tempo'],['cd','Cool-down','easy']].map(function(a){
+          return '<button class="cb-add" data-cbadd="' + a[0] + '" style="--ec:' + CB_EC[a[2]] + '"><b>+</b>' + a[1] + '</button>'; }).join('') + '</div></div>';
+  }
+  if (CB.type === 'Weight Training'){
+    h += '<div class="cb-sec"><div class="cb-lab">Exercises<em>sets × reps</em></div><div class="cb-steps">'
+      + CB.exercises.map(function(x, i){
+          return '<div class="cb-ex" data-x="' + i + '"><input class="cb-fld" data-xf="name" value="' + E(x.name) + '" style="font-weight:600">'
+            + '<input class="cb-fld" data-xf="sets" inputmode="numeric" value="' + E(x.sets || '') + '" placeholder="sets" style="text-align:center"><span class="x2">×</span>'
+            + '<input class="cb-fld" data-xf="reps" value="' + E(x.reps || '') + '" placeholder="reps" style="text-align:center">'
+            + '<input class="cb-fld wt" data-xf="weight" value="' + E(x.weight || '') + '" placeholder="lb">'
+            + '<button class="cb-rm" data-cbxrm="' + i + '" aria-label="Remove">✕</button></div>'; }).join('')
+      + '</div><input class="cb-exq" id="cbExq" placeholder="Add an exercise — type to search, Enter to add" autocomplete="off"><div class="cb-sug" id="cbSug">' + cbSug('') + '</div></div>';
+  }
+  h += '<div class="cb-sec"><div class="cb-lab">Notes<em>optional</em></div><textarea class="cb-notes" id="cbNotes" placeholder="Route, cues, what to bring">' + E(CB.notes || '') + '</textarea></div>';
+  const keep = $cbBody.scrollTop; $cbBody.innerHTML = h; $cbBody.scrollTop = keep;
+  cbSum();
+}
+function cbSug(q){
+  const have = {}; CB.exercises.forEach(function(x){ have[String(x.name).toLowerCase()] = 1; });
+  q = q.trim().toLowerCase();
+  const pool = q ? EXERCISE_LIB : (CB_EXSTART[CB.session] || []).concat(EXERCISE_LIB);
+  const hits = pool.filter(function(n, i, a){ return a.indexOf(n) === i && !have[n.toLowerCase()] && (!q || n.toLowerCase().indexOf(q) >= 0); }).slice(0, 8);
+  return hits.map(function(n){ return '<button data-cbex="' + E(n) + '">+ ' + E(n) + '</button>'; }).join('')
+    + (q && !hits.some(function(n){ return n.toLowerCase() === q; }) ? '<button data-cbex="' + E(q.charAt(0).toUpperCase() + q.slice(1)) + '">+ “' + E(q) + '”</button>' : '');
+}
+function cbSum(){
+  if (!CB) return;
+  const d = cbDisc(CB.type), kinds = sessionsFor(CB.type), k = kinds && kinds.find(function(x){ return x.key === CB.session; });
+  const head = (d ? d.label : CB.type) + (k ? ' · ' + k.label.replace(' / Vert', '') : ''), m = cbMeta(CB);
+  document.getElementById('cbSum').innerHTML = '<b>' + E(head) + '</b>' + (m ? ' · ' + E(m) : '');
+  const strip = document.getElementById('cbStrip'); if (strip) strip.innerHTML = cbShape(CB.segments);
+  const tot = document.getElementById('cbTot'); if (tot) tot.textContent = CB.segments.length ? miles(cbTotal(CB.segments)) + ' mi total' : 'optional';
+  const dist = $cbBody.querySelector('[data-cbn="distance_mi"][readonly]'); if (dist) dist.value = miles(cbTotal(CB.segments));
+  $cbBody.querySelectorAll('.cb-step').forEach(function(el){ const s = CB.segments[+el.dataset.i]; if (s) el.style.setProperty('--ec', CB_EC[s.effort] || 'var(--n4)'); });
+}
+function cbSave(){
+  if (!CB) return;
+  const nm = $cbName.value.trim();
+  if (!nm){ $cbName.placeholder = 'Give it a name first'; $cbName.focus(); toast('Name the card so you can find it'); return; }
+  const run = cbRun(CB.type), segs = run ? CB.segments.filter(function(s){ return String(s.amount || '').trim(); }) : [];
+  const card = Object.assign({}, cbEditing || {}, {
+    tplId: cbEditing ? cbEditing.tplId : Date.now(), tplName:nm, title:nm, type:CB.type, session:CB.session || null, time:null,
+    distance_mi: run ? (segs.length ? cbTotal(segs) : (parseFloat(CB.distance_mi) || null)) : null,
+    elevation_ft: run ? (parseFloat(CB.elevation_ft) || null) : null,
+    duration_min: run ? null : (parseFloat(CB.duration_min) || null),
+    pace: run ? (CB.pace || '') : '', notes:CB.notes || '',
+    segments: segs.map(function(s){ const k = parseInt(s.reps) || 1; return { label:s.label || '', reps:k, amount:String(s.amount).trim(), effort:s.effort || 'easy', recovery:k > 1 ? (s.recovery || '') : '' }; }),
+    exercises: CB.type === 'Weight Training' ? CB.exercises.filter(function(x){ return String(x.name || '').trim(); }) : [] });
+  card.duration_sec = card.duration_min ? card.duration_min*60 : null;
+  delete card._started;
+  const i = TEMPLATES.findIndex(function(t){ return String(t.tplId) === String(card.tplId); });
+  if (i >= 0) TEMPLATES[i] = card; else TEMPLATES.push(card);
+  lsSet(TPL_KEY, TEMPLATES); queuePush();
+  const was = !!cbEditing; cbClose(); renderLib();
+  toast(was ? 'Card updated' : 'Saved ' + nm);
+}
+$cbBody.addEventListener('click', function(e){
+  const t = e.target; if (!CB) return;
+  const st = t.closest('[data-cbstart]');
+  if (st){ const s = JSON.parse(JSON.stringify(CB_STARTS[+st.dataset.cbstart])); const nm = s.name; delete s.name;
+    CB = Object.assign(cbBlank(), s, { _started:true }); if (!$cbName.value.trim()) $cbName.value = nm; cbDraw(); return; }
+  const sp = t.closest('[data-cbsport]');
+  if (sp){ CB.type = sp.dataset.cbsport; const k = sessionsFor(CB.type); CB.session = k ? k[0].key : null; CB._started = true; cbDraw(); return; }
+  const kd = t.closest('[data-cbkind]');
+  if (kd){ CB.session = kd.dataset.cbkind; CB._started = true;
+    /* a structured kind with no steps yet gets a sensible shape to edit */
+    if (cbRun(CB.type) && CB_STRUCT[CB.session] && !CB.segments.length){
+      const pre = { intervals:2, tempo:3, hills:4 }[CB.session];
+      CB.segments = pre != null ? JSON.parse(JSON.stringify(CB_STARTS[pre].segments))
+        : CB.session === 'fartlek' ? [{ label:'Warm-up', reps:1, amount:'1 mi', effort:'easy' }, { label:'Surges', reps:8, amount:'1 min', effort:'hard', recovery:'2 min easy' }, { label:'Cool-down', reps:1, amount:'1 mi', effort:'easy' }]
+        : [{ label:'Easy', reps:1, amount:'2 mi', effort:'easy' }, { label:'Steady', reps:1, amount:'2 mi', effort:'steady' }, { label:'Finish', reps:1, amount:'2 mi', effort:'tempo' }];
+    }
+    if (CB.type === 'Weight Training' && !CB.exercises.length) CB.exercises = (CB_EXSTART[CB.session] || []).map(function(n){ return { name:n, sets:3, reps:'8', weight:'' }; });
+    cbDraw(); return; }
+  const add = t.closest('[data-cbadd]');
+  if (add){
+    const a = add.dataset.cbadd;
+    const seg = a === 'wu' ? { label:'Warm-up', reps:1, amount:'1 mi', effort:'easy' } : a === 'cd' ? { label:'Cool-down', reps:1, amount:'1 mi', effort:'easy' }
+              : a === 'rep' ? { label:'Repeats', reps:6, amount:'400m', effort:'hard', recovery:'200m jog' } : { label:'Steady', reps:1, amount:'2 mi', effort:'tempo' };
+    if (a === 'wu') CB.segments.unshift(seg);
+    else if (a === 'cd') CB.segments.push(seg);
+    else { const cd = CB.segments.findIndex(function(s){ return /cool/i.test(s.label || ''); }); if (cd >= 0) CB.segments.splice(cd, 0, seg); else CB.segments.push(seg); }
+    CB._started = true; cbDraw(); return; }
+  const rm = t.closest('[data-cbrm]'); if (rm){ CB.segments.splice(+rm.dataset.cbrm, 1); cbDraw(); return; }
+  const xrm = t.closest('[data-cbxrm]'); if (xrm){ CB.exercises.splice(+xrm.dataset.cbxrm, 1); cbDraw(); return; }
+  const ex = t.closest('[data-cbex]'); if (ex){ CB.exercises.push({ name:ex.dataset.cbex, sets:3, reps:'8', weight:'' }); CB._started = true; cbDraw(); const q = document.getElementById('cbExq'); if (q) q.focus(); return; }
+});
+$cbBody.addEventListener('input', function(e){
+  const t = e.target; if (!CB) return;
+  if (t.dataset.cbn){ CB[t.dataset.cbn] = t.value.trim(); CB._started = true; cbSum(); return; }
+  const step = t.closest('.cb-step');
+  if (step && t.dataset.f){ const s = CB.segments[+step.dataset.i];
+    s[t.dataset.f] = t.dataset.f === 'reps' ? Math.max(1, parseInt(t.value) || 1) : t.value;
+    if (t.dataset.f === 'reps'){ const r = step.querySelector('[data-f="recovery"]'), many = (parseInt(t.value) || 1) > 1; r.disabled = !many; r.placeholder = many ? 'recovery' : '—'; }
+    cbSum(); return; }
+  const exr = t.closest('.cb-ex'); if (exr && t.dataset.xf){ CB.exercises[+exr.dataset.x][t.dataset.xf] = t.value; cbSum(); return; }
+  if (t.id === 'cbNotes'){ CB.notes = t.value; return; }
+  if (t.id === 'cbExq'){ document.getElementById('cbSug').innerHTML = cbSug(t.value); }
+});
+$cbBody.addEventListener('change', function(e){ if (e.target.dataset.f === 'effort') cbSum(); });
+$cbBody.addEventListener('keydown', function(e){
+  if (e.target.id === 'cbExq' && e.key === 'Enter'){ e.preventDefault(); const f = document.getElementById('cbSug').querySelector('[data-cbex]'); if (f) f.click(); }
+});
+$cbName.addEventListener('input', function(){ if (CB) CB._started = true; });
+document.getElementById('cbX').addEventListener('click', cbClose);
+document.getElementById('cbCancel').addEventListener('click', cbClose);
+document.getElementById('cbScrim').addEventListener('click', cbClose);
+document.getElementById('cbSave').addEventListener('click', cbSave);
+document.getElementById('cbDel').addEventListener('click', function(){
+  if (!cbEditing) return; const id = cbEditing.tplId, nm = cbEditing.tplName || cbEditing.title;
+  deleteTemplate(id); cbClose(); renderLib(); toast('Deleted ' + (nm || 'card'));
+});
+document.addEventListener('keydown', function(e){
+  if (!CB) return;
+  if (e.key === 'Escape'){ e.stopPropagation(); cbClose(); }
+  else if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)){ e.preventDefault(); cbSave(); }
+}, true);
+/* the rail and anything else that asked for the old card editor now get this one */
+window.rhCardBuilder = cbOpen;
+window.openCardEditor = cbOpen;
 
 /* ═══ WIRING ═══ */
 /* The app repaints the plan through setPlanView (which calls plxRender). The tab
