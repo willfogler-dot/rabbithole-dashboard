@@ -7214,7 +7214,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v229';
+const RH_BUILD = 'v230';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -19544,6 +19544,29 @@ if ('serviceWorker' in navigator){
      wide shadow is the dimmed backdrop */
   .plx-pop{z-index:70;max-height:calc(100vh - env(safe-area-inset-top,0px) - 150px);box-shadow:0 0 0 100vmax rgba(4,6,11,.6),0 18px 50px rgba(0,0,0,.6);}
   .plx-pop input,.plx-pop textarea,.plx-pop select{font-size:16px;}
+}
+
+/* ═══ v230 · PLAN ON THE PHONE, WITH LESS CHROME ═══
+   Same rules as Today (v227): the week summary sits on the page with no frame
+   or internal dividers, the days are sections separated by space instead of
+   one boxed list with rules between them, and sessions keep their sport edge
+   and tint (they are what you tap and drag) but lose their outline. */
+@media (max-width:759px){
+  #s-plan #plx .plx-hero{background:none;border:none;box-shadow:none;border-radius:0;-webkit-backdrop-filter:none;backdrop-filter:none;margin-bottom:26px;}
+  #s-plan #plx .plx-hero::before,#s-plan #plx .plx-hero::after{display:none;}
+  #s-plan #plx .plx-hero > div{padding:0 4px;}
+  #s-plan #plx .plx-hero > div + div{border:none;margin-top:24px;}
+  #s-plan #plx .plx-week{background:none;border:none;box-shadow:none;border-radius:0;gap:22px;}
+  #s-plan #plx .plx-day.plx-wd,#s-plan #plx .plx-day.plx-wd:not(.today),#s-plan #plx .plx-day.plx-wd.past:not(.today),#s-plan #plx .plx-day.plx-wd.today{background:none;border:none;border-radius:0;padding:0;}
+  #s-plan #plx .plx-day.plx-wd.past:not(.today) .plx-wdh{opacity:.6;}
+  #s-plan #plx .plx-day.plx-wd .plx-wdh{padding:0 40px 6px 4px;}
+  #s-plan #plx .plx-day.plx-wd .plx-wadd{top:-6px;right:-2px;}
+  #s-plan #plx .plx-chip.plx-card{border-top:none;border-right:none;border-bottom:none;border-radius:14px;}
+  /* today is already marked by its filled date; the stripe over it said it twice */
+  #s-plan #plx .plx-day.plx-wd.today::before{display:none;}
+  /* the summary's three parts get real headings, like every other tab */
+  #s-plan #plx .plx-hx-l{font:600 17px var(--fd);letter-spacing:-.01em;color:var(--n1);}
+  #s-plan #plx .plx-hx-l .plx-key{font:500 12px var(--fb);color:var(--n3);}
 }
 </style>
 
