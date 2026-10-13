@@ -2213,7 +2213,7 @@ em.pro-short{color:var(--warn);background:rgba(232,197,143,.12);}
 
 /* Touch response must be instant. A transition on the press state adds latency
    you can feel, so the press is immediate and only the release eases back. */
-.pressing{transform:scale(.975);opacity:.82;transition:none!important;}
+.pressing{scale:.975;opacity:.82;transition:none!important;}
 /* This applied will-change to every tappable element in the app. On a month
    view that is several hundred permanent compositing layers, and the memory
    pressure is what makes iOS throw them away and repaint white.
@@ -2223,10 +2223,27 @@ em.pro-short{color:var(--warn);background:rgba(232,197,143,.12);}
    is the one moment it is actually useful. */
 .set,.lrow,.dayrow,.day-item,.ycard,.race-card,.food-row,.wcol,.cal-d,
 .cchip,.foodchip,.tplchip,.btn,.pill,.chip,.sup-row,.vm,.hsec-toggle,.sheet-x{
-  transition:transform .22s cubic-bezier(.2,.9,.3,1),opacity .22s,background .16s;}
+  transition:transform .22s cubic-bezier(.2,.9,.3,1),scale .3s cubic-bezier(.2,.9,.3,1),opacity .22s,background .16s;}
 .pressing{will-change:transform;}
-.btn.pressing,.pill.pressing{transform:scale(.955);}
-.cal-d.pressing{transform:scale(.9);}
+.btn.pressing,.pill.pressing{scale:.955;}
+.cal-d.pressing{scale:.9;}
+/* ── v223 · PRESS, SIZED TO THE THING PRESSED ──
+   One rule did not fit everything: .975 is invisible on a small chip and
+   seasick on a full-width card. Small things press in further, big things
+   barely move and darken instead, text links only dim. The press is instant
+   (no transition); the release eases back on the transition below. */
+.dk-row,.dk-card,.tb-tile,.hm-nt,.hm-chip,.hm-pts,.hm-it,.portal,.rb-head,.ld-strip,.dk-txt,
+.plx-chip,.plx-wadd,.plx-mc,.lb-card,.nav a,.dk-seg button,.vol-seg button,.plx-seg button,.rb-range button,.tl-mets button,.dk-nav,.sync-btn,.hm-share{
+  transition:scale .32s cubic-bezier(.2,.9,.3,1),opacity .2s,background-color .16s,filter .2s;}
+.hm-chip.pressing,.hm-it.pressing,.plx-chip.pressing,.lb-card.pressing,.plx-wadd.pressing,.sync-btn.pressing,.hm-share.pressing,.dk-nav.pressing{scale:.94;opacity:.85;}
+.nav a.pressing{scale:.9;opacity:.75;}
+.dk-seg button.pressing,.vol-seg button.pressing,.plx-seg button.pressing,.rb-range button.pressing,.tl-mets button.pressing,.plx-mc.pressing{scale:.93;opacity:.8;}
+.dk-row.pressing,.tb-tile.pressing,.hm-nt.pressing,.hm-pts.pressing,.rb-head.pressing,.ld-strip.pressing{scale:.975;opacity:1;filter:brightness(1.18);}
+.portal.pressing,.dk-card.pressing{scale:.985;opacity:1;filter:brightness(1.12);}
+.dk-txt.pressing{scale:1;opacity:.5;}
+/* a day column is too tall to scale: it lights up instead */
+#plx .plx-day.pressing{scale:1;opacity:1;box-shadow:inset 0 0 0 999px rgba(143,154,232,.1)!important;}
+@media (prefers-reduced-motion:reduce){ .pressing{scale:1!important;} }
 
 /* Sheets follow the finger, so no transition while dragging. */
 .sheet{touch-action:pan-y;}
@@ -7197,7 +7214,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v222';
+const RH_BUILD = 'v223';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -18160,15 +18177,37 @@ function countUp(el, to, opts){
    clearing on the first pixel made every press flicker off during a tap. */
 let _pressed = null, _pressX = 0, _pressY = 0;
 
-document.addEventListener('touchstart', function(e){
-  const t = e.target.closest('.set,.lrow,.dayrow,.day-item,.ycard,.race-card,.food-row,'
-    + '.wcol,.cal-d,.cchip,.foodchip,.tplchip,.btn,.pill,.chip,.sup-row,.vm,.hsec-toggle,.sheet-x');
-  if (!t) return;
-  _pressed = t;
-  _pressX = e.touches[0].clientX;
-  _pressY = e.touches[0].clientY;
+/* v223: the press answers on pointerdown, for touch AND mouse, on every control.
+   The list used to cover only the components that existed when it was written;
+   everything built since (Today tiles, the readiness card, dashboard rows, the
+   tab bar, every segmented control, the planner) fell back to CSS :active,
+   which a touch browser applies late or not at all. So most taps landed with
+   no answer until the release. Now the nearest tappable ancestor is pressed on
+   the first frame, and each kind has a press sized to it (see .pressing CSS). */
+const PRESS_SEL = '.set,.lrow,.dayrow,.day-item,.ycard,.race-card,.food-row,'
+  + '.wcol,.cal-d,.cchip,.foodchip,.tplchip,.btn,.pill,.chip,.sup-row,.vm,.hsec-toggle,.sheet-x,'
+  + '.dk-row,.dk-card,.tb-tile,.hm-nt,.hm-chip,.hm-pts,.hm-it,.portal,.rb-head,.ld-strip,.dk-txt,'
+  + '.plx-day,.plx-chip,.plx-wadd,.plx-mc,.lb-card,.cb-st,.cb-sp,.cb-kd,.cb-add,.cb-btn,'
+  + 'button,a[href],[role="button"],[data-tab]';
+function pressDown(t, x, y){
+  if (!t || t.disabled) return;
+  if (_pressed && _pressed !== t) _pressed.classList.remove('pressing');
+  _pressed = t; _pressX = x; _pressY = y;
   t.classList.add('pressing');
+}
+document.addEventListener('pointerdown', function(e){
+  if (e.button != null && e.button !== 0) return;
+  if (e.target.closest('input,textarea,select,[contenteditable]')) return;
+  pressDown(e.target.closest(PRESS_SEL), e.clientX, e.clientY);
+}, { passive: true, capture: true });
+document.addEventListener('pointermove', function(e){
+  if (!_pressed) return;
+  if (Math.abs(e.clientX - _pressX) > 10 || Math.abs(e.clientY - _pressY) > 10) clearPress();
 }, { passive: true });
+document.addEventListener('pointerup', function(){ clearPress(); }, { passive: true });
+document.addEventListener('pointercancel', function(){ clearPress(); }, { passive: true });
+/* a scroll that starts on a control is not a press */
+window.addEventListener('scroll', function(){ if (_pressed) clearPress(); }, { passive: true, capture: true });
 
 function clearPress(){
   if (!_pressed) return;
