@@ -7197,7 +7197,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v216';
+const RH_BUILD = 'v217';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -18843,6 +18843,47 @@ if ('serviceWorker' in navigator){
    the controls beside it. */
 .plx-top.plx-mh{display:flex;align-items:center;gap:10px;margin:0 2px 16px;}
 #plxMonth{margin-top:16px;}
+/* ── WORKOUT LIBRARY RAIL (v217) ──
+   Saved workouts live beside the calendar so planning is drag, not type.
+   Only where there is room for it (desktop, iPad landscape); narrower widths
+   keep the typed quick-add, which already knows the same sessions. */
+.plx-body{margin-top:16px;}
+.plx-body > #plxMonth{margin-top:0;min-width:0;}
+#plxLib{display:none;}
+@media (min-width:1000px){
+  .plx-body{display:grid;grid-template-columns:232px minmax(0,1fr);gap:16px;align-items:start;}
+  #plxLib{display:flex;flex-direction:column;position:sticky;top:14px;max-height:calc(100vh - 124px);min-height:320px;
+    background:var(--el0-bg);border:1px solid var(--line);border-radius:20px;box-shadow:var(--el0-sh);overflow:hidden;transition:box-shadow .15s,border-color .15s;}
+}
+.lb-h{padding:16px 16px 10px;}
+.lb-h b{display:block;font:600 15px var(--fd,inherit);color:var(--n1);letter-spacing:-.01em;}
+.lb-h span{display:block;margin-top:3px;font-size:11.5px;color:var(--n4);}
+.lb-list{flex:1;min-height:0;overflow-y:auto;padding:2px 10px 12px;scrollbar-width:none;}
+.lb-list::-webkit-scrollbar{display:none;}
+.lb-g{margin:12px 6px 6px;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--n4);}
+.lb-g:first-child{margin-top:4px;}
+.lb-card{position:relative;margin-bottom:6px;padding:8px 10px 8px 11px;border-radius:11px;border:1px solid var(--line);border-left:3px solid var(--c);
+  background:linear-gradient(90deg,color-mix(in srgb,var(--c) 11%,transparent),transparent 75%);cursor:grab;touch-action:pan-y;-webkit-touch-callout:none;
+  transition:transform .14s,border-color .14s,background-color .14s;}
+.lb-card:hover{transform:translateY(-1px);border-color:rgba(170,180,255,.22);border-left-color:var(--c);background-color:rgba(255,255,255,.025);}
+.lb-card .nm{display:block;font-size:12.5px;font-weight:600;color:var(--n1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:14px;}
+.lb-card .mt{display:block;margin-top:2px;font-size:11px;color:var(--n3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums;}
+.lb-card.plx-lift{opacity:.35;}
+.lb-x{position:absolute;top:5px;right:5px;width:18px;height:18px;border:0;border-radius:6px;background:none;color:var(--n4);font-size:11px;line-height:18px;padding:0;opacity:0;transition:opacity .12s,background .12s;}
+.lb-card:hover .lb-x{opacity:1;}
+.lb-x:hover{background:rgba(255,255,255,.08);color:var(--n1);}
+@media (hover:none){ .lb-x{opacity:.7;} }
+.lb-empty{margin:10px 6px;font-size:12px;line-height:1.5;color:var(--n4);}
+.lb-f{padding:10px 16px 13px;border-top:1px solid var(--line);font-size:11px;line-height:1.45;color:var(--n4);}
+#plxLib.drop-del{border-color:rgba(232,127,143,.6);box-shadow:inset 0 0 0 1px rgba(232,127,143,.5),inset 0 0 40px rgba(232,127,143,.12);}
+#plxLib.drop-del .lb-f{color:#f2a3ae;}
+.plx-ghost.lb-card{width:212px;margin:0;}
+/* iPad landscape: every pixel the rail takes comes out of the month grid's
+   seven columns, so it slims down rather than squeezing chip names to "Qi ..." */
+@media (min-width:1000px) and (max-width:1299px){
+  .plx-body{grid-template-columns:184px minmax(0,1fr);gap:12px;}
+  .lb-h{padding:14px 12px 8px;} .lb-list{padding:2px 7px 10px;} .lb-f{padding:9px 12px 11px;}
+}
 .plx-k label.yst{display:flex;align-items:center;gap:6px;overflow:visible;}
 .plx-k label.yst button{border:none;background:none;color:var(--n3);font-size:15px;line-height:1;padding:0 3px;border-radius:5px;}
 .plx-k label.yst button:hover{color:var(--n1);background:var(--n6);}
@@ -19225,7 +19266,8 @@ if ('serviceWorker' in navigator){
 const host = document.getElementById('s-plan');
 if (!host) return;
 host.insertAdjacentHTML('afterbegin',
-  '<div id="plx"><div id="plxYear"></div><div id="plxMonth"></div><div id="plxPop" class="plx-pop" hidden></div></div>');
+  '<div id="plx"><div id="plxYear"></div><div class="plx-body"><aside id="plxLib" aria-label="Saved workouts"></aside><div id="plxMonth"></div></div><div id="plxPop" class="plx-pop" hidden></div></div>');
+const $lib = document.getElementById('plxLib');
 const $root = document.getElementById('plx');
 const $year = document.getElementById('plxYear');
 const $month = document.getElementById('plxMonth');
@@ -20418,6 +20460,57 @@ function copyTSV(){
 
 /* ═══ RENDER ═══ */
 function active(){ return host.classList.contains('on'); }   /* every width since v148 */
+/* Cards come from knownSessions(): saved templates first, then any session you
+   have planned twice or more recently, so the rail is useful on day one without
+   a setup step. Dropping one makes an independent copy (cloneOnto): editing that
+   day never touches the card, and editing a card never rewrites placed days. */
+let LIBITEMS = [];
+function libGroup(w){
+  if (isRunW(w) || RUNLIKE.has(w.type)) return 'Run';
+  if (w.type === 'Weight Training') return 'Strength';
+  return w.type || 'Other';
+}
+function libMeta(w){
+  const mi = parseFloat(w.distance_mi) || 0, ft = parseFloat(w.elevation_ft) || 0, min = parseFloat(w.duration_min) || 0, b = [];
+  if (mi) b.push(miles(mi) + ' mi');
+  if (ft) b.push(feet(ft) + ' ft');
+  if (!mi && min) b.push(Math.round(min) + ' min');
+  if (w.time) b.push(clock(w.time));
+  if (!b.length) b.push(sessLabel(w));
+  return b.join(' · ');
+}
+function renderLib(){
+  if (!$lib) return;
+  LIBITEMS = knownSessions();
+  const order = ['Run', 'Strength'], groups = {};
+  LIBITEMS.forEach(function(it, i){ const g = libGroup(it.proto); (groups[g] = groups[g] || []).push(i); });
+  const names = Object.keys(groups).sort(function(a, b){
+    const ia = order.indexOf(a), ib = order.indexOf(b);
+    return (ia < 0 ? 9 : ia) - (ib < 0 ? 9 : ib) || a.localeCompare(b);
+  });
+  const sl = $lib.querySelector('.lb-list'), keep = sl ? sl.scrollTop : 0;
+  $lib.innerHTML = '<div class="lb-h"><b>Workouts</b><span>Drag one onto a day</span></div><div class="lb-list">'
+    + (LIBITEMS.length ? names.map(function(g){
+        return '<div class="lb-g">' + E(g) + '</div>' + groups[g].map(function(i){
+          const it = LIBITEMS[i], w = it.proto, saved = w.tplId != null;
+          return '<div class="lb-card" data-li="' + i + '" style="--c:' + chipColor(w.type, w.session) + '" title="' + E(it.name) + (w.notes ? '\n' + E(w.notes) : '') + '">'
+            + '<span class="nm">' + E(it.name) + '</span><span class="mt">' + E(libMeta(w)) + '</span>'
+            + (saved ? '<button class="lb-x" data-tpldel="' + E(w.tplId) + '" aria-label="Remove ' + E(it.name) + ' from your workouts">✕</button>' : '')
+            + '</div>';
+        }).join('');
+      }).join('')
+      : '<div class="lb-empty">Sessions you plan more than once show up here, and so does anything you save as a template.</div>')
+    + '</div><div class="lb-f">Option-drag a session to copy it. Drag one back here to remove it.</div>';
+  const nl = $lib.querySelector('.lb-list'); if (nl) nl.scrollTop = keep;
+}
+$lib && $lib.addEventListener('click', function(e){
+  const x = e.target.closest('[data-tpldel]'); if (!x) return;
+  e.stopPropagation();
+  const id = x.dataset.tpldel, t = TEMPLATES.find(function(q){ return String(q.tplId) === id; });
+  deleteTemplate(id); renderLib();
+  toast('Removed ' + ((t && (t.tplName || t.title)) || 'workout') + ' from your workouts');
+});
+
 function render(){
   if (!active()) return;
   /* a field that just lost focus to another field must not have that focus
@@ -20426,6 +20519,7 @@ function render(){
   try { repExtend(); } catch(e){ console.error('[plx] repeat top-up', e); }
   const ix = buildIndex();
   try { renderYear(ix); } catch(e){ console.error('[plx] year', e); $year.innerHTML = '<div class="empty">The year view hit an error — run rhErrors().</div>'; }
+  try { renderLib(); } catch(e){ console.error('[plx] library', e); }
   try { if (st.view === 'week') renderWeekView(ix); else renderMonth(ix); }
   catch(e){ console.error('[plx] ' + st.view, e); $month.innerHTML = '<div class="empty">The calendar hit an error — run rhErrors().</div>'; }
   $year.querySelectorAll('.plx-k .v input').forEach(fitField);
@@ -20698,10 +20792,11 @@ document.addEventListener('keydown', function(e){
    Hand-rolled on pointer events because HTML5 drag-and-drop does not fire for
    touch on iPad. A mouse drags as soon as it moves; a finger has to rest on the
    chip for a moment first, so that swiping over the grid still scrolls it. */
-const drag = { id:null, el:null, ghost:null, on:false, moved:false, x:0, y:0, timer:null, touch:false, over:null, pid:null };
+const drag = { id:null, el:null, ghost:null, on:false, moved:false, x:0, y:0, timer:null, touch:false, over:null, pid:null, kind:'chip', li:null };
 function dragStart(){
-  const w = PLANNED.find(function(x){ return String(x.id) === drag.id; });
-  if (!w || !drag.el) return;
+  if (!drag.el) return;
+  if (drag.kind === 'chip' && !PLANNED.find(function(x){ return String(x.id) === drag.id; })) return;
+  if (drag.kind === 'card' && !LIBITEMS[drag.li]) return;
   drag.on = true; closePop();
   const g = drag.el.cloneNode(true);
   g.classList.add('plx-ghost'); document.body.appendChild(g);
@@ -20713,10 +20808,12 @@ function dragMove(x, y){
   if (!drag.ghost) return;
   drag.ghost.style.left = (x + 10) + 'px'; drag.ghost.style.top = (y + 8) + 'px';
   const under = document.elementFromPoint(x, y);
-  const day = under && under.closest ? under.closest('.plx-day') : null;
+  let day = under && under.closest ? under.closest('.plx-day') : null;
+  /* a placed session dragged back onto the rail is being removed */
+  if (!day && drag.kind === 'chip' && under && under.closest && under.closest('#plxLib')) day = $lib;
   if (day !== drag.over){
-    if (drag.over) drag.over.classList.remove('drop');
-    drag.over = day; if (day) day.classList.add('drop');
+    if (drag.over) drag.over.classList.remove('drop', 'drop-del');
+    drag.over = day; if (day) day.classList.add(day === $lib ? 'drop-del' : 'drop');
   }
 }
 function dragEnd(copy){
@@ -20724,11 +20821,26 @@ function dragEnd(copy){
   const was = drag.on, over = drag.over, id = drag.id;
   if (drag.ghost) drag.ghost.remove();
   if (drag.el) drag.el.classList.remove('plx-lift');
-  if (over) over.classList.remove('drop');
-  drag.on = false; drag.ghost = null; drag.el = null; drag.over = null; drag.id = null; drag.pid = null;
+  if (over) over.classList.remove('drop', 'drop-del');
+  const kind = drag.kind, li = drag.li;
+  drag.on = false; drag.ghost = null; drag.el = null; drag.over = null; drag.id = null; drag.pid = null; drag.kind = 'chip'; drag.li = null;
   if (!was) return;
   drag.moved = true;                                   /* swallow the click that follows */
   setTimeout(function(){ drag.moved = false; }, 350);
+  if (kind === 'card'){
+    const it = LIBITEMS[li];
+    if (!it || !over || !over.dataset || !over.dataset.date) return;
+    snap(); PLANNED.push(cloneOnto(it.proto, over.dataset.date)); commit(over.dataset.date);
+    toast('Added ' + it.name + ' — ⌘Z undoes');
+    return;
+  }
+  if (over === $lib){
+    const g = PLANNED.find(function(x){ return String(x.id) === id; });
+    if (!g) return;
+    snap(); PLANNED = PLANNED.filter(function(x){ return x !== g; }); commit(g.date);
+    toast('Removed ' + (g.title || g.type) + ' — ⌘Z undoes');
+    return;
+  }
   const w = PLANNED.find(function(x){ return String(x.id) === id; });
   if (!w || !over || over.dataset.date === w.date) return;
   snap();
@@ -20739,11 +20851,22 @@ function dragEnd(copy){
 $month.addEventListener('pointerdown', function(e){
   const chip = e.target.closest('.plx-chip');
   if (!chip || !chip.dataset.id || (e.button != null && e.button !== 0)) return;
+  drag.kind = 'chip'; drag.li = null;
   drag.id = chip.dataset.id; drag.el = chip; drag.x = e.clientX; drag.y = e.clientY;
   drag.touch = e.pointerType !== 'mouse'; drag.pid = e.pointerId; drag.on = false;
   clearTimeout(drag.timer);
   if (drag.touch) drag.timer = setTimeout(dragStart, 280);
 });
+$lib && $lib.addEventListener('pointerdown', function(e){
+  const card = e.target.closest('.lb-card');
+  if (!card || e.target.closest('.lb-x') || (e.button != null && e.button !== 0)) return;
+  drag.kind = 'card'; drag.li = +card.dataset.li; drag.id = 'card:' + card.dataset.li;
+  drag.el = card; drag.x = e.clientX; drag.y = e.clientY;
+  drag.touch = e.pointerType !== 'mouse'; drag.pid = e.pointerId; drag.on = false;
+  clearTimeout(drag.timer);
+  if (drag.touch) drag.timer = setTimeout(dragStart, 280);
+});
+$lib && $lib.addEventListener('contextmenu', function(e){ if (e.target.closest('.lb-card')) e.preventDefault(); });
 document.addEventListener('pointermove', function(e){
   if (drag.id == null || e.pointerId !== drag.pid) return;
   const dx = e.clientX - drag.x, dy = e.clientY - drag.y, far = Math.abs(dx) + Math.abs(dy) > 7;
