@@ -7252,7 +7252,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v234';
+const RH_BUILD = 'v235';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -18131,7 +18131,12 @@ function rhSpring(from, to, v0, opt, onUpdate, onDone){
     /* small fixed sub-steps keep a stiff spring stable on a slow frame */
     while (dt > 0){ const h = Math.min(dt, 1/240); const a = -k*(x - to) - c*v; v += a*h; x += v*h; dt -= h; }
     if (Math.abs(v) < 4 && Math.abs(x - to) < 0.4){ x = to; onUpdate(x); live = false; if (onDone) onDone(); return; }
-    onUpdate(x); raf = requestAnimationFrame(step);
+    onUpdate(x);
+    /* stop() may have been called from inside onUpdate (a sheet that finishes
+       closing once it is off screen does this); scheduling another frame after
+       that kept the spring painting over the reset (fixed v235) */
+    if (!live) return;
+    raf = requestAnimationFrame(step);
   };
   raf = requestAnimationFrame(step);
   return { stop:function(){ cancelAnimationFrame(raf); live = false; }, value:function(){ return x; }, velocity:function(){ return v; }, live:function(){ return live; } };
@@ -18175,7 +18180,10 @@ function makeDraggable(sheetId, onClose){
     startedAtTop = sheet.scrollTop <= 0;
     startY = e.touches[0].clientY;
     /* caught mid-flight: stop it where it is and carry on from there */
-    if (anim && anim.live()){ anim.stop(); anim = null; base = shown; dragging = true; sheet.style.transition = 'none'; }
+    /* start from wherever the sheet is on screen: mid-spring, or still held
+       away from rest by another finger. Starting from 0 made it jump (v235). */
+    if (anim && anim.live()){ anim.stop(); anim = null; }
+    if (Math.abs(shown) > 0.5){ base = shown; dragging = true; sheet.style.transition = 'none'; }
     else { base = 0; dragging = false; }
     hist = [{ y:startY, t:performance.now() }];
   }, { passive: true });
