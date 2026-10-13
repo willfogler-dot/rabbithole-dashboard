@@ -2533,6 +2533,25 @@ body.sheet-open::after{z-index:19;}
   body.title-tucked .hdr{background:var(--bg-top);-webkit-backdrop-filter:none;backdrop-filter:none;}
 }
 
+/* ── v234 · THE PAGE STEPS BACK FOR A SHEET (phone) ──
+   A sheet is a layer on top of the page, so the page moves back to make room:
+   a little smaller, a little lower, rounded at the screen's edges, under the
+   dim. It says "you are one level in; swipe down to come back". While a sheet
+   is being dragged, --sp (0..1) tracks it, so the page comes forward with it. */
+@media (max-width:759px){
+  .app{transition:transform .46s cubic-bezier(.2,.9,.3,1),clip-path .46s cubic-bezier(.2,.9,.3,1);}
+  body.sheet-open .app{transform-origin:50% var(--pb-oy,40vh);
+    transform:translateY(calc(var(--sp,1)*10px)) scale(calc(1 - var(--sp,1)*0.065));
+    clip-path:inset(var(--pb-ct,0px) 0 var(--pb-cb,0px) 0 round calc(var(--sp,1)*22px));}
+  body.sheet-dragging .app{transition:none;}
+  /* a lighter dim and no blur, so the page that stepped back can still be seen
+     stepping back: under the old 68% black and a 20px blur it was just dark */
+  body .sheet-bd{background:rgba(3,5,10,.46);-webkit-backdrop-filter:none!important;backdrop-filter:none!important;}
+}
+@media (max-width:759px) and (prefers-reduced-motion:reduce){
+  body.sheet-open .app{transform:none;clip-path:none;}
+}
+
 /* ── v206 · SEGMENTED CONTROLS SLIDE ──
    Week / Month, Wk / Mo / Yr / Trail and the rest: one thumb that travels to
    the option you tapped, instead of the old one switching off and the new one
@@ -7233,7 +7252,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v233';
+const RH_BUILD = 'v234';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -18143,9 +18162,13 @@ function makeDraggable(sheetId, onClose){
   const paint = function(y){
     shown = y;
     sheet.style.transform = 'translateY(' + y.toFixed(1) + 'px)';
+    /* v234: the pushed-back page comes forward as the sheet is pulled away */
+    document.documentElement.style.setProperty('--sp', Math.max(0, Math.min(1, 1 - y/Math.max(320, sheet.offsetHeight))).toFixed(3));
+    document.body.classList.add('sheet-dragging');
     const b = bd(); if (b) b.style.opacity = String(Math.max(0, Math.min(1, 1 - y/Math.max(320, sheet.offsetHeight))));
   };
-  const settle = function(){ sheet.style.transition = ''; sheet.style.transform = ''; const b = bd(); if (b) b.style.opacity = ''; shown = 0; anim = null; };
+  const settle = function(){ sheet.style.transition = ''; sheet.style.transform = ''; const b = bd(); if (b) b.style.opacity = ''; shown = 0; anim = null;
+    document.body.classList.remove('sheet-dragging'); document.documentElement.style.removeProperty('--sp'); };
 
   sheet.addEventListener('touchstart', function(e){
     if (e.touches.length !== 1) return;
@@ -18479,6 +18502,14 @@ window.closeLoadDetail = closeLoadDetail;
     const isLocked = document.body.classList.contains('sheet-open');
     if (open && !isLocked){
       _lockedScrollY = window.scrollY || document.documentElement.scrollTop || 0;
+      /* v234: the page behind pushes back. Its origin and its rounded clip are
+         the visible screen, which sits _lockedScrollY down inside the page */
+      const app = document.querySelector('.app'), rs = document.documentElement.style;
+      if (app){
+        rs.setProperty('--pb-oy', (_lockedScrollY + window.innerHeight*0.5) + 'px');
+        rs.setProperty('--pb-ct', _lockedScrollY + 'px');
+        rs.setProperty('--pb-cb', Math.max(0, app.offsetHeight - _lockedScrollY - window.innerHeight) + 'px');
+      }
       document.body.style.top = (-_lockedScrollY) + 'px';
       document.body.classList.add('sheet-open');
     } else if (!open && isLocked){
