@@ -7214,7 +7214,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v224';
+const RH_BUILD = 'v225';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -19233,7 +19233,7 @@ if ('serviceWorker' in navigator){
 .plx-chip.act{background:none;border:1px dashed color-mix(in srgb,var(--c) 55%,transparent);border-left:3px solid var(--c);cursor:default;color:var(--n2);box-shadow:none;}
 .plx-chip.act:hover{transform:none;}
 .plx-chip.plx-lift{opacity:.3;}
-.plx-ghost{position:fixed;z-index:60;pointer-events:none;width:176px;transform:rotate(-2deg) scale(1.04);background:var(--bg-lift);
+.plx-ghost{position:fixed;z-index:60;pointer-events:none;width:176px;will-change:transform;background:var(--bg-lift);
   box-shadow:0 18px 36px rgba(0,0,0,.65),0 0 0 1px rgba(170,180,255,.4),0 0 24px rgba(143,154,232,.35);}
 
 .plx-wk{background:color-mix(in srgb,var(--bg-lift) 58%,var(--bg-mid));padding:11px 13px 10px;display:flex;flex-direction:column;min-width:0;box-shadow:inset 1px 0 0 rgba(230,236,255,.05);}
@@ -21141,21 +21141,51 @@ document.addEventListener('keydown', function(e){
    Hand-rolled on pointer events because HTML5 drag-and-drop does not fire for
    touch on iPad. A mouse drags as soon as it moves; a finger has to rest on the
    chip for a moment first, so that swiping over the grid still scrolls it. */
-const drag = { id:null, el:null, ghost:null, on:false, moved:false, x:0, y:0, timer:null, touch:false, over:null, pid:null, kind:'chip', li:null };
+const drag = { id:null, el:null, ghost:null, on:false, moved:false, x:0, y:0, timer:null, touch:false, over:null, pid:null, kind:'chip', li:null,
+               dx:0, dy:0, ox:0, oy:0, hist:[], lift:null, land:null, gs:{ x:0, y:0, r:0, s:1, o:1 } };
+/* ── v225 · THE DRAGGED COPY IS A PHYSICAL THING ──
+   It keeps the point you grabbed it by (it used to jump so the pointer sat at
+   its corner), it lifts on a spring, and when you let go a spring carries it
+   from where your hand left it, at your hand's speed, into the exact spot the
+   session lands. A drop on nothing flies it home; a drop on the Workouts rail
+   shrinks it away. Starting another drag finishes any landing at once. */
+function ghostPaint(){
+  const g = drag.ghost || (drag.land && drag.land.g); if (!g) return;
+  const s = drag.gs;
+  g.style.transform = 'translate3d(' + s.x.toFixed(1) + 'px,' + s.y.toFixed(1) + 'px,0) rotate(' + s.r.toFixed(2) + 'deg) scale(' + s.s.toFixed(3) + ')';
+  g.style.opacity = s.o.toFixed(3);
+}
+function landNow(){
+  const L = drag.land; if (!L) return;
+  L.springs.forEach(function(sp){ sp.stop(); });
+  if (L.g) L.g.remove();
+  if (L.reveal) L.reveal.style.visibility = '';
+  if (L.src) L.src.classList.remove('plx-lift');
+  drag.land = null;
+}
 function dragStart(){
   if (!drag.el) return;
   if (drag.kind === 'chip' && !PLANNED.find(function(x){ return String(x.id) === drag.id; })) return;
   if (drag.kind === 'card' && !LIBITEMS[drag.li]) return;
+  landNow();
   drag.on = true; closePop();
+  const r = drag.el.getBoundingClientRect();
+  drag.ox = drag.dx - r.left; drag.oy = drag.dy - r.top;              /* where it was grabbed */
   const g = drag.el.cloneNode(true);
-  g.classList.add('plx-ghost'); document.body.appendChild(g);
+  g.classList.add('plx-ghost'); g.style.width = Math.max(120, r.width) + 'px'; g.style.left = '0px'; g.style.top = '0px';
+  g.style.transformOrigin = drag.ox + 'px ' + drag.oy + 'px';           /* it tilts and grows around your finger */
+  document.body.appendChild(g);
   drag.ghost = g; drag.el.classList.add('plx-lift');
+  drag.gs = { x:r.left, y:r.top, r:0, s:1, o:1 };
+  /* the lift: a little grow and tilt, with give, because you just picked it up */
+  drag.lift = rhSpring(0, 1, 0, { damping:0.75, response:0.28 }, function(p){ drag.gs.r = -2*p; drag.gs.s = 1 + 0.045*p; ghostPaint(); });
   dragMove(drag.x, drag.y);
   if (drag.touch && navigator.vibrate) navigator.vibrate(8);
 }
 function dragMove(x, y){
   if (!drag.ghost) return;
-  drag.ghost.style.left = (x + 10) + 'px'; drag.ghost.style.top = (y + 8) + 'px';
+  drag.gs.x = x - drag.ox; drag.gs.y = y - drag.oy; ghostPaint();
+  drag.hist.push({ x:x, y:y, t:performance.now() }); if (drag.hist.length > 8) drag.hist.shift();
   const under = document.elementFromPoint(x, y);
   let day = under && under.closest ? under.closest('.plx-day') : null;
   /* a placed session dragged back onto the rail is being removed */
@@ -21165,45 +21195,86 @@ function dragMove(x, y){
     drag.over = day; if (day) day.classList.add(day === $lib ? 'drop-del' : 'drop');
   }
 }
+/* release speed from the last few pointer samples; zero if the hand had stopped */
+function dragVel(){
+  const h = drag.hist, z = h[h.length - 1]; if (!z || performance.now() - z.t > 100) return { x:0, y:0 };
+  let a = h[0];
+  for (let i = h.length - 1; i >= 0; i--){ a = h[i]; if (z.t - h[i].t >= 48 || h.length - i > 4) break; }
+  const dt = (z.t - a.t)/1000; return dt > 0 ? { x:(z.x - a.x)/dt, y:(z.y - a.y)/dt } : { x:0, y:0 };
+}
+/* fly the ghost to a rect (or shrink it into a point) on independent x/y springs */
+function flyGhost(src, target, reveal, shrink){
+  const g = drag.ghost; drag.ghost = null; if (drag.lift) drag.lift.stop();
+  if (!g) return;
+  /* the target is already chosen, so carry the hand's speed but cap it: an
+     uncapped fast drop overshoots the slot it is meant to land in */
+  const vr = dragVel(), cap = function(q){ return Math.max(-1400, Math.min(1400, q)); }, v = { x:cap(vr.x), y:cap(vr.y) };
+  const s0 = { x:drag.gs.x, y:drag.gs.y, r:drag.gs.r, s:drag.gs.s, o:1 };
+  g.style.transformOrigin = '0 0';
+  /* the ghost was drawn scaled around the grab point; re-express that position
+     with a top-left origin so nothing jumps when the origin changes */
+  const ox = drag.ox, oy = drag.oy;
+  s0.x = s0.x + ox*(1 - s0.s); s0.y = s0.y + oy*(1 - s0.s);
+  drag.gs = s0; ghostPaint();
+  if (reveal) reveal.style.visibility = 'hidden';
+  const L = { g:g, src:src, reveal:reveal, springs:[] }; drag.land = L;
+  const gw = g.offsetWidth || 1;
+  const tx = target.left, ty = target.top, ts = shrink ? 0.55 : Math.max(0.5, Math.min(1.4, target.width/gw));
+  let left = 3;
+  const done = function(){ if (--left > 0) return; if (drag.land === L) landNow(); };
+  L.springs.push(rhSpring(s0.x, tx, v.x, { damping:1, response:0.32 }, function(x){ drag.gs.x = x; ghostPaint(); }, done));
+  L.springs.push(rhSpring(s0.y, ty, v.y, { damping:1, response:0.32 }, function(y){ drag.gs.y = y; ghostPaint(); }, done));
+  L.springs.push(rhSpring(0, 1, 0, { damping:1, response:0.26 }, function(p){
+    drag.gs.r = s0.r*(1 - p); drag.gs.s = s0.s + (ts - s0.s)*p; if (shrink) drag.gs.o = 1 - p; ghostPaint(); }, done));
+}
 function dragEnd(copy){
   clearTimeout(drag.timer);
-  const was = drag.on, over = drag.over, id = drag.id;
-  if (drag.ghost) drag.ghost.remove();
-  if (drag.el) drag.el.classList.remove('plx-lift');
+  const was = drag.on, over = drag.over, id = drag.id, src = drag.el;
   if (over) over.classList.remove('drop', 'drop-del');
   const kind = drag.kind, li = drag.li;
-  drag.on = false; drag.ghost = null; drag.el = null; drag.over = null; drag.id = null; drag.pid = null; drag.kind = 'chip'; drag.li = null;
-  if (!was) return;
+  drag.on = false; drag.el = null; drag.over = null; drag.id = null; drag.pid = null; drag.kind = 'chip'; drag.li = null;
+  if (!was){ drag.hist = []; return; }
   drag.moved = true;                                   /* swallow the click that follows */
   setTimeout(function(){ drag.moved = false; }, 350);
+  const chipRect = function(cid){ const c = $month.querySelector('.plx-chip[data-id="' + cid + '"]'); return c ? { el:c, r:c.getBoundingClientRect() } : null; };
+  const home = function(){ if (src && src.isConnected){ flyGhost(src, src.getBoundingClientRect(), null, false); } else flyGhost(null, { left:drag.gs.x, top:drag.gs.y, width:1 }, null, true); drag.hist = []; };
+  let landed = null;
   if (kind === 'card'){
     const it = LIBITEMS[li];
-    if (!it || !over || !over.dataset || !over.dataset.date) return;
+    if (!it || !over || !over.dataset || !over.dataset.date){ home(); return; }
     /* cards carry no time (v222): it is set on the day, after the drop */
     const rec = cloneOnto(it.proto, over.dataset.date); rec.time = '';
     snap(); PLANNED.push(rec); commit(over.dataset.date);
     toast('Added ' + it.name + ' — ⌘Z undoes');
-    return;
-  }
-  if (over === $lib){
+    landed = chipRect(rec.id);
+  } else if (over === $lib){
     const g = PLANNED.find(function(x){ return String(x.id) === id; });
-    if (!g) return;
+    if (!g){ home(); return; }
     snap(); PLANNED = PLANNED.filter(function(x){ return x !== g; }); commit(g.date);
     toast('Removed ' + (g.title || g.type) + ' — ⌘Z undoes');
+    const lr = $lib.getBoundingClientRect();
+    flyGhost(null, { left:lr.left + lr.width/2 - 40, top:lr.top + lr.height/2 - 12, width:80 }, null, true); drag.hist = [];
     return;
+  } else {
+    const w = PLANNED.find(function(x){ return String(x.id) === id; });
+    if (!w || !over || over.dataset.date === w.date){ home(); return; }
+    snap();
+    let nid = w.id;
+    if (copy){ const c = cloneOnto(w, over.dataset.date); PLANNED.push(c); nid = c.id; }
+    else w.date = over.dataset.date;
+    commit(over.dataset.date);
+    landed = chipRect(nid);
+    if (src && copy){ const s2 = chipRect(w.id); if (s2) s2.el.classList.remove('plx-lift'); }
   }
-  const w = PLANNED.find(function(x){ return String(x.id) === id; });
-  if (!w || !over || over.dataset.date === w.date) return;
-  snap();
-  if (copy) PLANNED.push(cloneOnto(w, over.dataset.date));
-  else w.date = over.dataset.date;
-  commit(over.dataset.date);
+  if (landed) flyGhost(null, landed.r, landed.el, false);
+  else flyGhost(null, { left:drag.gs.x, top:drag.gs.y, width:1 }, null, true);
+  drag.hist = [];
 }
 $month.addEventListener('pointerdown', function(e){
   const chip = e.target.closest('.plx-chip');
   if (!chip || !chip.dataset.id || (e.button != null && e.button !== 0)) return;
-  drag.kind = 'chip'; drag.li = null;
-  drag.id = chip.dataset.id; drag.el = chip; drag.x = e.clientX; drag.y = e.clientY;
+  drag.kind = 'chip'; drag.li = null; drag.hist = [];
+  drag.id = chip.dataset.id; drag.el = chip; drag.x = e.clientX; drag.y = e.clientY; drag.dx = e.clientX; drag.dy = e.clientY;
   drag.touch = e.pointerType !== 'mouse'; drag.pid = e.pointerId; drag.on = false;
   clearTimeout(drag.timer);
   if (drag.touch) drag.timer = setTimeout(dragStart, 280);
@@ -21212,7 +21283,7 @@ $lib && $lib.addEventListener('pointerdown', function(e){
   const card = e.target.closest('.lb-card');
   if (!card || e.target.closest('.lb-x') || (e.button != null && e.button !== 0)) return;
   drag.kind = 'card'; drag.li = +card.dataset.li; drag.id = 'card:' + card.dataset.li;
-  drag.el = card; drag.x = e.clientX; drag.y = e.clientY;
+  drag.el = card; drag.x = e.clientX; drag.y = e.clientY; drag.dx = e.clientX; drag.dy = e.clientY; drag.hist = [];
   drag.touch = e.pointerType !== 'mouse'; drag.pid = e.pointerId; drag.on = false;
   clearTimeout(drag.timer);
   if (drag.touch) drag.timer = setTimeout(dragStart, 280);
