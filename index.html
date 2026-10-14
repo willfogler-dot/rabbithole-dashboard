@@ -7252,7 +7252,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v235';
+const RH_BUILD = 'v236';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -22478,6 +22478,10 @@ render();
   /* Training: one soft surface, no outline; the picker reads as a title */
   #s-overview #dskHome #hmVolSlot{margin:0;}
   #s-overview #dskHome #hmVolSlot > .ov-volume{background:var(--sf);border:none;box-shadow:none;border-radius:20px;-webkit-backdrop-filter:none;backdrop-filter:none;}
+  /* v236: with the picker sized to its text, the Wk/Mo/Yr control floated mid-row;
+     it sits against the right edge, level with the card's edge */
+  #s-overview #dskHome #hmVolSlot .vol-controls{display:flex;align-items:center;}
+  #s-overview #dskHome #hmVolSlot #volGran{margin-left:auto;flex:0 0 auto;}
   /* "Sleep Score" reads as "Score" after "Sleep even", so the line fits one row */
   #s-overview #dskHome .hm-chip .l-full{display:none;}
   #s-overview #dskHome #hmVolSlot .vol-sel{flex:0 1 auto;width:auto;background-color:transparent;border-color:transparent;box-shadow:none;padding:6px 22px 6px 2px;font:600 15px var(--fd);color:var(--n1);
