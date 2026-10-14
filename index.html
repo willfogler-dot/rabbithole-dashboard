@@ -22482,6 +22482,10 @@ render();
      it sits against the right edge, level with the card's edge */
   #s-overview #dskHome #hmVolSlot .vol-controls{display:flex;align-items:center;}
   #s-overview #dskHome #hmVolSlot #volGran{margin-left:auto;flex:0 0 auto;}
+  /* no track around the options, like the picker beside them: they float as
+     text, and only the sliding pill marks the one that is on */
+  #s-overview #dskHome #hmVolSlot #volGran{background:none!important;border-color:transparent!important;box-shadow:none!important;padding:0;}
+  #s-overview #dskHome #hmVolSlot #volGran button{background:none;}
   /* "Sleep Score" reads as "Score" after "Sleep even", so the line fits one row */
   #s-overview #dskHome .hm-chip .l-full{display:none;}
   #s-overview #dskHome #hmVolSlot .vol-sel{flex:0 1 auto;width:auto;background-color:transparent;border-color:transparent;box-shadow:none;padding:6px 22px 6px 2px;font:600 15px var(--fd);color:var(--n1);
