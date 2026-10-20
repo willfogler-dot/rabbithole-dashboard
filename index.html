@@ -835,6 +835,10 @@ select.fi{appearance:none;background-image:linear-gradient(45deg,transparent 50%
 .ml-done{color:var(--ink);font-weight:600;}
 .ml-plan{color:var(--ink3);}
 .ml-race{color:var(--sky);font-weight:600;}
+.ml-race.maybe{opacity:.7;font-weight:500;}
+/* v237: a maybe race reads as a pencilled-in race everywhere — same colour, dashed */
+.day-race.maybe{background:none!important;box-shadow:none!important;outline:1.2px dashed rgba(224,92,194,.55);outline-offset:-1.2px;}
+.mb-tag{font-style:normal;font-family:var(--fd);font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3,#a8b0c4);margin-right:7px;vertical-align:1px;}
 .ml-mi{flex:0 0 auto;font-family:var(--fd);font-size:14px;font-weight:600;
   color:var(--ink2);font-variant-numeric:tabular-nums;}
 .ml-mi i{font-style:normal;font-size:10.5px;color:var(--ink3);margin-left:1px;}
@@ -3311,6 +3315,10 @@ body.sheet-open::after{z-index:19;}
   <div class="sheet-head"><div class="sheet-date" id="rcTitle">Add race</div><button class="sheet-x" id="rcEdClose">✕</button></div>
   <label class="fl">Race name</label><input class="fi" id="rcName" placeholder="Leadville Silver Rush">
   <label class="fl">Date</label><input class="fi" type="date" id="rcDate">
+  <label class="fl">Status</label>
+  <select class="fi" id="rcStatus">
+    <option value="registered">Registered</option><option value="potential">Maybe — still deciding</option>
+  </select>
   <label class="fl">Priority</label>
   <select class="fi" id="rcPri">
     <option value="A">A · goal race</option><option value="B">B · hard effort</option><option value="C">C · training day</option>
@@ -4889,7 +4897,7 @@ function isStrength(a){
 
 /* Works on anything shaped like a session — logged activity or planned workout. */
 function classifyItems(items, dateISO){
-  if (dateISO && RACES.some(function(r){ return r && r.date === dateISO; })) return 'race';
+  if (dateISO && committedRaces().some(function(r){ return r.date === dateISO; })) return 'race';
   if (!items || !items.length) return 'rest';
 
   const n = dayNorms();
@@ -4914,7 +4922,7 @@ function classifyItems(items, dateISO){
 }
 function classifyDay(dateISO){
   const acts = ACTS.filter(function(a){ return a._iso === dateISO; });
-  if (RACES.some(function(r){ return r && r.date === dateISO; }) && acts.length) return 'race';
+  if (committedRaces().some(function(r){ return r.date === dateISO; }) && acts.length) return 'race';
   return classifyItems(acts, null) === 'rest' && !acts.length ? 'rest' : classifyItems(acts, dateISO);
 }
 /* what a day is SHAPED to be, from what is on the board */
@@ -7252,7 +7260,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v236';
+const RH_BUILD = 'v237';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -8382,8 +8390,8 @@ function raceMiles(r){
 }
 function racesToGo(from, to){
   const lo = from > TODAY ? from : TODAY;
-  const list = (RACES || []).filter(function(r){
-    return r && r.date >= lo && r.date <= to;
+  const list = committedRaces().filter(function(r){
+    return r.date >= lo && r.date <= to;
   });
   return {
     mi: list.reduce(function(s,r){ return s + raceMiles(r); }, 0),
@@ -8452,7 +8460,7 @@ function renderCal(){
     let cls='cal-d'; let style='';
     const hasDone = doneSet.has(key);
     const hasOpenPlan = PLANNED.some(w => w && w.date === key && !isFulfilled(w));
-    const isRace = RACES.some(function(r){ return r && r.date === key; });
+    const isRace = committedRaces().some(function(r){ return r.date === key; });
     /* every day carries the colour of the kind of training it is; done days are
        filled, planned days only outlined, so intention reads differently to fact */
     const t = (hasDone || hasOpenPlan || isRace) ? dayTypeFor(key) : null;
@@ -8520,7 +8528,7 @@ function renderMonthList(y, m){
             + (w.elevation_ft ? ' \u00b7 ' + fmtK(w.elevation_ft) + ' ft' : '') + '</u>' : '')
         + '</span>');
     });
-    races.forEach(function(r){ bits.push('<span class="ml-race">\u2691 ' + r.name + '</span>'); });
+    races.forEach(function(r){ bits.push('<span class="ml-race' + (raceIsMaybe(r) ? ' maybe' : '') + '">\u2691 ' + (raceIsMaybe(r) ? 'Maybe \u00b7 ' : '') + r.name + '</span>'); });
 
     rows.push('<button class="ml-row' + (key === TODAY ? ' today' : '')
       + (key > TODAY ? ' future' : '') + '" data-mld="' + key + '">'
@@ -9845,7 +9853,7 @@ function weekListHtml(days){
     const mi = acts.reduce(function(s,a){ return s + (a.distance_mi||0); }, 0);
 
     const bits = [];
-    races.forEach(function(r){ bits.push('<span class="ml-race">\u2691 ' + r.name
+    races.forEach(function(r){ bits.push('<span class="ml-race' + (raceIsMaybe(r) ? ' maybe' : '') + '">\u2691 ' + (raceIsMaybe(r) ? 'Maybe \u00b7 ' : '') + r.name
       + (r.distance_mi ? ' <u>' + f1mi(r.distance_mi) + ' mi'
           + (r.elevation_ft ? ' \u00b7 ' + fmtK(r.elevation_ft) + ' ft' : '') + '</u>' : '')
       + '</span>'); });
@@ -13334,17 +13342,30 @@ document.querySelector('.portal').addEventListener('click', openReadiness);
 /* ═══════════ RACES ═══════════ */
 const RACE_PRIORITY = { A:'A · goal race', B:'B · hard effort', C:'C · training day' };
 
+/* v237 · MAYBE RACES
+   A race can be "potential": on the calendar so he can see what it does to the
+   season, but not a commitment. Everything that steers training — the goal race,
+   the countdown, the phase, Jarvis, the day colour, mileage still to come — reads
+   committed races only. Without this, loading four candidates would make the
+   earliest one the "goal race" overnight. Display code shows both, maybes dashed.
+   Records without a status are registered: every race before v237. */
+function raceIsMaybe(r){ return !!r && r.status === 'potential'; }
+function committedRaces(){ return (RACES || []).filter(function(r){ return r && !raceIsMaybe(r); }); }
 function daysUntil(dateISO){
   const d = new Date(dateISO+'T00:00:00');
   return Math.round((d - todayD)/86400000);
 }
 function upcomingRaces(){
-  return RACES.filter(function(r){ return r && r.date && daysUntil(r.date) >= 0; })
+  return committedRaces().filter(function(r){ return r.date && daysUntil(r.date) >= 0; })
               .sort(function(a,b){ return a.date.localeCompare(b.date); });
 }
 function pastRaces(){
-  return RACES.filter(function(r){ return r && r.date && daysUntil(r.date) < 0; })
+  return committedRaces().filter(function(r){ return r.date && daysUntil(r.date) < 0; })
               .sort(function(a,b){ return b.date.localeCompare(a.date); });
+}
+function maybeRaces(){
+  return (RACES || []).filter(function(r){ return raceIsMaybe(r) && r.date && daysUntil(r.date) >= 0; })
+              .sort(function(a,b){ return a.date.localeCompare(b.date); });
 }
 function nextRace(){ return upcomingRaces()[0] || null; }
 /* the A race everything is pointing at */
@@ -13466,6 +13487,7 @@ function openRaceInfo(id){
     facts.push(['Per mile', Math.round(r.elevation_ft / r.distance_mi) + ' ft/mi']);
   if (r.goal_time)    facts.push(['Goal', r.goal_time]);
   if (r.location)     facts.push(['Where', r.location]);
+  if (raceIsMaybe(r)) facts.push(['Status', 'Maybe \u2014 not registered']);
   facts.push(['Priority', (r.priority || 'A') + ' race']);
   const sup = r.supports ? RACES.find(function(x){ return String(x.id) === String(r.supports); }) : null;
   if (sup) facts.push(['Supports', sup.name]);
@@ -13507,6 +13529,7 @@ function openRace(id){
   document.getElementById('rcGoal').value  = r ? (r.goal_time||'') : '';
   document.getElementById('rcNotes').value = r ? (r.notes||'') : '';
   document.getElementById('rcPri').value   = r ? (r.priority||'A') : 'A';
+  { const s = document.getElementById('rcStatus'); if (s) s.value = raceIsMaybe(r) ? 'potential' : 'registered'; }
   /* only A races can be supported, and nothing supports itself */
   const goals = RACES.filter(function(x){ return (x.priority||'A')==='A' && (!r || String(x.id)!==String(r.id)); });
   document.getElementById('rcSupports').innerHTML =
@@ -13538,7 +13561,11 @@ function saveRace(){
     priority: document.getElementById('rcPri').value,
     supports: document.getElementById('rcSupports').value || null,
     notes: document.getElementById('rcNotes').value.trim(),
+    status: (document.getElementById('rcStatus') || {}).value === 'potential' ? 'potential' : 'registered',
   };
+  /* keep fields this form does not edit (the season view's on/off switch) */
+  if (raceId){ const prev = RACES.find(function(x){ return String(x.id)===raceId; });
+    if (prev && prev.season_off != null) rec.season_off = prev.season_off; }
   if (raceId){ const i = RACES.findIndex(function(x){ return String(x.id)===raceId; });
     if (i>=0) RACES[i] = rec; else RACES.push(rec); }
   else RACES.push(rec);
@@ -13560,6 +13587,7 @@ function renderRaceList(){
   const shown = goal ? [String(goal.id)].concat(supportersOf(goal.id).map(function(x){ return String(x.id); })) : [];
   const up = upcomingRaces().filter(function(r){ return shown.indexOf(String(r.id)) < 0; });
   const past = pastRaces().slice(0,5);
+  const maybes = maybeRaces();
   let h = '';
   if (up.length){
     h += up.map(function(r){
@@ -13574,7 +13602,18 @@ function renderRaceList(){
     }).join('');
   } else {
     /* the hero card already shows the goal race — an empty list under it is noise */
-    h += goal ? '' : '<div class="empty" style="padding:13px 12px">No races on the calendar.</div>';
+    h += (goal || maybes.length) ? '' : '<div class="empty" style="padding:13px 12px">No races on the calendar.</div>';
+  }
+  if (maybes.length){
+    h += maybes.map(function(r){
+      const d = new Date(r.date+'T00:00:00');
+      return '<div class="lrow rl-maybe" data-race="'+r.id+'" style="cursor:pointer">'
+        + '<div class="ic"><em class="mb-tag" style="margin:0">Maybe</em></div>'
+        + '<div class="m"><div class="t">'+r.name+'</div>'
+        + '<div class="s">'+d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})
+        + ' \u00b7 '+countdownWords(daysUntil(r.date))+(r.distance_mi?' \u00b7 '+f1(r.distance_mi)+' mi':'')+'</div></div>'
+        + '<div class="rt" style="font-size:12px;color:var(--ink4)">'+(r.priority||'A')+'</div></div>';
+    }).join('');
   }
   host.innerHTML = h;
   host.style.display = h ? '' : 'none';
@@ -17968,8 +18007,8 @@ function openDay(dateISO){
   if (races.length){
     h += races.map(function(r){
       const days = daysUntil(r.date);
-      return '<div class="day-race"><span class="dr-pri pri-'+(r.priority||'B')+'">'+(r.priority||'B')+'</span>'
-        + '<div><div class="dr-n">'+r.name+'</div>'
+      return '<div class="day-race'+(raceIsMaybe(r)?' maybe':'')+'"><span class="dr-pri pri-'+(r.priority||'B')+'">'+(r.priority||'B')+'</span>'
+        + '<div><div class="dr-n">'+(raceIsMaybe(r)?'<em class="mb-tag">Maybe</em>':'')+r.name+'</div>'
         + '<div class="dr-m">'+[r.distance_mi?f1(r.distance_mi)+' mi':'', r.elevation_ft?fmtK(r.elevation_ft)+' ft':'', r.location||''].filter(Boolean).join(' \u00b7 ')+'</div></div>'
         + '<span class="dr-d">'+(days===0?'today':days>0?days+'d':'done')+'</span></div>';
     }).join('');
@@ -19301,6 +19340,9 @@ if ('serviceWorker' in navigator){
 .plx-day.today .dnum{background:var(--grad);color:#080a12;}
 .plx-day.past .dnum{color:var(--n4);}
 .plx-day .rc{font-family:var(--fd);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:#fff;background:linear-gradient(112deg,#c026a0,#8a3fd0);border-radius:5px;padding:2px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;box-shadow:0 0 10px rgba(192,38,160,.5);}
+/* v237: a maybe race is pencilled in — the same magenta, outlined and dashed, no glow */
+.plx-day .rc.maybe{background:none;box-shadow:none;color:#f0a6dd;outline:1.2px dashed rgba(224,92,194,.7);outline-offset:-1.2px;}
+.plx-day .rc i{font-style:normal;opacity:.7;margin-right:5px;}
 .plx-day .add{margin-left:auto;width:22px;height:22px;border-radius:7px;border:none;background:none;color:var(--n3);font-size:16px;line-height:1;opacity:0;transition:opacity .12s,background .12s,color .12s;flex:0 0 auto;}
 .plx-day:hover .add{opacity:1;} .plx-day .add:hover{background:var(--a-fill);color:var(--a-hi);}
 @media (hover:none){ .plx-day .add{opacity:.55;} }
@@ -19618,6 +19660,7 @@ if ('serviceWorker' in navigator){
   .plx-day .dh{flex-direction:column;height:auto;gap:3px;width:100%;}
   .plx-day .add{display:none;}
   .plx-day .rc{font-size:0;padding:0;height:4px;width:70%;border-radius:2px;}
+  .plx-day .rc.maybe{outline:none;background:repeating-linear-gradient(90deg,#c026a0 0 4px,transparent 4px 7px);}
   .plx-grid .plx-chips{flex-direction:row;flex-wrap:wrap;justify-content:center;align-items:center;gap:3px;}
   .plx-grid .plx-chip{width:7px;height:7px;min-width:0;padding:0;border:1.5px solid var(--c);border-radius:50%;background:none;box-shadow:none;font-size:0;gap:0;flex:0 0 auto;}
   .plx-grid .plx-chip > *{display:none;}
@@ -20367,7 +20410,7 @@ function renderMonth(ix){
       grid += '<div class="plx-day' + (old ? ' old' : '') + (i > 4 ? ' we' : '') + (key < TODAY ? ' past' : '') + (isNow ? ' wknow' : '')
         + (d.getMonth() !== mo ? ' out' : '') + (key === TODAY ? ' today' : '') + '" data-date="' + key + '">'
         + '<div class="dh"><span class="dnum">' + d.getDate() + '</span>'
-        +   p.races.map(function(rc){ return '<span class="rc" title="' + E(rc.name) + '">' + E(rc.name) + '</span>'; }).join('')
+        +   p.races.map(function(rc){ return '<span class="rc' + (raceIsMaybe(rc) ? ' maybe' : '') + '" title="' + (raceIsMaybe(rc) ? 'Maybe: ' : '') + E(rc.name) + '">' + E(rc.name) + '</span>'; }).join('')
         +   '<button class="add" data-add aria-label="Add to ' + key + '">+</button></div>'
         + '<div class="plx-chips">' + p.plans.map(function(w){ return planChip(w, key); }).join('') + p.extra.map(actChip).join('') + '</div>'
         + '</div>';
@@ -20516,7 +20559,7 @@ function renderWeekView(ix){
     return '<div class="plx-day plx-wd' + (i > 4 ? ' we' : '') + (d.key < TODAY ? ' past' : '') + (d.key === TODAY ? ' today' : '') + '" data-date="' + d.key + '">'
       + '<div class="plx-wdh"><span class="dnum">' + dt.getDate() + '</span><span class="dw">' + DOW[i] + '</span>'
       +   (tot > 0 ? '<span class="tot">' + fmt1(tot) + '<small>' + m.unit + '</small></span>' : '') + '</div>'
-      + d.p.races.map(function(rc){ return '<span class="rc" title="' + E(rc.name) + '">' + E(rc.name) + '</span>'; }).join('')
+      + d.p.races.map(function(rc){ return '<span class="rc' + (raceIsMaybe(rc) ? ' maybe' : '') + '" title="' + (raceIsMaybe(rc) ? 'Maybe: ' : '') + E(rc.name) + '">' + (raceIsMaybe(rc) ? '<i>Maybe</i>' : '') + E(rc.name) + '</span>'; }).join('')
       + d.p.plans.map(function(w){ return planCard(w, d.key); }).join('') + d.p.extra.map(actCard).join('')
       + '<button class="plx-wadd" data-add>+ Add</button>'
       + '</div>';
