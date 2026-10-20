@@ -7260,7 +7260,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v239';
+const RH_BUILD = 'v240';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -22939,6 +22939,69 @@ render();
 .hm-explain{overflow:hidden;max-height:0;opacity:0;font-size:13px;line-height:1.45;color:var(--n2);text-align:center;transition:max-height .35s cubic-bezier(.2,.8,.2,1),opacity .25s,margin .35s;}
 .hm-explain.on{max-height:60px;opacity:1;margin:-4px 0 14px;}
 @media (min-width:760px){ .hm-explain{text-align:left;} }
+
+
+/* ═══ v240 · TODAY, WITH LESS CHROME (desktop and iPad) ═══
+   The phone's v227 treatment carried to the wide layout. The three glass
+   panels go: spacing does the grouping, each section is a plain heading over
+   one soft surface, and nothing inside a surface gets its own outline. The
+   readiness ring and the four week totals are the heroes, so they sit on the
+   page with no surface at all. Two IDs so this wins over v170-v176. */
+@media (min-width:760px){
+  #s-overview #dskHome{--sf:color-mix(in srgb,var(--n1) 4.5%,transparent);--hl:color-mix(in srgb,var(--n1) 8%,transparent);}
+  #s-overview #dskHome .hm-panel{background:none;border:none;box-shadow:none;border-radius:0;margin-bottom:34px;}
+  #s-overview #dskHome .hm-row.hm-panel{gap:28px;}
+  /* section headings: one style everywhere */
+  #s-overview #dskHome .dk-card .dk-h{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 10px;margin:0 4px 10px;padding:0;}
+  #s-overview #dskHome .dk-card .dk-h h3{font:600 17px var(--fd);letter-spacing:-.01em;color:var(--n1);}
+  #s-overview #dskHome .dk-card .dk-h > span:not(.dk-sp){font-size:12.5px;color:var(--n3);}
+  #s-overview #dskHome .dk-card .dk-h .dk-txt{border:none;background:none;box-shadow:none;padding:4px 2px;margin:0 0 0 auto;height:auto;color:var(--n3);font-weight:500;}
+  #s-overview #dskHome .dk-card .dk-h .dk-txt:hover{color:var(--n1);}
+
+  /* 1 · readiness on the page; last night as four soft tiles */
+  #s-overview #dskHome .hm-panel > .dk-card.hm-ready{background:none;padding:6px 4px 0;border-radius:0;}
+  #s-overview #dskHome .hm-panel > .dk-card.hm-ready + .dk-card{border:none;padding:0;}
+  #s-overview #dskHome .hm-chip{padding:0;border:none;background:none;border-radius:0;font-size:13px;color:var(--n3);box-shadow:none;margin-right:14px;}
+  #s-overview #dskHome .hm-chip i{display:none;}
+  #s-overview #dskHome .hm-chip b{font-family:var(--fb);color:var(--n1);}
+  #s-overview #dskHome .hm-chip.t-up:not(.ld) b{color:var(--pos);}
+  #s-overview #dskHome .hm-chip.t-dn:not(.ld) b{color:var(--neg);}
+  #s-overview #dskHome .hm-chip.ld svg{vertical-align:-2px;margin-right:3px;}
+  #s-overview #dskHome .hm-chips{gap:8px 0;}
+  #s-overview #dskHome .hm-night{gap:10px;}
+  #s-overview #dskHome .hm-nt{background:var(--sf);border:none;border-radius:18px;padding:14px 16px 10px;}
+  #s-overview #dskHome .hm-nt:hover{background:var(--hl);}
+
+  /* 2 · the week's totals on the page; the seven days on one surface */
+  #s-overview #dskHome .hm-wkp .hm-tiles{padding:0 4px;border:none;gap:24px;margin:0 0 30px;}
+  #s-overview #dskHome .hm-wkp .hm-tiles .dk-card,#s-overview #dskHome .hm-wkp .hm-tiles .dk-card:first-child{border:none;padding:0;background:none;}
+  /* the line under a total wraps rather than cutting off ("Add o…" on the iPad) */
+  #s-overview #dskHome .hm-tiles .dk-stat .d{white-space:normal;overflow:visible;}
+  #s-overview #dskHome .hm-wkp .dk-card.hm-weekcard{padding:0;}
+  #s-overview #dskHome .hm-days{background:var(--sf);border-radius:20px;padding:8px;gap:4px;margin-top:0;}
+  #s-overview #dskHome .hm-day,#s-overview #dskHome .hm-wkp .hm-day:not(.today){background:none;border:none;border-radius:14px;}
+  #s-overview #dskHome .hm-day.today{background:var(--hl);border:none;}
+  #s-overview #dskHome .hm-it{border:none;box-shadow:none;}
+
+  /* 3 · the chart on a surface, its picker reading as the title; insights and recent as lists */
+  #s-overview #dskHome .hm-panel #hmVolSlot > .ov-volume{background:var(--sf);border:none;border-radius:20px;padding:16px 20px 18px;}
+  #s-overview #dskHome #hmVolSlot .vol-controls{display:flex;align-items:center;}
+  #s-overview #dskHome #hmVolSlot .vol-sel{flex:0 1 auto;width:auto;background-color:transparent;border-color:transparent;box-shadow:none;padding:6px 22px 6px 2px;font:600 17px var(--fd);color:var(--n1);
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238a93a9' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")!important;background-repeat:no-repeat;background-position:right 4px center;}
+  #s-overview #dskHome #hmVolSlot #volGran{margin-left:auto;flex:0 0 auto;background:none!important;border-color:transparent!important;box-shadow:none!important;padding:0;}
+  /* the wide layout has no sliding thumb: the selected button keeps its own fill */
+  #s-overview #dskHome #hmVolSlot #volGran button:not(.on){background:none;}
+  #s-overview #dskHome #hmVolSlot .vm{background:none;border:none;border-radius:12px;box-shadow:none;}
+  #s-overview #dskHome #hmVolSlot .vm.lead{background:var(--hl);}
+  #s-overview #dskHome .hm-panel .hm-side{border:none;gap:30px;}
+  #s-overview #dskHome .hm-panel .hm-side > .dk-card,#s-overview #dskHome .hm-panel .hm-side > .dk-card + .dk-card{padding:0;border:none;}
+  #s-overview #dskHome .hm-ins{background:var(--sf);border-radius:20px;padding:2px 18px;gap:0;}
+  #s-overview #dskHome .hm-ins .dk-fact{padding:12px 0;margin:0;border:none;}
+  #s-overview #dskHome .hm-ins .dk-fact + .dk-fact{box-shadow:inset 0 1px 0 var(--hl);}
+  #s-overview #dskHome .hm-recent{background:var(--sf);border-radius:20px;padding:2px 18px;gap:0;}
+  #s-overview #dskHome .hm-recent .dk-row{margin:0;padding:12px 0;border-radius:0;border:none;}
+  #s-overview #dskHome .hm-recent .dk-row + .dk-row{box-shadow:inset 0 1px 0 var(--hl);}
+}
 
 /* ═══ PHONE ═══ kept last so it wins over the wide rules above without !important */
 @media (max-width:759px){
