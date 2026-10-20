@@ -7260,7 +7260,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v241';
+const RH_BUILD = 'v242';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -23040,6 +23040,47 @@ render();
   #s-progress #dskTrain .dk-card.tall .dk-facts{justify-content:space-around;}
   /* the controls at the top: soft, no outlines */
   #s-progress #dskTrain .dk-top .dk-nav,#s-progress #dskTrain .dk-top .dk-txt{background:var(--sf);border-color:transparent;box-shadow:none;}
+}
+
+
+/* ═══ v242 · RECOVERY, WITH LESS CHROME (desktop and iPad) ═══
+   The phone's treatment on the wide layout, as on Today (v240). Each row of the
+   page stops being a glass panel: the headline numbers sit on the page, and
+   every other card is a plain heading over one soft surface. Cards side by
+   side get a gutter instead of a hairline, and their surfaces run to the same
+   height so the row still reads as a row. */
+@media (min-width:760px){
+  #s-health #dskRec{--sf:color-mix(in srgb,var(--n1) 4.5%,transparent);--hl:color-mix(in srgb,var(--n1) 8%,transparent);}
+  #s-health #dskRec .dk-grid,#s-health #dskRec .dk-g4:not(:last-child),#s-health #dskRec .dk-g5:not(:last-child),#s-health #dskRec .dk-g4 + .dk-grid,#s-health #dskRec .dk-g5 + .dk-grid{background:none;border:none;box-shadow:none;border-radius:0;margin:0 0 34px;gap:28px;-webkit-backdrop-filter:none;backdrop-filter:none;}
+  #s-health #dskRec .dk-grid > .dk-card,#s-health #dskRec .dk-grid > .dk-card + .dk-card{background:none;border:none;box-shadow:none;border-radius:0;padding:0;display:flex;flex-direction:column;-webkit-backdrop-filter:none;backdrop-filter:none;}
+  #s-health #dskRec .dk-grid > .dk-card::before,#s-health #dskRec .dk-grid > .dk-card::after{display:none;}
+  /* the headline numbers: on the page, spaced not ruled */
+  #s-health #dskRec .dk-g4,#s-health #dskRec .dk-g5{padding:0 4px;row-gap:22px;}
+  #s-health #dskRec .dk-g4 > .dk-card.dk-stat,#s-health #dskRec .dk-g5 > .dk-card.dk-stat{border:none!important;padding:0!important;display:block;}
+  /* headings */
+  #s-health #dskRec .dk-card > .dk-h,#s-health #dskRec .dk-card > .rb-th{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 10px;margin:0 4px 10px;}
+  #s-health #dskRec .dk-card > .rb-th{align-items:center;justify-content:space-between;}
+  #s-health #dskRec .dk-card > .dk-h h3,#s-health #dskRec .dk-card > .rb-th h3{font:600 17px var(--fd);letter-spacing:-.01em;color:var(--n1);}
+  #s-health #dskRec .dk-card > .dk-h > span:not(.dk-sp){font-size:12.5px;color:var(--n3);}
+  /* everything under a heading is one surface, rounded at its outer ends */
+  #s-health #dskRec .dk-grid:not(.dk-g4):not(.dk-g5) > .dk-card > :not(.dk-h):not(.rb-th){background:var(--sf);padding:14px 18px;margin:0;border-radius:0;}
+  #s-health #dskRec .dk-grid:not(.dk-g4):not(.dk-g5) > .dk-card > .dk-h + :not(.dk-h):not(.rb-th),#s-health #dskRec .dk-grid:not(.dk-g4):not(.dk-g5) > .dk-card > .rb-th + :not(.dk-h):not(.rb-th){border-top-left-radius:20px;border-top-right-radius:20px;}
+  #s-health #dskRec .dk-grid:not(.dk-g4):not(.dk-g5) > .dk-card > :last-child:not(.dk-h):not(.rb-th){border-bottom-left-radius:20px;border-bottom-right-radius:20px;flex:1 1 auto;}
+  #s-health #dskRec .dk-grid:not(.dk-g4):not(.dk-g5) > .dk-card > .dk-leg,#s-health #dskRec .dk-grid:not(.dk-g4):not(.dk-g5) > .dk-card > .dk-note,#s-health #dskRec .dk-grid:not(.dk-g4):not(.dk-g5) > .dk-card > .rb-cap{color:var(--n3);}
+  #s-health #dskRec .dk-grid:not(.dk-g4):not(.dk-g5) > .dk-card > .dk-h + .dk-leg{padding-bottom:0;}
+  #s-health #dskRec .dk-grid:not(.dk-g4):not(.dk-g5) > .dk-card > .dk-note,#s-health #dskRec .dk-grid:not(.dk-g4):not(.dk-g5) > .dk-card > .rb-cap{padding-top:0;}
+  /* lists and facts: hairlines, not rules */
+  #s-health #dskRec .dk-list{gap:0;}
+  #s-health #dskRec .dk-list .dk-row{margin:0;padding:12px 0;border-radius:0;border:none;}
+  #s-health #dskRec .dk-list .dk-row + .dk-row{box-shadow:inset 0 1px 0 var(--hl);}
+  #s-health #dskRec .dk-facts{gap:0;}
+  #s-health #dskRec .dk-facts .dk-fact{padding:12px 0;border:none;}
+  #s-health #dskRec .dk-facts .dk-fact + .dk-fact{box-shadow:inset 0 1px 0 var(--hl);}
+  #s-health #dskRec .dk-card.tall .dk-facts{justify-content:space-around;}
+  /* the controls at the top: soft, no outlines */
+  #s-health #dskRec .dk-top .dk-nav,#s-health #dskRec .dk-top .dk-txt{background:var(--sf);border-color:transparent;box-shadow:none;}
+  /* the range control floats with no track, like Today's Wk/Mo/Yr (v236) */
+  #dskHealthTop .rc-range{background:none;border-color:transparent;box-shadow:none;}
 }
 
 /* ═══ PHONE ═══ kept last so it wins over the wide rules above without !important */
