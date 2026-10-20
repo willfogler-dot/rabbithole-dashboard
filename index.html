@@ -7260,7 +7260,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v238';
+const RH_BUILD = 'v239';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -19675,6 +19675,21 @@ if ('serviceWorker' in navigator){
   .ss-now{top:-24px;bottom:auto;height:14px;width:2px;border-radius:1px;opacity:.9;background:var(--n1);}
   .ss-now::after{display:none;}
 }
+
+/* v239 · phase bars on days (see phaseIndex) */
+.plx-day .ph-bar{position:absolute;left:7px;right:7px;bottom:3px;height:3px;border-radius:2px;pointer-events:auto;}
+.ph-bar.build{background:var(--ph-build);} .ph-bar.taper{background:var(--ph-taper);} .ph-bar.rec{background:var(--ph-rec);}
+.ph-bar.both{background:linear-gradient(90deg,var(--ph-rec) 50%,var(--ph-build) 50%);}
+/* only maybe races behind it: the same bar, broken, like the dashed race chip */
+.ph-bar.mb{-webkit-mask:repeating-linear-gradient(90deg,#000 0 6px,transparent 6px 9px);mask:repeating-linear-gradient(90deg,#000 0 6px,transparent 6px 9px);}
+.plx-day.plx-wd .ph-bar{left:10px;right:10px;bottom:4px;}
+.ph-wk{display:flex;flex-wrap:wrap;gap:4px 18px;margin:0 4px 10px;font-size:12.5px;color:var(--n2);font-variant-numeric:tabular-nums;}
+.ph-wk span{display:flex;align-items:center;gap:7px;}
+.ph-wk i{width:14px;height:4px;border-radius:2px;display:block;}
+.ph-wk i.build{background:var(--ph-build);} .ph-wk i.taper{background:var(--ph-taper);} .ph-wk i.rec{background:var(--ph-rec);}
+.ph-wk i.mb{-webkit-mask:repeating-linear-gradient(90deg,#000 0 4px,transparent 4px 6px);mask:repeating-linear-gradient(90deg,#000 0 4px,transparent 4px 6px);}
+.ph-wk em{font-style:normal;color:var(--n4);}
+@media (max-width:759px){ .plx-day .ph-bar{left:4px;right:4px;bottom:2px;height:2.5px;} .plx-day.plx-wd .ph-bar{left:10px;right:10px;} }
 /* ═══ PHONE ═══
    Kept LAST so it wins over the base rules above without !important wars.
    The phone is for looking at the plan, with the odd edit, so it keeps the
@@ -20472,12 +20487,60 @@ function monthStatHTML(ix){
 }
 
 /* ═══ MONTH ═══ */
+
+/* ═══ PHASES ON THE CALENDAR (v239) ═══
+   The same blocks the Season view draws, laid onto days: a thin bar along the
+   bottom of each day says build, taper or recovery, for every race switched on
+   there. Two at once (recovering from one race while building for the next) is
+   drawn half and half, because that overlap is exactly what he wants to spot.
+   Computed once per render; a day lookup is a few string compares. */
+function phaseIndex(){
+  const rs = seasonRaces().filter(seasonOn).map(function(r){
+    const b = seasonBlocks(r);
+    return { r:r, b:b, build:iso(b.build), taper:iso(b.taper), day:r.date, rec:iso(b.recEnd) };
+  });
+  return function(key){
+    const hits = [];
+    rs.forEach(function(x){
+      let ph = null;
+      if (key >= x.build && key < x.taper) ph = 'build';
+      else if (key >= x.taper && key < x.day) ph = 'taper';
+      else if (key > x.day && key < x.rec) ph = 'rec';
+      if (ph) hits.push({ ph:ph, x:x });
+    });
+    if (!hits.length) return null;
+    const kinds = hits.map(function(h){ return h.ph; }).filter(function(v, i, a){ return a.indexOf(v) === i; });
+    const word = { build:'Build', taper:'Taper', rec:'Recovery' };
+    return {
+      cls: kinds.length > 1 && kinds.indexOf('rec') >= 0 ? 'both' : kinds.indexOf('taper') >= 0 ? 'taper' : kinds[0],
+      maybe: hits.every(function(h){ return raceIsMaybe(h.x.r); }),
+      hits: hits,
+      tip: hits.map(function(h){ return word[h.ph] + ' · ' + h.x.r.name + (raceIsMaybe(h.x.r) ? ' (maybe)' : ''); }).join('\n'),
+      word: word,
+    };
+  };
+}
+function phaseBar(P, key){
+  const q = P(key); if (!q) return '';
+  return '<span class="ph-bar ' + q.cls + (q.maybe ? ' mb' : '') + '" title="' + E(q.tip) + '"></span>';
+}
+/* the week's line: where this week sits in each block, e.g. "Build · week 6 of 16 · Leadville 100" */
+function phaseWeekLine(P, monISO){
+  const q = P(iso(addDays(dOf(monISO), 3))); if (!q) return '';
+  return '<div class="ph-wk">' + q.hits.map(function(h){
+    const b = h.x.b, from = h.ph === 'build' ? b.build : h.ph === 'taper' ? b.taper : b.day;
+    const len = h.ph === 'build' ? b.p[0] : h.ph === 'taper' ? b.p[1] : b.p[2];
+    const n = Math.min(len, Math.floor((addDays(dOf(monISO), 3) - from)/PH_DAY/7) + 1);
+    return '<span><i class="' + h.ph + (raceIsMaybe(h.x.r) ? ' mb' : '') + '"></i>' + q.word[h.ph] + ' · week ' + n + ' of ' + len + ' · ' + E(h.x.r.name) + (raceIsMaybe(h.x.r) ? ' <em>maybe</em>' : '') + '</span>';
+  }).join('') + '</div>';
+}
 function renderMonth(ix){
   const y = st.year, mo = st.month, m = METRIC[st.metric];
   const other = st.metric === 'distance' ? 'elevation' : 'distance';
   const weeks = weeksOf(y, mo);
   const mKey = y + '-' + String(mo+1).padStart(2,'0');
   const thisMon = iso(weekStart(todayD));
+  const PH = phaseIndex();
 
   let grid = DOW.map(function(d, i){ return '<div class="plx-gh' + (i > 4 ? ' we' : '') + '">' + d + '</div>'; }).join('') + '<div class="plx-gh">Week</div>';
 
@@ -20497,6 +20560,7 @@ function renderMonth(ix){
         +   p.races.map(function(rc){ return '<span class="rc' + (raceIsMaybe(rc) ? ' maybe' : '') + '" title="' + (raceIsMaybe(rc) ? 'Maybe: ' : '') + E(rc.name) + '">' + E(rc.name) + '</span>'; }).join('')
         +   '<button class="add" data-add aria-label="Add to ' + key + '">+</button></div>'
         + '<div class="plx-chips">' + p.plans.map(function(w){ return planChip(w, key); }).join('') + p.extra.map(actChip).join('') + '</div>'
+        + phaseBar(PH, key)
         + '</div>';
     }
     const W = weekRun(ix, mon), O = weekRun(ix, mon, other);
@@ -20638,6 +20702,7 @@ function renderWeekView(ix){
     + '<div><div class="plx-hx-l">The week</div><div class="plx-facts">' + facts + '</div></div>'
     + '</div>';
 
+  const PH = phaseIndex();
   const board = days.map(function(d, i){
     const dt = dOf(d.key), tot = d.key < TODAY ? d.r.done : Math.max(d.r.planned, d.r.done);
     return '<div class="plx-day plx-wd' + (i > 4 ? ' we' : '') + (d.key < TODAY ? ' past' : '') + (d.key === TODAY ? ' today' : '') + '" data-date="' + d.key + '">'
@@ -20646,10 +20711,11 @@ function renderWeekView(ix){
       + d.p.races.map(function(rc){ return '<span class="rc' + (raceIsMaybe(rc) ? ' maybe' : '') + '" title="' + (raceIsMaybe(rc) ? 'Maybe: ' : '') + E(rc.name) + '">' + (raceIsMaybe(rc) ? '<i>Maybe</i>' : '') + E(rc.name) + '</span>'; }).join('')
       + d.p.plans.map(function(w){ return planCard(w, d.key); }).join('') + d.p.extra.map(actCard).join('')
       + '<button class="plx-wadd" data-add>+ Add</button>'
+      + phaseBar(PH, d.key)
       + '</div>';
   }).join('');
 
-  $month.innerHTML = hero + '<div class="plx-week">' + board + '</div>';
+  $month.innerHTML = hero + phaseWeekLine(PH, days[0].key) + '<div class="plx-week">' + board + '</div>';
 }
 function gotoWeek(monISO){
   st.week = monISO;
