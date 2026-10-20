@@ -7260,7 +7260,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v237';
+const RH_BUILD = 'v238';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -13571,6 +13571,8 @@ function saveRace(){
   else RACES.push(rec);
   saveRaces(); closeRace();
   renderRaceCard(); renderGreeting(); renderCal(); setPlanView(planView); renderRaceList();
+  /* the planner draws races too (chips, and the season view) */
+  if (typeof window.plxRender === 'function'){ try { window.plxRender(); } catch(e){ console.error('[plx] after race save', e); } }
   toast(raceId ? 'Race updated' : 'Race added');
 }
 function deleteRace(){
@@ -13578,6 +13580,8 @@ function deleteRace(){
   RACES = RACES.filter(function(x){ return String(x.id) !== raceId; });
   saveRaces(); closeRace();
   renderRaceCard(); renderGreeting(); renderCal(); setPlanView(planView); renderRaceList();
+  /* the planner draws races too (chips, and the season view) */
+  if (typeof window.plxRender === 'function'){ try { window.plxRender(); } catch(e){ console.error('[plx] after race save', e); } }
   toast('Race removed');
 }
 function renderRaceList(){
@@ -19593,6 +19597,84 @@ if ('serviceWorker' in navigator){
 .plx-hero{margin-bottom:16px;}
 .plx-day.plx-wd,.plx-day.plx-wd:not(.today),.plx-day.plx-wd.past:not(.today){padding-left:12px;padding-right:12px;}
 
+
+/* ═══ SEASON (v238) ═══
+   A third view next to Week and Month, for choosing races rather than training
+   for one. Every upcoming race gets a build, taper and recovery sized from its
+   distance; the timeline lays those side by side so overlaps are visible, and
+   the list under it says in words which overlaps matter. Switching a race off
+   is a what-if: it leaves the race alone and just takes it out of the picture. */
+#plx{--ph-build:#8f9ae8;--ph-taper:#b39ae8;--ph-rec:#7fd9bd;--ph-race:#e05cc2;--ph-bad:#f08a99;--ph-warn:#e3b45c;}
+#plx.plx-season #plxYear > :not(.plx-top),#plx.plx-season #plxLib,#plx.plx-season .plx-step,
+#plx.plx-season .plx-seg:not(.view),#plx.plx-season .plx-tog,#plx.plx-season .plx-gearwrap,#plx.plx-season [data-act="today"],#plx.plx-season .plx-undo-ph{display:none!important;}
+#plx.plx-season .plx-body{display:block;}
+.ss{display:flex;flex-direction:column;gap:30px;padding-bottom:30px;}
+.ss h3{margin:0 0 10px 4px;font:600 17px var(--fd);letter-spacing:-.01em;color:var(--n1);display:flex;align-items:baseline;gap:8px;}
+.ss h3 small{font:500 12.5px var(--fb);color:var(--n3);}
+.ss h3 .ss-add{margin-left:auto;font:600 13px var(--fb);color:var(--a,#8f9ae8);background:none;border:none;padding:6px 4px;}
+.ss-races{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;}
+.ss-rc{position:relative;padding:13px 14px 12px;border-radius:18px;background:var(--sf,rgba(170,185,235,.045));transition:opacity .2s;}
+.ss-rc.off{opacity:.45;}
+.ss-rc .top{display:flex;align-items:center;gap:8px;}
+.ss-st{font:700 10.5px var(--fb);letter-spacing:.12em;text-transform:uppercase;padding:3px 7px;border-radius:6px;}
+.ss-st.maybe{color:var(--n2);outline:1px dashed color-mix(in srgb,var(--n2) 55%,transparent);outline-offset:-1px;}
+.ss-st.reg{color:#1a0d18;background:var(--ph-race);}
+.ss-sw{margin-left:auto;width:40px;height:24px;border-radius:999px;border:none;padding:0;background:color-mix(in srgb,var(--n1) 16%,transparent);position:relative;transition:background .2s;flex:none;}
+.ss-sw i{position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .3s cubic-bezier(.3,1.3,.5,1);box-shadow:0 1px 3px rgba(0,0,0,.4);}
+.ss-sw[aria-checked="true"]{background:var(--ph-build);}
+.ss-sw[aria-checked="true"] i{transform:translateX(16px);}
+.ss-rc .bd{display:block;width:100%;text-align:left;background:none;border:none;padding:0;color:inherit;}
+.ss-rc b{display:block;margin-top:10px;font:600 15px/1.25 var(--fd);letter-spacing:-.01em;color:var(--n1);}
+.ss-rc .meta{display:block;margin-top:2px;font-size:12px;color:var(--n3);font-variant-numeric:tabular-nums;}
+.ss-blk{margin-top:9px;display:flex;gap:2px;height:4px;border-radius:2px;overflow:hidden;}
+.ss-blk i{display:block;height:100%;}
+.ss-tl{position:relative;background:var(--sf,rgba(170,185,235,.045));border-radius:20px;padding:14px 16px 30px;}
+.ss-mo{display:grid;font:700 10.5px var(--fb);letter-spacing:.11em;color:var(--n4);margin-left:var(--nmw);}
+.ss-mo span{padding:0 0 8px 4px;box-shadow:inset 1px 0 0 color-mix(in srgb,var(--n1) 8%,transparent);white-space:nowrap;overflow:hidden;}
+.ss-mo span.y{color:var(--n2);}
+.ss-lanes{position:relative;}
+.ss-lane{display:grid;grid-template-columns:var(--nmw) minmax(0,1fr);align-items:center;min-height:46px;}
+.ss-lane .nm{font-size:13px;font-weight:600;color:var(--n1);padding-right:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ss-lane .nm small{display:block;font-size:11px;font-weight:500;color:var(--n3);}
+.ss-lane.maybe .nm{color:var(--n2);}
+.ss-tr{position:relative;height:22px;}
+.ss-seg{position:absolute;top:0;bottom:0;border-radius:6px;display:flex;align-items:center;padding-left:7px;font:700 10.5px var(--fb);letter-spacing:.06em;color:rgba(10,12,22,.75);overflow:hidden;white-space:nowrap;}
+.ss-seg.build{background:color-mix(in srgb,var(--ph-build) 55%,transparent);border-radius:6px 0 0 6px;}
+.ss-seg.taper{background:var(--ph-taper);border-radius:0;}
+.ss-seg.rec{background:color-mix(in srgb,var(--ph-rec) 55%,transparent);border-radius:0 6px 6px 0;}
+.ss-lane.maybe .ss-seg{background-image:repeating-linear-gradient(135deg,rgba(255,255,255,.16) 0 4px,transparent 4px 9px);}
+.ss-flag{position:absolute;top:-4px;bottom:-4px;width:4px;margin-left:-2px;border-radius:2px;background:var(--ph-race);box-shadow:0 0 12px var(--ph-race);}
+.ss-cl{position:absolute;top:-6px;bottom:-6px;border-radius:7px;background:repeating-linear-gradient(135deg,rgba(240,138,153,.42) 0 4px,rgba(240,138,153,.12) 4px 8px);box-shadow:inset 0 0 0 1.5px var(--ph-bad);}
+.ss-cl.warn{background:repeating-linear-gradient(135deg,rgba(227,180,92,.38) 0 4px,rgba(227,180,92,.1) 4px 8px);box-shadow:inset 0 0 0 1.5px var(--ph-warn);}
+.ss-now{position:absolute;top:-28px;bottom:0;width:1.5px;background:var(--n2);opacity:.55;pointer-events:none;}
+.ss-now::after{content:"Today";position:absolute;bottom:-18px;left:-14px;font-size:10.5px;color:var(--n2);font-weight:600;}
+.ss-key{display:flex;gap:16px;flex-wrap:wrap;margin:12px 4px 0;font-size:12px;color:var(--n3);}
+.ss-key span{display:flex;align-items:center;gap:6px;}
+.ss-key i{width:16px;height:8px;border-radius:3px;display:block;}
+.ss-iss{display:flex;flex-direction:column;gap:8px;}
+.ss-is{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border-radius:16px;background:var(--sf,rgba(170,185,235,.045));}
+.ss-is > i{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-weight:700;font-size:13px;color:#120b10;margin-top:1px;}
+.ss-is.bad > i{background:var(--ph-bad);} .ss-is.warn > i{background:var(--ph-warn);} .ss-is.ok > i{background:var(--ph-rec);}
+.ss-is b{display:block;font-weight:600;color:var(--n1);}
+.ss-is span{color:var(--n3);font-size:13px;}
+.ss-empty{padding:16px;border-radius:16px;background:var(--sf,rgba(170,185,235,.045));color:var(--n3);font-size:13.5px;}
+.ss-note{margin:10px 4px 0;font-size:12px;color:var(--n4);}
+@media (max-width:759px){
+  .ss{gap:24px;}
+  .ss-races{grid-template-columns:minmax(0,1fr);}
+  .ss-tl{padding:12px 12px 30px;}
+  /* the phone has no room for a name column: each name sits over its own lane */
+  .ss-mo{margin-left:0;font-size:9.5px;letter-spacing:.04em;}
+  .ss-mo span{padding-left:2px;}
+  .ss-lane{grid-template-columns:minmax(0,1fr);padding:6px 0 4px;}
+  .ss-lane .nm{padding:0 0 5px;}
+  .ss-lane .nm small{display:inline;margin-left:6px;}
+  .ss-seg{font-size:0;}
+  /* names sit over their lanes here, so a full-height line would strike through them;
+     today becomes a tick in the month row instead */
+  .ss-now{top:-24px;bottom:auto;height:14px;width:2px;border-radius:1px;opacity:.9;background:var(--n1);}
+  .ss-now::after{display:none;}
+}
 /* ═══ PHONE ═══
    Kept LAST so it wins over the base rules above without !important wars.
    The phone is for looking at the plan, with the odd edit, so it keeps the
@@ -20047,7 +20129,8 @@ function renderYear(ix){
   if (st.view === 'week'){
     const mon = dOf(st.week), sun = addDays(mon, 6);
     title = MON[mon.getMonth()] + ' ' + mon.getDate() + ' – ' + (sun.getMonth() !== mon.getMonth() ? MON[sun.getMonth()] + ' ' : '') + sun.getDate() + ', ' + sun.getFullYear();
-  } else title = MON_FULL[st.month] + ' ' + y;
+  } else if (st.view === 'season') title = 'Season';
+  else title = MON_FULL[st.month] + ' ' + y;
   const top =
       '<div class="plx-top plx-mh">'
     +   '<div class="plx-step"><button data-act="mo-" aria-label="Previous">‹</button><button data-act="mo+" aria-label="Next">›</button></div>'
@@ -20055,7 +20138,8 @@ function renderYear(ix){
     +   '<div class="plx-sp"></div>'
     +   (here ? '' : '<button class="plx-txt" data-act="today">Today</button>')
     +   '<div class="plx-seg view"><button data-view="week"' + (st.view === 'week' ? ' class="on"' : '') + '>Week</button>'
-    +     '<button data-view="month"' + (st.view === 'month' ? ' class="on"' : '') + '>Month</button></div>'
+    +     '<button data-view="month"' + (st.view === 'month' ? ' class="on"' : '') + '>Month</button>'
+    +     '<button data-view="season"' + (st.view === 'season' ? ' class="on"' : '') + '>Season</button></div>'
     +   '<div class="plx-seg"><button data-metric="distance"' + (st.metric === 'distance' ? ' class="on"' : '') + '>Miles</button>'
     +     '<button data-metric="elevation"' + (st.metric === 'elevation' ? ' class="on"' : '') + '>Vert</button></div>'
     /* Undo lives in the tools menu on wide screens (v151). The phone has no
@@ -21058,6 +21142,136 @@ $lib && $lib.addEventListener('click', function(e){
   toast('Removed ' + ((t && (t.tplName || t.title)) || 'workout') + ' from your workouts');
 });
 
+
+/* ═══ SEASON (v238) ═══
+   Blocks are sized from distance, the way most ultra plans are written: a 100
+   gets 16 weeks of build, 3 of taper, 4 to recover; a 50 or 100K 12/2/3; a
+   marathon-to-50K 10/2/1; anything shorter 8/1/1. A race with no distance is
+   treated as short. These are defaults, not a coach — the point is to see
+   overlaps, which the exact week counts barely change. */
+const PH_DAY = 864e5;
+function seasonWeeks(r){ const mi = parseFloat(r.distance_mi) || 0;
+  return mi >= 90 ? [16,3,4] : mi >= 45 ? [12,2,3] : mi >= 26 ? [10,2,1] : [8,1,1]; }
+function seasonBlocks(r){
+  const p = seasonWeeks(r), day = dOf(r.date);
+  const taper = addDays(day, -7*p[1]), build = addDays(taper, -7*p[0]), recEnd = addDays(day, 7*p[2]);
+  return { day:day, build:build, taper:taper, recEnd:recEnd, p:p };
+}
+/* every race still worth showing: upcoming, or recent enough that its recovery is not over */
+function seasonRaces(){
+  return (RACES || []).filter(function(r){ return r && r.date && r.name && seasonBlocks(r).recEnd >= todayD; })
+    .sort(function(a, b){ return a.date < b.date ? -1 : 1; });
+}
+function seasonOn(r){ return r.season_off !== true; }
+window.seasonRaces = seasonRaces; window.seasonBlocks = seasonBlocks; window.seasonOn = seasonOn;
+
+/* Three kinds of collision, in the order they hurt:
+   bad  — a race day lands inside an earlier race's recovery
+   warn — a build has to start before an earlier long race is recovered from
+   ok   — a shorter race sits inside a longer race's build: a training day, if run as one */
+function seasonClashes(list){
+  const on = list.filter(seasonOn).map(function(r){ return { r:r, b:seasonBlocks(r), mi:parseFloat(r.distance_mi)||0 }; });
+  const out = [];
+  for (let i = 0; i < on.length; i++) for (let j = i + 1; j < on.length; j++){
+    const A = on[i], B = on[j], gapWk = Math.round((B.b.day - A.b.day)/PH_DAY/7);
+    if (B.b.day <= A.b.recEnd){
+      out.push({ sev:'bad', b:B.r, from:B.b.build > A.b.day ? B.b.build : A.b.day, to:A.b.recEnd,
+        t:B.r.name + ' is ' + (gapWk <= 1 ? Math.round((B.b.day - A.b.day)/PH_DAY) + ' days' : gapWk + ' weeks') + ' after ' + A.r.name,
+        s:'Race day lands inside ' + A.r.name + '’s ' + A.b.p[2] + '-week recovery. '
+          + (A.mi >= 90 && B.mi >= 90 ? 'Two 100s this close usually means racing the second one tired.' : 'Expect to start it under-recovered.') });
+    } else if (B.b.build < A.b.recEnd && A.mi >= 45 && !(A.mi < B.mi*0.6)){
+      const lost = Math.round((A.b.recEnd - B.b.build)/PH_DAY/7*10)/10;
+      out.push({ sev:'warn', b:B.r, from:B.b.build, to:A.b.recEnd,
+        t:B.r.name + '’s build starts during ' + A.r.name + '’s recovery',
+        s:'About ' + lost + ' of its ' + B.b.p[0] + ' build weeks overlap recovery. Shorten the build or accept a later start.' });
+    } else if (A.b.day >= B.b.build && A.mi < B.mi){
+      out.push({ sev:'ok', b:B.r, t:A.r.name + ' sits inside ' + B.r.name + '’s build',
+        s:'Works as a long training day ' + gapWk + ' weeks out, if you run it as a B race.' });
+    }
+  }
+  /* worst first: the list is a to-do list */
+  const rank = { bad:0, warn:1, ok:2 };
+  return out.sort(function(a, b){ return rank[a.sev] - rank[b.sev]; });
+}
+
+function renderSeason(){
+  const list = seasonRaces();
+  const fmtD = function(d){ return MON[d.getMonth()] + ' ' + d.getDate(); };
+  const blk = function(p){ return '<span class="ss-blk"><i style="flex:' + p[0] + ';background:color-mix(in srgb,var(--ph-build) 55%,transparent)"></i><i style="flex:' + p[1] + ';background:var(--ph-taper)"></i><i style="flex:.3;background:var(--ph-race)"></i><i style="flex:' + p[2] + ';background:color-mix(in srgb,var(--ph-rec) 55%,transparent)"></i></span>'; };
+
+  let h = '<div class="ss"><section><h3>Races<small>dashed = maybe</small><button class="ss-add" data-sact="add">+ Add race</button></h3>';
+  if (!list.length){
+    h += '<div class="ss-empty">No upcoming races. Add the ones you are choosing between as <b>Maybe</b> and this shows what each does to the season.</div></section></div>';
+    $month.innerHTML = h; return;
+  }
+  h += '<div class="ss-races">' + list.map(function(r){
+    const p = seasonWeeks(r), mb = raceIsMaybe(r), on = seasonOn(r), mi = parseFloat(r.distance_mi);
+    return '<div class="ss-rc' + (on ? '' : ' off') + '">'
+      + '<div class="top"><span class="ss-st ' + (mb ? 'maybe' : 'reg') + '">' + (mb ? 'Maybe' : 'Registered') + '</span>'
+      + '<button class="ss-sw" role="switch" aria-checked="' + on + '" aria-label="Show ' + E(r.name) + ' in the season" data-sact="tog" data-id="' + E(r.id) + '"><i></i></button></div>'
+      + '<button class="bd" data-sact="info" data-id="' + E(r.id) + '"><b>' + E(r.name) + '</b>'
+      + '<span class="meta">' + DOW[dowOf(r.date)] + ', ' + fmtD(dOf(r.date)) + (dOf(r.date).getFullYear() !== todayD.getFullYear() ? ', ' + dOf(r.date).getFullYear() : '') + (mi ? ' · ' + miles(mi) + ' mi' : '') + '</span>'
+      + '<span class="meta">' + p[0] + ' wk build · ' + p[1] + ' taper · ' + p[2] + ' recovery</span>' + blk(p) + '</button></div>';
+  }).join('') + '</div></section>';
+
+  /* the window: this month through the last recovery, never less than a year, never more than 18 months */
+  const start = new Date(todayD.getFullYear(), todayD.getMonth(), 1);
+  let last = start; list.forEach(function(r){ const e = seasonBlocks(r).recEnd; if (e > last) last = e; });
+  let n = (last.getFullYear() - start.getFullYear())*12 + last.getMonth() - start.getMonth() + 1;
+  n = Math.max(12, Math.min(18, n));
+  const end = new Date(start.getFullYear(), start.getMonth() + n, 1), span = end - start;
+  const pct = function(d){ return Math.max(0, Math.min(100, (d - start)/span*100)); };
+  const iss = seasonClashes(list);
+  const phone = !wide.matches;
+
+  let tl = '<div class="ss-mo" style="grid-template-columns:repeat(' + n + ',minmax(0,1fr))">';
+  for (let i = 0; i < n; i++){
+    const md = new Date(start.getFullYear(), start.getMonth() + i, 1), jan = md.getMonth() === 0;
+    tl += '<span' + (jan ? ' class="y"' : '') + '>' + (phone ? MON[md.getMonth()].charAt(0) : MON[md.getMonth()].toUpperCase()) + (jan && !phone ? ' ' + String(md.getFullYear()).slice(2) : '') + '</span>';
+  }
+  tl += '</div><div class="ss-lanes">';
+  const shown = list.filter(seasonOn);
+  shown.forEach(function(r){
+    const b = seasonBlocks(r), mb = raceIsMaybe(r), mi = parseFloat(r.distance_mi);
+    const seg = function(cls, f, t, lab){ const w = pct(t) - pct(f); return w > 0 ? '<span class="ss-seg ' + cls + '" style="left:' + pct(f) + '%;width:' + w + '%">' + (lab || '') + '</span>' : ''; };
+    tl += '<div class="ss-lane' + (mb ? ' maybe' : '') + '"><span class="nm">' + E(r.name) + '<small>' + fmtD(b.day) + (mi ? ' · ' + miles(mi) + ' mi' : '') + '</small></span><div class="ss-tr">'
+      + seg('build', b.build, b.taper, 'BUILD') + seg('taper', b.taper, b.day) + seg('rec', b.day, b.recEnd)
+      + '<span class="ss-flag" style="left:' + pct(b.day) + '%" title="Race day"></span>';
+    /* a clash is drawn on the later race's lane, over the weeks that collide */
+    iss.forEach(function(x){ if (x.b === r && x.from) tl += '<span class="ss-cl' + (x.sev === 'warn' ? ' warn' : '') + '" style="left:' + pct(x.from) + '%;width:' + Math.max(.6, pct(x.to) - pct(x.from)) + '%"></span>'; });
+    tl += '</div></div>';
+  });
+  if (!shown.length) tl += '<div class="ss-empty" style="margin-top:6px">Every race is switched off.</div>';
+  tl += '<span class="ss-now" style="left:calc(var(--nmw) + (100% - var(--nmw))*' + (pct(todayD)/100).toFixed(4) + ')"></span></div>';
+  h += '<section><h3>The season<small>' + MON[start.getMonth()] + ' ' + start.getFullYear() + ' – ' + MON[end.getMonth() === 0 ? 11 : end.getMonth() - 1] + ' ' + (end.getMonth() === 0 ? end.getFullYear() - 1 : end.getFullYear()) + '</small></h3>'
+    + '<div class="ss-tl" style="--nmw:' + (phone ? '0px' : '170px') + '">' + tl + '</div>'
+    + '<div class="ss-key"><span><i style="background:color-mix(in srgb,var(--ph-build) 55%,transparent)"></i>Build</span><span><i style="background:var(--ph-taper)"></i>Taper</span><span><i style="background:color-mix(in srgb,var(--ph-rec) 55%,transparent)"></i>Recovery</span><span><i style="background:repeating-linear-gradient(135deg,rgba(240,138,153,.6) 0 3px,transparent 3px 6px);box-shadow:inset 0 0 0 1px var(--ph-bad)"></i>Clash</span></div></section>';
+
+  const nBad = iss.filter(function(x){ return x.sev !== 'ok'; }).length;
+  h += '<section><h3>What clashes<small>' + (nBad ? nBad + ' to sort out' : 'nothing') + '</small></h3><div class="ss-iss">'
+    + (iss.length ? iss.map(function(x){
+        return '<div class="ss-is ' + x.sev + '"><i>' + (x.sev === 'ok' ? '✓' : '!') + '</i><div><b>' + E(x.t) + '</b><span>' + E(x.s) + '</span></div></div>';
+      }).join('') : '<div class="ss-empty">No clashes. Each race gets its full build, taper and recovery.</div>')
+    + '</div><p class="ss-note">Block lengths come from distance: 100 mi 16/3/4 weeks, 50 mi–100K 12/2/3, marathon–50K 10/2/1.</p></section></div>';
+  $month.innerHTML = h;
+}
+$month.addEventListener('click', function(e){
+  const b = e.target.closest('[data-sact]'); if (!b || st.view !== 'season') return;
+  e.stopPropagation();
+  const a = b.dataset.sact, r = b.dataset.id != null ? (RACES || []).find(function(x){ return String(x.id) === b.dataset.id; }) : null;
+  if (a === 'tog' && r){
+    /* stored on the race so phone and desktop agree; it changes nothing but what is drawn */
+    if (seasonOn(r)) r.season_off = true; else delete r.season_off;
+    try { saveRaces(); } catch(err){ console.error('[plx] season save', err); }
+    render();
+  } else if (a === 'info' && r){ openRaceInfo(r.id); }
+  else if (a === 'add'){
+    openRace(null);
+    /* from here he is almost always adding a race he is weighing, not one he has entered */
+    const s = document.getElementById('rcStatus'); if (s) s.value = 'potential';
+  }
+}, true);
+
 function render(){
   if (!active()) return;
   /* a field that just lost focus to another field must not have that focus
@@ -21067,7 +21281,8 @@ function render(){
   const ix = buildIndex();
   try { renderYear(ix); } catch(e){ console.error('[plx] year', e); $year.innerHTML = '<div class="empty">The year view hit an error — run rhErrors().</div>'; }
   try { renderLib(); } catch(e){ console.error('[plx] library', e); }
-  try { if (st.view === 'week') renderWeekView(ix); else renderMonth(ix); }
+  $root.classList.toggle('plx-season', st.view === 'season');
+  try { if (st.view === 'week') renderWeekView(ix); else if (st.view === 'season') renderSeason(); else renderMonth(ix); }
   catch(e){ console.error('[plx] ' + st.view, e); $month.innerHTML = '<div class="empty">The calendar hit an error — run rhErrors().</div>'; }
   $year.querySelectorAll('.plx-k .v input').forEach(fitField);
   if (fk){ const el = $root.querySelector('[data-fk="' + fk + '"]'); if (el){ el.focus(); if (el.select) el.select(); } }
