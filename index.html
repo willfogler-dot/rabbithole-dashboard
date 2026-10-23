@@ -2777,7 +2777,10 @@ body .sheet .btn.sec,body .sheet .btn:not(.pri){background:var(--sf);color:var(-
    are red text under the main button now, so one is never mistaken for the
    other. The markup marks them with an inline rust colour, which is the hook. */
 body .sheet .btn[style*="--rust"]{background:none;color:var(--neg)!important;font-weight:500;min-height:42px;}
-body .sheet div:has(> .btn.pri):has(> .btn[style*="--rust"]){flex-direction:column-reverse;align-items:stretch;gap:4px!important;}
+/* stacked, main button first whatever the markup order (v246: order, not column-reverse,
+   which put it last in sheets that already listed it first) */
+body .sheet div:has(> .btn.pri):has(> .btn[style*="--rust"]){flex-direction:column;align-items:stretch;gap:4px!important;}
+body .sheet div:has(> .btn.pri):has(> .btn[style*="--rust"]) > .btn[style*="--rust"]{order:2;}
 body .sheet div:has(> .btn.pri):has(> .btn[style*="--rust"]) > .btn{flex:0 0 auto!important;width:100%;}
 
 /* ═══ v245 · FORM SHEETS ═══ (see the rcEdSheet markup) */
@@ -2817,6 +2820,45 @@ body .sheet .frm-seg button{min-height:30px;padding:5px 12px;font-size:13px;}
 body .sheet .seg-thumb{background:var(--sf2);top:2px;bottom:2px;border-radius:8px;box-shadow:0 1px 2px rgba(0,0,0,.3);}
 body .sheet .has-thumb > button.on{color:var(--n1)!important;}
 [data-theme="light"] body .sheet .seg-thumb{background:#fff;}
+
+/* ═══ v246 · THE DAY SHEET ═══ (see openDay) */
+#daySub{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px;}
+.ds-tag{font-size:12px;font-weight:600;padding:2px 9px;border-radius:999px;color:var(--tc);background:color-mix(in srgb,var(--tc) 16%,transparent);}
+.ds-n{font-size:13px;color:var(--n3);}
+.ds-sec{margin-top:20px;}
+.ds-sec:first-child{margin-top:6px;}
+.ds-lb{display:flex;justify-content:space-between;align-items:baseline;margin:0 6px 7px;font:600 15px var(--fd);letter-spacing:-.005em;color:var(--n1);}
+.ds-lb small{font:500 12px var(--fb);color:var(--neg);}
+.ds-grp{background:var(--sf);border-radius:16px;overflow:hidden;}
+.ds-row{display:flex;align-items:center;gap:12px;min-height:56px;padding:10px 12px 10px 14px;cursor:pointer;}
+.ds-row + .ds-row{box-shadow:inset 0 1px 0 var(--hl);}
+.ds-row:active{background:var(--hl);}
+.ds-ic{flex:none;width:30px;height:30px;border-radius:9px;display:grid;place-items:center;color:var(--c);background:color-mix(in srgb,var(--c) 22%,transparent);}
+.ds-ic i{width:9px;height:9px;border-radius:50%;background:var(--c);}
+.ds-ic em{font:700 13px var(--fd);font-style:normal;}
+.ds-ic svg{width:15px;height:15px;}
+.ds-tx{flex:1;min-width:0;}
+.ds-tx b{display:block;font-size:15px;font-weight:500;color:var(--n1);}
+.ds-tx span{display:block;margin-top:1px;font-size:12.5px;line-height:1.4;color:var(--n3);}
+.ds-v{flex:none;font:600 15px var(--fd);color:var(--n1);font-variant-numeric:tabular-nums;}
+.ds-v small{font:500 12px var(--fb);color:var(--n3);margin-left:2px;}
+.ds-chev{flex:none;color:var(--n4);font-size:17px;margin-left:-2px;}
+.ds-row.ok .ds-tx b{color:var(--n3);}
+.ds-row.miss .ds-tx b{color:var(--n3);text-decoration:line-through;text-decoration-color:color-mix(in srgb,var(--n3) 60%,transparent);}
+.ds-row.miss .ds-ic{opacity:.5;}
+.ds-row.maybe .ds-ic{background:none;box-shadow:inset 0 0 0 1.2px var(--c);}
+.ds-mb{font-style:normal;font:700 10.5px var(--fb);letter-spacing:.08em;text-transform:uppercase;color:var(--n3);margin-right:7px;}
+.ds-hero{display:flex;gap:28px;padding:6px 6px 0;margin-top:4px;}
+.ds-hero b{display:block;font:600 30px/1 var(--fd);letter-spacing:-.03em;color:var(--n1);font-variant-numeric:tabular-nums;}
+.ds-hero b small{font:500 13px var(--fb);color:var(--n3);margin-left:3px;letter-spacing:0;}
+.ds-hero span{display:block;margin-top:6px;font-size:12px;color:var(--n3);}
+.ds-empty{margin-top:6px;padding:16px 14px;border-radius:16px;background:var(--sf);font-size:14px;color:var(--n3);}
+.ds-pills{display:flex;gap:8px;flex-wrap:wrap;}
+.ds-pill{display:flex;align-items:center;gap:7px;min-height:36px;padding:0 14px;border:none;border-radius:999px;background:var(--sf);color:var(--n1);font:500 14px var(--fb);cursor:pointer;}
+.ds-pill i{width:8px;height:8px;border-radius:50%;background:var(--c);}
+.ds-pill:active{background:var(--hl);}
+.ds-acts{display:flex;flex-direction:column;gap:4px;margin-top:22px;}
+.ds-acts .btn{width:100%;flex:none;}
 </style>
 </head>
 <body>
@@ -7348,7 +7390,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v245';
+const RH_BUILD = 'v246';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -18106,89 +18148,97 @@ function openDay(dateISO){
   const t = (acts.length || plans.length) ? dayTypeFor(dateISO) : 'rest';
   const past = dateISO < TODAY;
 
+  /* v246: the approved sheet layout. The header says what the day is (its type
+     and how much is on it) under the date; sessions are rows on one grouped
+     surface with a sport-coloured icon, not a card each; saved workout cards
+     are pills; one filled button, and "Clear the day" is red text. */
   document.getElementById('dayTitle').textContent =
-    d.toLocaleDateString(undefined,{weekday:'long', month:'long', day:'numeric'});
+    d.toLocaleDateString(undefined,{weekday:'long', month:'short', day:'numeric'});
+  const openN = plans.filter(function(w){ return !isFulfilled(w); }).length;
+  const count = acts.length ? acts.length + (acts.length === 1 ? ' session done' : ' sessions done')
+              : plans.length ? plans.length + (plans.length === 1 ? ' session planned' : ' sessions planned') : 'Nothing planned';
   document.getElementById('daySub').innerHTML =
-    '<span class="dl-tag" style="--tc:'+DAY_COLOR[t]+'">'+DAY_TYPES[t].label+'</span>'
-    + (dateISO === TODAY ? '<span class="day-today">Today</span>' : '');
+    '<span class="ds-tag" style="--tc:'+DAY_COLOR[t]+'">'+DAY_TYPES[t].label+'</span>'
+    + '<span class="ds-n">'+(dateISO === TODAY ? 'Today · ' : '')+count+'</span>';
 
+  const row = function(o){
+    return '<div class="ds-row'+(o.cls?' '+o.cls:'')+'"'+(o.attr||'')+'>'
+      + '<span class="ds-ic" style="--c:'+o.c+'">'+(o.ic||'<i></i>')+'</span>'
+      + '<div class="ds-tx"><b>'+o.t+'</b>'+(o.s?'<span>'+o.s+'</span>':'')+'</div>'
+      + (o.v ? '<span class="ds-v">'+o.v+'</span>' : '')
+      + (o.chev === false ? '' : '<span class="ds-chev">›</span>') + '</div>';
+  };
+  const sec = function(label, inner, small){
+    return '<div class="ds-sec"><div class="ds-lb">'+label+(small?'<small>'+small+'</small>':'')+'</div>'+inner+'</div>';
+  };
   let h = '';
 
   if (races.length){
-    h += races.map(function(r){
+    h += sec('Race', '<div class="ds-grp">' + races.map(function(r){
       const days = daysUntil(r.date);
-      return '<div class="day-race'+(raceIsMaybe(r)?' maybe':'')+'"><span class="dr-pri pri-'+(r.priority||'B')+'">'+(r.priority||'B')+'</span>'
-        + '<div><div class="dr-n">'+(raceIsMaybe(r)?'<em class="mb-tag">Maybe</em>':'')+r.name+'</div>'
-        + '<div class="dr-m">'+[r.distance_mi?f1(r.distance_mi)+' mi':'', r.elevation_ft?fmtK(r.elevation_ft)+' ft':'', r.location||''].filter(Boolean).join(' \u00b7 ')+'</div></div>'
-        + '<span class="dr-d">'+(days===0?'today':days>0?days+'d':'done')+'</span></div>';
-    }).join('');
+      return row({ c:'var(--race,#e05cc2)', cls: raceIsMaybe(r) ? 'maybe' : '', attr:' data-race="'+r.id+'"',
+        ic:'<em>'+(r.priority||'A')+'</em>',
+        t:(raceIsMaybe(r)?'<i class="ds-mb">Maybe</i>':'')+r.name,
+        s:[r.distance_mi?f1(r.distance_mi)+' mi':'', r.elevation_ft?fmtK(r.elevation_ft)+' ft':'', r.location||''].filter(Boolean).join(' · '),
+        v: days===0 ? 'today' : days>0 ? days+'<small>d</small>' : '' });
+    }).join('') + '</div>');
   }
 
-  /* what happened */
+  /* what happened: the day's totals on the sheet itself, then each session */
   if (acts.length){
     const mi = acts.reduce(function(s,a){ return s+(a.distance_mi||0); },0);
     const ft = acts.reduce(function(s,a){ return s+(a.elevation_ft||0); },0);
     const mn = Math.round(acts.reduce(function(s,a){ return s+(a.moving_time||0); },0)/60);
-    h += '<div class="day-stats">'
-      + (mi>0 ? '<div><b>'+f1(mi)+'</b><span>miles</span></div>' : '')
-      + '<div><b>'+mn+'</b><span>minutes</span></div>'
-      + (ft>0 ? '<div><b>'+fmtK(ft)+'</b><span>vert</span></div>' : '')
+    h += '<div class="ds-hero">'
+      + (mi>0 ? '<div><b>'+f1(mi)+'<small>mi</small></b><span>Distance</span></div>' : '')
+      + '<div><b>'+(mn >= 60 ? Math.floor(mn/60)+':'+String(mn%60).padStart(2,'0') : mn+'<small>min</small>')+'</b><span>Time</span></div>'
+      + (ft>0 ? '<div><b>'+fmtK(ft)+'<small>ft</small></b><span>Vert</span></div>' : '')
       + '</div>';
-    h += '<div class="hsec"><span>Completed</span><i></i></div><div class="day-list">'
-      + acts.map(function(a){
-          return '<div class="day-item done" data-act="'+a.id+'">'
-            + '<span class="di-mark"></span>'
-            + '<div class="di-body"><div class="di-t">'+(a.name||a.type)+'</div>'
-            + '<div class="di-s">'+prettyType(a.type)
-            +   (a._date ? ' \u00b7 '+a._date.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'}) : '')
-            +   (a.moving_time ? ' \u00b7 '+Math.round(a.moving_time/60)+' min' : '')+'</div></div>'
-            + '<div class="di-v">'+(a.distance_mi>0 ? f1(a.distance_mi)+'<i>mi</i>' : '')+'</div>'
-            + '<span class="di-chev">\u203a</span></div>'; }).join('')
-      + '</div>';
+    h += sec('Done', '<div class="ds-grp">' + acts.map(function(a){
+      return row({ c:sportColor(a.type), attr:' data-act="'+a.id+'"', t:(a.name||a.type),
+        s: prettyType(a.type)
+          + (a._date ? ' · '+a._date.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'}) : '')
+          + (a.moving_time ? ' · '+Math.round(a.moving_time/60)+' min' : ''),
+        v: a.distance_mi>0 ? f1(a.distance_mi)+'<small>mi</small>' : '' });
+    }).join('') + '</div>');
   }
 
   /* what is planned */
-  const open = plans.filter(function(w){ return !isFulfilled(w); });
-  const done = plans.filter(function(w){ return isFulfilled(w); });
-  h += '<div class="hsec"><span>'+(past?'Was planned':'Planned')+'</span><i></i></div>';
-  if (!plans.length){
-    h += '<div class="cmp-empty">Nothing on the board for this day.</div>';
-  } else {
-    h += '<div class="day-list">' + plans.map(function(w){
+  if (plans.length){
+    h += sec(past ? 'Was planned' : 'Planned', '<div class="ds-grp">' + plans.map(function(w){
       const ok = isFulfilled(w);
       const det = [];
+      if (w.time) det.push(fmtTimeLong(w.time));
       if (w.distance_mi) det.push(f1(w.distance_mi)+' mi');
       if (w.elevation_ft) det.push(fmtK(w.elevation_ft)+' ft');
       if (w.duration_min) det.push(w.duration_min+' min');
       if (w.pace) det.push(w.pace);
       const struct = (w.segments||[]).length ? (w.segments||[]).map(segText).join(' + ')
                    : (w.exercises||[]).length ? (w.exercises||[]).map(function(x){
-                       return x.name + (x.sets?' '+x.sets+'\u00d7'+(x.reps||'?'):''); }).join(', ')
-                   : '';
-      return '<div class="day-item plan'+(ok?' ok':'')+'" data-plan="'+w.id+'">'
-        + '<span class="di-mark"></span>'
-        + '<div class="di-body">'
-        +   '<div class="di-t">'+(w.time?'<b>'+fmtTimeLong(w.time)+'</b> ':'')+(w.title||w.type)+(ok?' <em>done</em>':'')+'</div>'
-        +   (det.length ? '<div class="di-s">'+det.join(' \u00b7 ')+'</div>' : '')
-        +   (struct ? '<div class="di-struct">'+struct+'</div>' : '')
-        +   (w.notes ? '<div class="di-note">'+w.notes+'</div>' : '')
-        + '</div>'
-        + '<span class="di-chev">\u203a</span></div>'; }).join('') + '</div>';
+                       return x.name + (x.sets?' '+x.sets+'×'+(x.reps||'?'):''); }).join(', ') : '';
+      if (struct) det.push(struct);
+      return row({ c:sportColor(w.type), cls: ok ? 'ok' : (past ? 'miss' : ''), attr:' data-plan="'+w.id+'"',
+        ic: ok ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>' : '',
+        t:(w.title||w.type), s:det.join(' · ') });
+    }).join('') + '</div>', past && openN ? openN + ' missed' : '');
+  } else if (!acts.length && !races.length){
+    h += '<div class="ds-empty">'+(past ? 'Nothing was planned for this day.' : 'Nothing on the board yet.')+'</div>';
   }
 
-  /* one tap to reuse something you have built before */
+  /* one tap to reuse a saved workout card. Removing a card lives in the card's
+     own editor and the planner's library, so these pills only add. */
   if (TEMPLATES.length){
-    h += '<div class="hsec"><span>Quick add</span><i></i></div><div class="chiprow">'
-      + TEMPLATES.slice(-10).reverse().map(function(t){
-          return '<button class="tplchip" data-tpl="'+t.tplId+'">'+t.tplName
-            + '<span class="tpl-x" data-tplrm="'+t.tplId+'">\u00d7</span></button>'; }).join('')
-      + '</div>';
+    h += sec('Add from your workouts', '<div class="ds-pills">'
+      + TEMPLATES.slice().sort(function(a,b){ return String(a.tplName||'').localeCompare(String(b.tplName||'')); }).slice(0, 12).map(function(t){
+          return '<button class="ds-pill" data-tpl="'+t.tplId+'" style="--c:'+sportColor(t.type)+'"><i></i>'+(t.tplName||t.title||t.type)+'</button>'; }).join('')
+      + '</div>');
   }
 
-  h += '<button class="btn pri" id="dayAdd" style="width:100%;margin-top:16px">+ Plan a workout</button>';
+  h += '<div class="ds-acts"><button class="btn pri" id="dayAdd">Plan a workout</button>';
   if (plans.length > 1){
-    h += '<button class="btn sec" id="dayClear" style="width:100%;margin-top:9px;color:var(--rust)">Clear the day</button>';
+    h += '<button class="btn sec" id="dayClear" style="color:var(--rust)">Clear the day</button>';
   }
+  h += '</div>';
 
   document.getElementById('dayBody').innerHTML = h;
 
@@ -18216,6 +18266,9 @@ function openDay(dateISO){
   });
   document.getElementById('dayBody').querySelectorAll('[data-act]').forEach(function(el){
     el.addEventListener('click', function(){ openActDetail(el.dataset.act); });
+  });
+  document.getElementById('dayBody').querySelectorAll('[data-race]').forEach(function(el){
+    el.addEventListener('click', function(){ openRaceInfo(el.dataset.race); });
   });
 
   document.getElementById('dayBd').classList.add('on');
