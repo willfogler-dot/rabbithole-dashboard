@@ -2779,6 +2779,44 @@ body .sheet .btn.sec,body .sheet .btn:not(.pri){background:var(--sf);color:var(-
 body .sheet .btn[style*="--rust"]{background:none;color:var(--neg)!important;font-weight:500;min-height:42px;}
 body .sheet div:has(> .btn.pri):has(> .btn[style*="--rust"]){flex-direction:column-reverse;align-items:stretch;gap:4px!important;}
 body .sheet div:has(> .btn.pri):has(> .btn[style*="--rust"]) > .btn{flex:0 0 auto!important;width:100%;}
+
+/* ═══ v245 · FORM SHEETS ═══ (see the rcEdSheet markup) */
+body .sheet.frm{padding-top:8px;}
+.frm-bar{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:6px 2px 12px;}
+.frm-bar button{border:none;background:none;padding:8px 4px;font:400 16px var(--fb);color:var(--a-hi,#c2c9ff);cursor:pointer;}
+.frm-bar .frm-l{justify-self:start;}
+.frm-bar .frm-r{justify-self:end;font-weight:600;}
+.frm-c{font:600 16px var(--fd);color:var(--n1);white-space:nowrap;}
+[data-theme="light"] .frm-bar button{color:var(--a);}
+.frm-grp{background:var(--sf);border-radius:16px;overflow:hidden;margin-top:14px;}
+.frm-bar + .frm-grp{margin-top:2px;}
+.frm-grp > * + *{box-shadow:inset 0 1px 0 var(--hl);}
+.frm-row{display:flex;align-items:center;gap:12px;min-height:50px;padding:6px 14px;cursor:text;}
+.frm-row > span{flex:none;font-size:15px;color:var(--n1);}
+.frm-row > em{flex:none;font-style:normal;font-size:15px;color:var(--n3);margin-left:-6px;}
+.frm-row > svg{flex:none;width:14px;height:14px;color:var(--n3);margin-left:-8px;pointer-events:none;}
+/* the value side: right-aligned, borderless, grows into the row */
+.frm-in{flex:1;min-width:0;width:100%;border:none;background:none;outline:none;-webkit-appearance:none;appearance:none;
+  text-align:right;font:400 16px var(--fb);color:var(--n2);padding:8px 0;font-variant-numeric:tabular-nums;}
+.frm-in::placeholder{color:var(--n4);}
+.frm-in:focus{color:var(--n1);}
+input[type="date"].frm-in{min-height:34px;}
+input[type="date"].frm-in::-webkit-date-and-time-value{text-align:right;}
+input[type="date"].frm-in::-webkit-calendar-picker-indicator{opacity:.45;filter:invert(.8);}
+[data-theme="light"] input[type="date"].frm-in::-webkit-calendar-picker-indicator{filter:none;}
+.frm-sel{cursor:pointer;text-align-last:right;padding-right:6px;}
+.frm-in::-webkit-outer-spin-button,.frm-in::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+.frm-fld{display:block;width:100%;min-height:50px;border:none;background:none;outline:none;padding:14px;font:400 16px var(--fb);color:var(--n1);}
+.frm-fld::placeholder{color:var(--n4);}
+.frm-seg{display:flex;margin-left:auto;}
+body .sheet .frm-seg button{min-height:30px;padding:5px 12px;font-size:13px;}
+.frm-foot{margin:7px 14px 0;font-size:12px;line-height:1.45;color:var(--n3);}
+.frm-dest{display:block;width:100%;margin-top:18px;min-height:46px;border:none;border-radius:15px;background:none;color:var(--neg);font:500 15.5px var(--fb);cursor:pointer;}
+.frm-dest:active,.frm-bar button:active{opacity:.6;}
+/* phone segments get a sliding thumb (v223); inside sheets it is the soft raised pill, not the accent */
+body .sheet .seg-thumb{background:var(--sf2);top:2px;bottom:2px;border-radius:8px;box-shadow:0 1px 2px rgba(0,0,0,.3);}
+body .sheet .has-thumb > button.on{color:var(--n1)!important;}
+[data-theme="light"] body .sheet .seg-thumb{background:#fff;}
 </style>
 </head>
 <body>
@@ -3361,37 +3399,36 @@ body .sheet div:has(> .btn.pri):has(> .btn[style*="--rust"]) > .btn{flex:0 0 aut
 
 
 <div class="sheet-bd" id="rcEdBd"></div>
-<div class="sheet" id="rcEdSheet">
+<div class="sheet frm" id="rcEdSheet">
+  <!-- v245: a settings-style form (approved mock). Cancel and Save sit in the bar
+       where iOS puts them, so saving never needs a scroll; each row is label left,
+       value right; small choices are segmented. Ids are the old ones, so every
+       listener and the open/save code keep working. -->
   <div class="sheet-grip"></div>
-  <div class="sheet-head"><div class="sheet-date" id="rcTitle">Add race</div><button class="sheet-x" id="rcEdClose">✕</button></div>
-  <label class="fl">Race name</label><input class="fi" id="rcName" placeholder="Leadville Silver Rush">
-  <label class="fl">Date</label><input class="fi" type="date" id="rcDate">
-  <label class="fl">Status</label>
-  <select class="fi" id="rcStatus">
-    <option value="registered">Registered</option><option value="potential">Maybe — still deciding</option>
-  </select>
-  <label class="fl">Priority</label>
-  <select class="fi" id="rcPri">
-    <option value="A">A · goal race</option><option value="B">B · hard effort</option><option value="C">C · training day</option>
-  </select>
-  <label class="fl">Supports</label>
-  <select class="fi" id="rcSupports"></select>
-  <div style="font-size:11px;color:var(--ink3);margin-top:6px;line-height:1.5">
-    A B or C race can serve a bigger goal &mdash; a long training day inside the build.
+  <div class="frm-bar"><button class="frm-l" id="rcEdClose">Cancel</button><div class="frm-c" id="rcTitle">Add race</div><button class="frm-r" id="rcSave">Add</button></div>
+  <div class="frm-grp">
+    <input class="frm-fld" id="rcName" placeholder="Race name" autocomplete="off">
+    <label class="frm-row"><span>Date</span><input class="frm-in" type="date" id="rcDate"></label>
+    <div class="frm-row"><span>Status</span><div class="seg frm-seg" data-for="rcStatus"><button type="button" data-v="potential">Maybe</button><button type="button" data-v="registered">Registered</button></div></div>
+    <div class="frm-row"><span>Priority</span><div class="seg frm-seg" data-for="rcPri"><button type="button" data-v="A">A</button><button type="button" data-v="B">B</button><button type="button" data-v="C">C</button></div></div>
   </div>
-  <div style="display:flex;gap:10px">
-    <div style="flex:1"><label class="fl">Distance (mi)</label><input class="fi" type="number" step="0.1" id="rcDist" inputmode="decimal"></div>
-    <div style="flex:1"><label class="fl">Vert (ft)</label><input class="fi" type="number" step="100" id="rcElev" inputmode="numeric"></div>
+  <input type="hidden" id="rcStatus" value="registered"><input type="hidden" id="rcPri" value="A">
+  <p class="frm-foot">Maybe races show dashed on the calendar, with their build and recovery, until you register. A is the goal race; B a hard effort; C a training day.</p>
+  <div class="frm-grp">
+    <label class="frm-row"><span>Distance</span><input class="frm-in" type="number" step="0.1" id="rcDist" inputmode="decimal" placeholder="0"><em>mi</em></label>
+    <label class="frm-row"><span>Vert</span><input class="frm-in" type="number" step="100" id="rcElev" inputmode="numeric" placeholder="0"><em>ft</em></label>
+    <label class="frm-row"><span>Goal time</span><input class="frm-in" id="rcGoal" placeholder="10:30" autocomplete="off"></label>
   </div>
-  <label class="fl">Location</label><input class="fi" id="rcLoc" placeholder="Leadville, CO">
-  <label class="fl">Website</label><input class="fi" id="rcUrl" type="url" inputmode="url"
-    placeholder="https://… race page, results, course map">
-  <label class="fl">Goal time</label><input class="fi" id="rcGoal" placeholder="10:30">
-  <label class="fl">Notes</label><input class="fi" id="rcNotes" placeholder="altitude, crew plan…">
-  <div style="display:flex;gap:10px;margin-top:16px">
-    <button class="btn sec" id="rcDelete" style="flex:0 0 90px;color:var(--rust)">Delete</button>
-    <button class="btn pri" id="rcSave" style="flex:1">Save race</button>
+  <div class="frm-grp">
+    <label class="frm-row"><span>Location</span><input class="frm-in" id="rcLoc" placeholder="Leadville, CO" autocomplete="off"></label>
+    <label class="frm-row"><span>Website</span><input class="frm-in" id="rcUrl" type="url" inputmode="url" placeholder="Add link" autocomplete="off"></label>
   </div>
+  <div class="frm-grp">
+    <label class="frm-row"><span>Supports</span><select class="frm-in frm-sel" id="rcSupports"></select><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 9l4-4 4 4M8 15l4 4 4-4"/></svg></label>
+    <input class="frm-fld" id="rcNotes" placeholder="Notes — altitude, crew plan…" autocomplete="off">
+  </div>
+  <p class="frm-foot">A B or C race can support a goal race: a long training day inside its build.</p>
+  <button class="frm-dest" id="rcDelete">Delete race</button>
 </div>
 
 
@@ -7311,7 +7348,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v244';
+const RH_BUILD = 'v245';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -13571,6 +13608,7 @@ function openRace(id){
   raceId = id ? String(id) : null;
   const r = raceId ? RACES.find(function(x){ return String(x.id)===raceId; }) : null;
   document.getElementById('rcTitle').textContent = r ? 'Edit race' : 'Add race';
+  document.getElementById('rcSave').textContent = r ? 'Save' : 'Add';
   document.getElementById('rcName').value  = r ? (r.name||'') : '';
   document.getElementById('rcDate').value  = r ? r.date : TODAY;
   document.getElementById('rcDist').value  = r && r.distance_mi != null ? r.distance_mi : '';
@@ -13588,6 +13626,7 @@ function openRace(id){
       return '<option value="'+g.id+'"'+((r && String(r.supports)===String(g.id))?' selected':'')+'>'+g.name+'</option>';
     }).join('');
   document.getElementById('rcDelete').style.display = r ? '' : 'none';
+  frmSegSync(document.getElementById('rcEdSheet'));
   document.getElementById('rcEdBd').classList.add('on');
   document.getElementById('rcEdSheet').classList.add('on');
 }
@@ -13620,11 +13659,12 @@ function saveRace(){
   if (raceId){ const i = RACES.findIndex(function(x){ return String(x.id)===raceId; });
     if (i>=0) RACES[i] = rec; else RACES.push(rec); }
   else RACES.push(rec);
+  const wasEdit = !!raceId;   /* closeRace() clears raceId, so read it first */
   saveRaces(); closeRace();
   renderRaceCard(); renderGreeting(); renderCal(); setPlanView(planView); renderRaceList();
   /* the planner draws races too (chips, and the season view) */
   if (typeof window.plxRender === 'function'){ try { window.plxRender(); } catch(e){ console.error('[plx] after race save', e); } }
-  toast(raceId ? 'Race updated' : 'Race added');
+  toast(wasEdit ? 'Race updated' : 'Race added');
 }
 function deleteRace(){
   if (!raceId) return;
@@ -13689,6 +13729,21 @@ function renderRaceList(){
   }
 }
 document.getElementById('rcEdClose').addEventListener('click', closeRace);
+/* v245: segmented rows write to a hidden input named by data-for, so the save
+   code reads .value exactly as it did from the old selects. frmSegSync paints
+   the segments from those inputs, after anything sets them from code. */
+function frmSegSync(root){
+  (root || document).querySelectorAll('.frm-seg[data-for]').forEach(function(sg){
+    const inp = document.getElementById(sg.dataset.for); if (!inp) return;
+    sg.querySelectorAll('button').forEach(function(b){ b.classList.toggle('on', b.dataset.v === inp.value); });
+  });
+}
+window.frmSegSync = frmSegSync;
+document.addEventListener('click', function(e){
+  const b = e.target.closest && e.target.closest('.frm-seg[data-for] button'); if (!b) return;
+  const inp = document.getElementById(b.parentNode.dataset.for); if (!inp) return;
+  inp.value = b.dataset.v; frmSegSync(b.closest('.sheet'));
+});
 document.getElementById('rcEdBd').addEventListener('click', closeRace);
 document.getElementById('rcSave').addEventListener('click', saveRace);
 document.getElementById('rcDelete').addEventListener('click', deleteRace);
@@ -21386,6 +21441,7 @@ $month.addEventListener('click', function(e){
     openRace(null);
     /* from here he is almost always adding a race he is weighing, not one he has entered */
     const s = document.getElementById('rcStatus'); if (s) s.value = 'potential';
+    if (window.frmSegSync) frmSegSync(document.getElementById('rcEdSheet'));
   }
 }, true);
 
