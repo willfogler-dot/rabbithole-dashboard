@@ -2728,6 +2728,57 @@ body.sheet-open::after{z-index:19;}
   font-size:13.5px;color:var(--n3);line-height:1.62;font-style:normal;}
 .greet .obs::before{content:'\25c6';color:var(--a-lo);font-size:10px;
   vertical-align:2px;margin-right:8px;}
+
+/* ═══ v244 · SHEETS, ONE SYSTEM ═══
+   From the approved sheets mock. Every sheet had picked up a decade of passes:
+   gradient grips, uppercase micro-labels, outlined fields, gradient buttons with
+   glows, a bare ✕. They now share one set of parts:
+   - the surface: 30px corners, no outline, a plain grabber
+   - the header: a 23px title, a quiet subtitle, a round close button
+   - labels: sentence case at 15px, sitting over the thing they label
+   - fields and groups: one soft surface, no outlines
+   - actions: one filled button; anything destructive is red text under it
+   Kept at the end of the main stylesheet with "body .sheet" so it wins over the
+   earlier passes without !important wars. Content inside particular sheets is
+   reworked in the builds after this one. */
+body .sheet{--sf:color-mix(in srgb,var(--n1) 6%,transparent);--sf2:color-mix(in srgb,var(--n1) 10%,transparent);--hl:color-mix(in srgb,var(--n1) 9%,transparent);
+  border:none;border-radius:30px 30px 0 0;padding:8px 16px calc(26px + env(safe-area-inset-bottom));}
+body .sheet-grip{width:36px;height:5px;border-radius:3px;background:color-mix(in srgb,var(--n1) 22%,transparent);margin:0 auto 6px;}
+body .sheet .sheet-head{align-items:flex-start;gap:12px;padding:8px 2px 0 4px;margin-bottom:14px;}
+body .sheet .sheet-date{font:600 23px/1.15 var(--fd);letter-spacing:-.02em;color:var(--n1);}
+body .sheet .sheet-sub{font-size:13px;color:var(--n3);margin-top:4px;line-height:1.4;}
+/* the close button: a 30px disc you can see, a 44px target you can hit */
+body .sheet .sheet-x{position:relative;flex:none;width:30px;height:30px;min-width:30px;min-height:30px;margin:2px 0 0;padding:0;
+  border-radius:50%;background:var(--sf2);color:var(--n2);font-size:13px;line-height:1;display:grid;place-items:center;}
+body .sheet .sheet-x::after{content:'';position:absolute;inset:-7px;}
+body .sheet .sheet-x:active{background:var(--hl);}
+/* labels */
+body .sheet .fl{font:600 15px var(--fd);letter-spacing:-.005em;text-transform:none;color:var(--n1);margin:18px 6px 7px;}
+body .sheet .hsec{margin:22px 6px 8px;}
+body .sheet .hsec span{font:600 15px var(--fd);letter-spacing:-.005em;text-transform:none;color:var(--n1);}
+body .sheet .hsec i{display:none;}
+/* fields and groups */
+body .sheet .fi{background-color:var(--sf);border:1px solid transparent;border-radius:13px;min-height:48px;}
+body .sheet .fi:focus{border-color:color-mix(in srgb,var(--a) 60%,transparent);}
+body .sheet .survey{background:var(--sf);border:none;box-shadow:none;border-radius:16px;}
+body .sheet .survey .set,body .sheet .survey .lrow{background:none;border:none;box-shadow:none;}
+body .sheet .survey > * + *{box-shadow:inset 0 1px 0 var(--hl);}
+/* segmented choices: a dark track, the chosen one a raised soft pill (no sheen) */
+body .sheet .seg{background:rgba(0,0,0,.28);border:none;box-shadow:none;border-radius:10px;padding:2px;}
+body .sheet .seg button{border:none;border-radius:8px;background:none;color:var(--n3);font-weight:600;}
+body .sheet .seg button.on{background:var(--sf2);color:var(--n1);animation:none;box-shadow:0 1px 2px rgba(0,0,0,.3);}
+[data-theme="light"] body .sheet .seg{background:rgba(0,0,0,.06);}
+[data-theme="light"] body .sheet .seg button.on{background:#fff;}
+/* actions: one filled button, flat; secondary is a soft surface; no outlines or glows */
+body .sheet .btn{min-height:50px;padding:0 16px;border-radius:15px;border:none;font:600 15.5px var(--fb);box-shadow:none;}
+body .sheet .btn.pri{background:var(--a);color:#0d1020;box-shadow:none;}
+body .sheet .btn.sec,body .sheet .btn:not(.pri){background:var(--sf);color:var(--n1);}
+/* Destructive actions were drawn as a button beside Save, the same size. They
+   are red text under the main button now, so one is never mistaken for the
+   other. The markup marks them with an inline rust colour, which is the hook. */
+body .sheet .btn[style*="--rust"]{background:none;color:var(--neg)!important;font-weight:500;min-height:42px;}
+body .sheet div:has(> .btn.pri):has(> .btn[style*="--rust"]){flex-direction:column-reverse;align-items:stretch;gap:4px!important;}
+body .sheet div:has(> .btn.pri):has(> .btn[style*="--rust"]) > .btn{flex:0 0 auto!important;width:100%;}
 </style>
 </head>
 <body>
@@ -7260,7 +7311,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v243';
+const RH_BUILD = 'v244';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
