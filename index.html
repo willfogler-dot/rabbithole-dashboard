@@ -2859,6 +2859,26 @@ body .sheet .has-thumb > button.on{color:var(--n1)!important;}
 .ds-pill:active{background:var(--hl);}
 .ds-acts{display:flex;flex-direction:column;gap:4px;margin-top:22px;}
 .ds-acts .btn{width:100%;flex:none;}
+
+/* ═══ v247 · ACTIVITY DETAIL ═══ the approved sheet rules: the three hero
+   numbers sit on the sheet with no boxes; tags are quiet sentence-case pills;
+   the night-after tiles and the tables are soft surfaces with hairlines. */
+#adSheet .ad-tags{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:-4px 0 4px;}
+#adSheet .ad-type,#adSheet .ad-tags .dl-tag,#adSheet .ad-edited{font:600 12px var(--fb);letter-spacing:0;text-transform:none;padding:2px 9px;border-radius:999px;border:none;box-shadow:none;}
+#adSheet .ad-type{background:var(--sf);color:var(--n2);}
+#adSheet .ad-tags .dl-tag{color:var(--tc);background:color-mix(in srgb,var(--tc) 16%,transparent);}
+#adSheet .ad-hero{display:flex;gap:28px;padding:10px 6px 2px;margin:0;}
+#adSheet .ad-h{flex:none;background:none;border:none;box-shadow:none;padding:0;text-align:left;border-radius:0;}
+#adSheet .ad-h::before,#adSheet .ad-h::after,#adSheet .ad-nt::before,#adSheet .ad-nt::after{display:none;}
+#adSheet .ad-h-v{font:600 30px/1 var(--fd);letter-spacing:-.03em;color:var(--n1);}
+#adSheet .ad-h-v i{font:500 13px var(--fb);font-style:normal;color:var(--n3);margin-left:3px;letter-spacing:0;}
+#adSheet .ad-h-l{margin-top:6px;font-size:12px;letter-spacing:0;text-transform:none;color:var(--n3);}
+#adSheet .ad-earn{border:none;border-radius:14px;margin-top:16px;}
+#adSheet .ad-nt{background:var(--sf);border:none;box-shadow:none;border-radius:16px;}
+#adSheet .ad-table{background:var(--sf);border:none;box-shadow:none;border-radius:16px;}
+#adSheet .ad-row{border:none;}
+#adSheet .ad-row + .ad-row{box-shadow:inset 0 1px 0 var(--hl);}
+#adSheet .ad-l{font-size:15px;color:var(--n1);}
 </style>
 </head>
 <body>
@@ -7390,7 +7410,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v246';
+const RH_BUILD = 'v247';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -14724,7 +14744,7 @@ function openActDetail(id){
 
   const t = classifyDay(a._iso);
   let h = '<div class="ad-tags">'
-    + '<span class="ad-type">'+a.type+'</span>'
+    + '<span class="ad-type">'+prettyType(a.type)+'</span>'
     + '<span class="dl-tag" style="--tc:'+DAY_COLOR[t]+'">'+DAY_TYPES[t].short+'</span>'
     + (a._manual ? '<span class="ad-edited">edited</span>' : '')
     + '</div>';
