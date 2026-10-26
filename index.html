@@ -7432,7 +7432,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v256';
+const RH_BUILD = 'v257';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -20220,6 +20220,19 @@ if ('serviceWorker' in navigator){
   /* room for the phase bar along the bottom of a day, so it never runs through "no running" */
   .plx-day.plx-wd{padding-bottom:16px;}
 }
+
+/* ═══ v257 · MILES | VERT DIVIDER ═══
+   The two halves of the season chart get their own ground: miles on a faint
+   blue wash standing on its baseline, vert on a faint green wash hanging from
+   its own, and between them a hairline that fades from one colour into the
+   other. */
+.sz-div{grid-column:1 / -1;position:relative;height:1px;margin:12px 0 12px;}
+.sz-div i{position:absolute;inset:0;background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--ph-build) 70%,transparent) 18%,color-mix(in srgb,var(--ph-build) 55%,var(--ph-rec)) 50%,color-mix(in srgb,var(--ph-rec) 70%,transparent) 82%,transparent);}
+.sz-div::after{content:'';position:absolute;left:10%;right:10%;top:-6px;height:13px;background:radial-gradient(50% 50% at 50% 50%,color-mix(in srgb,var(--n1) 10%,transparent),transparent);pointer-events:none;}
+.sz-bar.ft{border-top:1px solid color-mix(in srgb,var(--ph-rec) 30%,transparent);}
+.sz-bar.mi{border-bottom-color:color-mix(in srgb,var(--ph-build) 35%,transparent);}
+.sz-rl{font-weight:600;letter-spacing:.02em;}
+.sz-num.mi{padding-bottom:2px;}
 /* ═══ PHONE ═══
    Kept LAST so it wins over the base rules above without !important wars.
    The phone is for looking at the plan, with the odd edit, so it keeps the
@@ -21974,6 +21987,8 @@ function seasonYearHTML(ix){
     if (ed) return '<div class="sz-num mi"><input data-sm="' + i + '" data-fk="sm' + i + '" inputmode="decimal" autocomplete="off" aria-label="' + MON_FULL[i] + ' miles target" placeholder="—" value="' + (tg[i] != null ? fmt(tg[i]) : '') + '"></div>';
     return '<div class="sz-num mi" title="' + E(MON_FULL[i] + ': ' + fmt1(cal[i].done) + ' mi run' + (cal[i].togo > 0 ? ' + ' + fmt1(cal[i].togo) + ' planned' : '') + (tg[i] != null ? ' · target ' + fmt(tg[i]) : '')) + '">'
       + (shown(i) ? '<b>' + fmt(cal[i].done) + '</b>' : '') + '<span>' + (tg[i] != null ? (shown(i) ? 'of ' : '') + fmt(tg[i]) : '—') + '</span></div>'; }).join('');
+  /* v257: a divider between the two halves, so miles and vert read as two sections */
+  g += '<div class="sz-div" aria-hidden="true"><i></i></div>';
   g += '<div class="sz-rl ft">Vert</div>' + MON.map(function(m, i){ return bar(i, tv[i], calV[i], mxF, 'ft'); }).join('');
   g += '<div></div>' + MON.map(function(m, i){
     if (ed) return '<div class="sz-num ft"><input data-sv="' + i + '" data-fk="sv' + i + '" inputmode="decimal" autocomplete="off" aria-label="' + MON_FULL[i] + ' vert target" placeholder="—" value="' + (tv[i] != null ? (wide.matches ? ftF(tv[i]) : ftK(tv[i])) : '') + '"></div>';
