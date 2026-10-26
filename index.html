@@ -7432,7 +7432,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v249';
+const RH_BUILD = 'v250';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -19955,6 +19955,42 @@ if ('serviceWorker' in navigator){
   .sy-mo .plot{height:64px;}
   .sy-lanes,.sy-wks{display:none;}
 }
+
+/* ═══ v250 · RACE RECAPS ═══ (see raceRecap) */
+.rcp-list{display:flex;flex-direction:column;gap:14px;}
+.rcp{background:var(--sf,rgba(170,185,235,.045));border-radius:20px;padding:16px 18px 16px;display:flex;flex-direction:column;gap:14px;}
+.rcp header{display:flex;align-items:flex-start;gap:12px;}
+.rcp-n{flex:1;min-width:0;text-align:left;background:none;border:none;padding:0;color:inherit;}
+.rcp-n b{display:block;font:600 19px/1.2 var(--fd);letter-spacing:-.015em;color:var(--n1);}
+.rcp-n span{display:block;margin-top:2px;font-size:12.5px;color:var(--n3);}
+.rcp-open{flex:none;border:none;background:none;color:var(--a-hi,#c2c9ff);font:500 13px var(--fb);padding:4px 2px;}
+.rcp-res{display:flex;flex-wrap:wrap;gap:12px 30px;}
+.rcp-res b{display:block;font:600 28px/1 var(--fd);letter-spacing:-.03em;color:var(--n1);font-variant-numeric:tabular-nums;}
+.rcp-res b small{font:500 12.5px var(--fb);color:var(--n3);margin-left:3px;letter-spacing:0;}
+.rcp-res span{display:block;margin-top:5px;font-size:12px;color:var(--n3);}
+.rcp-res > div:first-child b{color:var(--ph-race);}
+.rcp-lb{display:flex;align-items:baseline;gap:8px;margin-bottom:8px;font:600 14px var(--fd);color:var(--n1);}
+.rcp-lb small{font:500 12px var(--fb);color:var(--n3);}
+.rcp-bars{display:flex;align-items:flex-end;gap:3px;height:84px;}
+.rcp-bars i{flex:1;min-width:0;border-radius:3px 3px 1px 1px;display:block;}
+.rcp-bars i.build{background:color-mix(in srgb,var(--ph-build) 60%,transparent);}
+.rcp-bars i.taper{background:var(--ph-taper);}
+.rcp-bars i.race{background:var(--ph-race);}
+.rcp-bars i.rec{background:color-mix(in srgb,var(--ph-rec) 55%,transparent);}
+.rcp-bars i.pk{box-shadow:inset 0 2px 0 var(--n1);}
+.rcp-ax{position:relative;display:flex;justify-content:space-between;margin-top:5px;font-size:11px;color:var(--n4);}
+.rcp-ax .rw{position:absolute;top:0;transform:translateX(-50%);color:var(--ph-race);white-space:nowrap;}
+.rcp-facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2px;border-radius:14px;overflow:hidden;}
+.rcp-f{background:rgba(0,0,0,.16);padding:10px 12px;min-width:0;}
+.rcp-f span{display:block;font-size:12px;color:var(--n3);}
+.rcp-f b{display:block;margin-top:2px;font:600 16px var(--fd);color:var(--n1);font-variant-numeric:tabular-nums;}
+.rcp-f em{display:block;font-style:normal;font-size:11.5px;color:var(--n3);margin-top:1px;overflow-wrap:anywhere;}
+@media (max-width:759px){
+  .rcp{padding:14px;}
+  .rcp-res{gap:10px 22px;}
+  .rcp-res b{font-size:24px;}
+  .rcp-facts{grid-template-columns:repeat(2,minmax(0,1fr));}
+}
 /* ═══ PHONE ═══
    Kept LAST so it wins over the base rules above without !important wars.
    The phone is for looking at the plan, with the odd edit, so it keeps the
@@ -21481,7 +21517,18 @@ $lib && $lib.addEventListener('click', function(e){
    treated as short. These are defaults, not a coach — the point is to see
    overlaps, which the exact week counts barely change. */
 const PH_DAY = 864e5;
-function seasonWeeks(r){ const mi = parseFloat(r.distance_mi) || 0;
+/* v250: the run that was the race: the longest run within a day of race day.
+   Races entered without a distance (most of the old ones) take it from there,
+   so a 100 that was never given a distance still gets a 100's build. */
+function raceAct(r){
+  if (!r || !r.date) return null;
+  const lo = iso(addDays(dOf(r.date), -1)), hi = iso(addDays(dOf(r.date), 1));
+  let best = null;
+  (ACTS || []).forEach(function(a){ if (a && a._iso >= lo && a._iso <= hi && RUNLIKE.has(a.type) && (!best || (a.distance_mi||0) > (best.distance_mi||0))) best = a; });
+  return best && (best.distance_mi || 0) >= 3 ? best : null;
+}
+function raceMi(r){ const v = parseFloat(r.distance_mi); if (v) return v; if (r.date < TODAY){ const a = raceAct(r); if (a) return a.distance_mi || 0; } return 0; }
+function seasonWeeks(r){ const mi = raceMi(r);
   return mi >= 90 ? [16,3,4] : mi >= 45 ? [12,2,3] : mi >= 26 ? [10,2,1] : [8,1,1]; }
 function seasonBlocks(r){
   const p = seasonWeeks(r), day = dOf(r.date);
@@ -21612,7 +21659,11 @@ function seasonYearHTML(ix){
     return '<i class="' + (w.past ? 'p' : 'f') + (iso(w.d) === thisMon ? ' now' : '') + '" data-wk="' + iso(w.d) + '" style="left:calc(' + l + '% + 1px);width:calc(' + (r - l) + '% - 2px);height:' + Math.max(3, w.v/wmax*100).toFixed(1) + '%" title="Week of ' + MON[w.d.getMonth()] + ' ' + w.d.getDate() + ': ' + (w.v > 0 ? fmt1(w.v) + ' ' + U + (w.past ? ' run' : ' run + planned') : 'nothing yet') + '"></i>';
   }).join('');
 
-  return '<section class="sy"><div class="sy-hero">' + hero + '</div>' + alloc
+  /* v250: the allocation bar that stood here (months as alternating slices of
+     the annual target, unplaced hatched) read as decoration: the two shades of
+     month looked like the hatching, and "over" had no look at all. Still to
+     place says the same thing as a number, so the bar is gone. */
+  return '<section class="sy"><div class="sy-hero">' + hero + '</div>'
     + '<div class="sy-panel"><div class="sy-cols">' + cols + '</div>'
     + (lanes ? '<div class="sy-lanes">' + lanes + '</div>' : '')
     + '<div class="sy-wks" aria-label="Weeks">' + weeks + '</div>'
@@ -21676,65 +21727,116 @@ $month.addEventListener('keydown', function(e){ if (e.key === 'Enter' && st.view
 $month.addEventListener('focusin', function(e){ if (st.view === 'season' && e.target.matches && e.target.matches('[data-sm],[data-sy]')) e.target.select(); });
 
 function renderSeason(ix){
-  const yearPlan = seasonYearHTML(ix || buildIndex());
-  const list = seasonRaces();
+  ix = ix || buildIndex();
+  const y = st.year, curY = todayD.getFullYear();
+  const yearPlan = seasonYearHTML(ix);
   const fmtD = function(d){ return MON[d.getMonth()] + ' ' + d.getDate(); };
   const blk = function(p){ return '<span class="ss-blk"><i style="flex:' + p[0] + ';background:color-mix(in srgb,var(--ph-build) 55%,transparent)"></i><i style="flex:' + p[1] + ';background:var(--ph-taper)"></i><i style="flex:.3;background:var(--ph-race)"></i><i style="flex:' + p[2] + ';background:color-mix(in srgb,var(--ph-rec) 55%,transparent)"></i></span>'; };
+  /* v250: the season is a year now, so its races are that year's races. Ones
+     still to come are planning cards (on/off, clashes); ones already run get a
+     recap of the race and the build that led to it. */
+  const inY = (RACES || []).filter(function(r){ return r && r.date && r.name && r.date.slice(0, 4) === String(y); })
+    .sort(function(a, b){ return a.date < b.date ? -1 : 1; });
+  const up = inY.filter(function(r){ return r.date >= TODAY; }), past = inY.filter(function(r){ return r.date < TODAY; });
 
-  let h = '<div class="ss">' + yearPlan + '<section><h3>Races<small>dashed = maybe</small><button class="ss-add" data-sact="add">+ Add race</button></h3>';
-  if (!list.length){
-    h += '<div class="ss-empty">No upcoming races. Add the ones you are choosing between as <b>Maybe</b> and this shows what each does to the season.</div></section></div>';
-    $month.innerHTML = h; fitAnnual($month.querySelector('[data-sy]')); return;
+  let h = '<div class="ss">' + yearPlan;
+  if (y >= curY){
+    h += '<section><h3>' + (past.length ? 'Races to come' : 'Races') + '<small>dashed = maybe</small><button class="ss-add" data-sact="add">+ Add race</button></h3>';
+    if (!up.length){
+      h += '<div class="ss-empty">' + (y === curY ? 'No more races in ' + y + '.' : 'No races in ' + y + ' yet.') + ' Add the ones you are choosing between as <b>Maybe</b> and this shows what each does to the season.</div>';
+    } else {
+      h += '<div class="ss-races">' + up.map(function(r){
+        const p = seasonWeeks(r), mb = raceIsMaybe(r), on = seasonOn(r), mi = raceMi(r);
+        return '<div class="ss-rc' + (on ? '' : ' off') + '">'
+          + '<div class="top"><span class="ss-st ' + (mb ? 'maybe' : 'reg') + '">' + (mb ? 'Maybe' : 'Registered') + '</span>'
+          + '<button class="ss-sw" role="switch" aria-checked="' + on + '" aria-label="Show ' + E(r.name) + ' in the season" data-sact="tog" data-id="' + E(r.id) + '"><i></i></button></div>'
+          + '<button class="bd" data-sact="info" data-id="' + E(r.id) + '"><b>' + E(r.name) + '</b>'
+          + '<span class="meta">' + DOW[dowOf(r.date)] + ', ' + fmtD(dOf(r.date)) + (mi ? ' · ' + miles(mi) + ' mi' : '') + '</span>'
+          + '<span class="meta">' + p[0] + ' wk build · ' + p[1] + ' taper · ' + p[2] + ' recovery</span>' + blk(p) + '</button></div>';
+      }).join('') + '</div>';
+    }
+    h += '</section>';
+    /* clashes among this year's races still to come, plus anything early next
+       year whose build reaches back into this one */
+    const iss = seasonClashes(up.concat((RACES || []).filter(function(r){ return r && r.date && r.name && r.date.slice(0,4) === String(y+1) && seasonBlocks(r).build.getFullYear() === y; })));
+    if (up.length > 1 || iss.length){
+      const nBad = iss.filter(function(x){ return x.sev !== 'ok'; }).length;
+      h += '<section><h3>What clashes<small>' + (nBad ? nBad + ' to sort out' : 'nothing') + '</small></h3><div class="ss-iss">'
+        + (iss.length ? iss.map(function(x){
+            return '<div class="ss-is ' + x.sev + '"><i>' + (x.sev === 'ok' ? '✓' : '!') + '</i><div><b>' + E(x.t) + '</b><span>' + E(x.s) + '</span></div></div>';
+          }).join('') : '<div class="ss-empty">No clashes. Each race gets its full build, taper and recovery.</div>')
+        + '</div><p class="ss-note">Block lengths come from distance: 100 mi 16/3/4 weeks, 50 mi–100K 12/2/3, marathon–50K 10/2/1.</p></section>';
+    }
   }
-  h += '<div class="ss-races">' + list.map(function(r){
-    const p = seasonWeeks(r), mb = raceIsMaybe(r), on = seasonOn(r), mi = parseFloat(r.distance_mi);
-    return '<div class="ss-rc' + (on ? '' : ' off') + '">'
-      + '<div class="top"><span class="ss-st ' + (mb ? 'maybe' : 'reg') + '">' + (mb ? 'Maybe' : 'Registered') + '</span>'
-      + '<button class="ss-sw" role="switch" aria-checked="' + on + '" aria-label="Show ' + E(r.name) + ' in the season" data-sact="tog" data-id="' + E(r.id) + '"><i></i></button></div>'
-      + '<button class="bd" data-sact="info" data-id="' + E(r.id) + '"><b>' + E(r.name) + '</b>'
-      + '<span class="meta">' + DOW[dowOf(r.date)] + ', ' + fmtD(dOf(r.date)) + (dOf(r.date).getFullYear() !== todayD.getFullYear() ? ', ' + dOf(r.date).getFullYear() : '') + (mi ? ' · ' + miles(mi) + ' mi' : '') + '</span>'
-      + '<span class="meta">' + p[0] + ' wk build · ' + p[1] + ' taper · ' + p[2] + ' recovery</span>' + blk(p) + '</button></div>';
-  }).join('') + '</div></section>';
-
-  /* the window: this month through the last recovery, never less than a year, never more than 18 months */
-  const start = new Date(todayD.getFullYear(), todayD.getMonth(), 1);
-  let last = start; list.forEach(function(r){ const e = seasonBlocks(r).recEnd; if (e > last) last = e; });
-  let n = (last.getFullYear() - start.getFullYear())*12 + last.getMonth() - start.getMonth() + 1;
-  n = Math.max(12, Math.min(18, n));
-  const end = new Date(start.getFullYear(), start.getMonth() + n, 1), span = end - start;
-  const pct = function(d){ return Math.max(0, Math.min(100, (d - start)/span*100)); };
-  const iss = seasonClashes(list);
-  const phone = !wide.matches;
-
-  let tl = '<div class="ss-mo" style="grid-template-columns:repeat(' + n + ',minmax(0,1fr))">';
-  for (let i = 0; i < n; i++){
-    const md = new Date(start.getFullYear(), start.getMonth() + i, 1), jan = md.getMonth() === 0;
-    tl += '<span' + (jan ? ' class="y"' : '') + '>' + (phone ? MON[md.getMonth()].charAt(0) : MON[md.getMonth()].toUpperCase()) + (jan && !phone ? ' ' + String(md.getFullYear()).slice(2) : '') + '</span>';
-  }
-  tl += '</div><div class="ss-lanes">';
-  const shown = list.filter(seasonOn);
-  shown.forEach(function(r){
-    const b = seasonBlocks(r), mb = raceIsMaybe(r), mi = parseFloat(r.distance_mi);
-    const seg = function(cls, f, t, lab){ const w = pct(t) - pct(f); return w > 0 ? '<span class="ss-seg ' + cls + '" style="left:' + pct(f) + '%;width:' + w + '%">' + (lab || '') + '</span>' : ''; };
-    tl += '<div class="ss-lane' + (mb ? ' maybe' : '') + '"><span class="nm">' + E(r.name) + '<small>' + fmtD(b.day) + (mi ? ' · ' + miles(mi) + ' mi' : '') + '</small></span><div class="ss-tr">'
-      + seg('build', b.build, b.taper, 'BUILD') + seg('taper', b.taper, b.day) + seg('rec', b.day, b.recEnd)
-      + '<span class="ss-flag" style="left:' + pct(b.day) + '%" title="Race day"></span>';
-    /* a clash is drawn on the later race's lane, over the weeks that collide */
-    iss.forEach(function(x){ if (x.b === r && x.from) tl += '<span class="ss-cl' + (x.sev === 'warn' ? ' warn' : '') + '" style="left:' + pct(x.from) + '%;width:' + Math.max(.6, pct(x.to) - pct(x.from)) + '%"></span>'; });
-    tl += '</div></div>';
-  });
-  if (!shown.length) tl += '<div class="ss-empty" style="margin-top:6px">Every race is switched off.</div>';
-  tl += '<span class="ss-now" style="left:calc(var(--nmw) + (100% - var(--nmw))*' + (pct(todayD)/100).toFixed(4) + ')"></span></div>';
-  /* v249: the rolling race timeline that stood here now runs under the months above */
-
-  const nBad = iss.filter(function(x){ return x.sev !== 'ok'; }).length;
-  h += '<section><h3>What clashes<small>' + (nBad ? nBad + ' to sort out' : 'nothing') + '</small></h3><div class="ss-iss">'
-    + (iss.length ? iss.map(function(x){
-        return '<div class="ss-is ' + x.sev + '"><i>' + (x.sev === 'ok' ? '✓' : '!') + '</i><div><b>' + E(x.t) + '</b><span>' + E(x.s) + '</span></div></div>';
-      }).join('') : '<div class="ss-empty">No clashes. Each race gets its full build, taper and recovery.</div>')
-    + '</div><p class="ss-note">Block lengths come from distance: 100 mi 16/3/4 weeks, 50 mi–100K 12/2/3, marathon–50K 10/2/1.</p></section></div>';
+  if (past.length) h += '<section><h3>How the races went<small>' + y + '</small></h3><div class="rcp-list">' + past.map(function(r){ return raceRecap(ix, r); }).join('') + '</div></section>';
+  else if (y < curY) h += '<section><h3>Races</h3><div class="ss-empty">No races on record for ' + y + '.</div></section>';
+  h += '</div>';
   $month.innerHTML = h;
   fitAnnual($month.querySelector('[data-sy]'));
+}
+
+/* ═══ RACE RECAP (v250) ═══
+   For a race already run: the result, read off the run on race day, and the
+   build that led to it, week by week, with the numbers a runner looks back at:
+   the peak week, the average build week, the longest run, how far the taper
+   came down, and what the weeks after looked like. The weeks are the same
+   build / taper / recovery blocks the planner draws, sized from the distance. */
+function raceRecap(ix, r){
+  const a = raceAct(r), mi = raceMi(r), b = seasonBlocks(r);
+  const fmtD = function(d){ return MON[d.getMonth()] + ' ' + d.getDate(); };
+  const dur = function(s){ s = Math.round(s || 0); const hh = Math.floor(s/3600), mm = Math.floor(s%3600/60), ss = s%60; return hh ? hh + ':' + String(mm).padStart(2,'0') + ':' + String(ss).padStart(2,'0') : mm + ':' + String(ss).padStart(2,'0'); };
+  const pace = function(s, d){ if (!s || !d) return ''; const v = s/d; return Math.floor(v/60) + ':' + String(Math.round(v%60)).padStart(2,'0') + ' /mi'; };
+  /* the race's own week counts as "race"; anything after it, recovery */
+  const raceWk = iso(weekStart(b.day));
+  const wks = [];
+  for (let d = weekStart(b.build); d <= b.recEnd && iso(d) <= TODAY; d = addDays(d, 7)){
+    const k = iso(d), W = weekRun(ix, d, 'distance'), V = weekRun(ix, d, 'elevation');
+    const mid = addDays(d, 3);
+    const ph = k === raceWk ? 'race' : d > b.day ? 'rec' : mid >= b.taper ? 'taper' : 'build';
+    /* the race week's miles, minus the race itself, are what the taper's last week looked like */
+    wks.push({ d:new Date(d), k:k, ph:ph, mi:W.done, ft:V.done });
+  }
+  const bw = wks.filter(function(w){ return w.ph === 'build'; }), tw = wks.filter(function(w){ return w.ph === 'taper'; }), rw = wks.filter(function(w){ return w.ph === 'rec'; });
+  const avg = function(l){ return l.length ? l.reduce(function(s,w){ return s + w.mi; }, 0)/l.length : 0; };
+  let peak = null; bw.concat(tw).forEach(function(w){ if (!peak || w.mi > peak.mi) peak = w; });
+  const bft = bw.concat(tw).reduce(function(s,w){ return s + w.ft; }, 0), bmi = bw.concat(tw).reduce(function(s,w){ return s + w.mi; }, 0);
+  /* the longest run of the build, not counting the race */
+  let lr = null; const lo = iso(b.build), hi = iso(addDays(b.day, -2));
+  (ACTS || []).forEach(function(x){ if (x && x._iso >= lo && x._iso <= hi && RUNLIKE.has(x.type) && (!lr || (x.distance_mi||0) > (lr.distance_mi||0))) lr = x; });
+  const taperDrop = peak && peak.mi > 0 && tw.length ? Math.round((1 - avg(tw)/peak.mi)*100) : null;
+
+  /* the weeks as bars; the race week's bar is the race, in race colour */
+  let mx = 1; wks.forEach(function(w){ mx = Math.max(mx, w.mi); });
+  const bars = wks.map(function(w){
+    return '<i class="' + w.ph + (peak && w.k === peak.k ? ' pk' : '') + '" style="height:' + Math.max(2, w.mi/mx*100).toFixed(1) + '%" title="Week of ' + fmtD(w.d) + ' · ' + miles(w.mi) + ' mi · ' + Math.round(w.ft).toLocaleString() + ' ft (' + ({ build:'build', taper:'taper', race:'race week', rec:'recovery' })[w.ph] + ')"></i>';
+  }).join('');
+
+  const res = a
+    ? '<div class="rcp-res"><div><b>' + dur(a.elapsed_time || a.moving_time) + '</b><span>' + (a.elapsed_time ? 'finish' : 'moving') + '</span></div>'
+      + '<div><b>' + miles(a.distance_mi || mi) + '<small>mi</small></b><span>distance</span></div>'
+      + '<div><b>' + Math.round(a.elevation_ft || 0).toLocaleString() + '<small>ft</small></b><span>vert</span></div>'
+      + '<div><b>' + pace(a.elapsed_time || a.moving_time, a.distance_mi) .replace(' /mi', '<small>/mi</small>') + '</b><span>' + (a.elapsed_time ? 'overall pace' : 'pace') + '</span></div>'
+      + (a.elapsed_time && a.moving_time && a.elapsed_time - a.moving_time > 300 ? '<div><b>' + dur(a.moving_time) + '</b><span>moving</span></div>' : '') + '</div>'
+    : '<div class="ss-empty">No run on race day to read a result from' + (raceIsMaybe(r) ? ' (it was a maybe)' : '') + '.</div>';
+
+  const fact = function(k, v, s){ return '<div class="rcp-f"><span>' + k + '</span><b>' + v + '</b>' + (s ? '<em>' + s + '</em>' : '') + '</div>'; };
+  const facts = wks.length ? '<div class="rcp-facts">'
+    + (peak ? fact('Peak week', miles(peak.mi) + ' mi', 'week of ' + fmtD(peak.d)) : '')
+    + fact('Average build week', miles(avg(bw)) + ' mi', bw.length + ' weeks')
+    + (lr ? fact('Longest run', miles(lr.distance_mi) + ' mi', E(lr.name || lr.type) + ' · ' + fmtD(lr._date || dOf(lr._iso))) : '')
+    + fact('Build total', fmt(bmi) + ' mi', Math.round(bft).toLocaleString() + ' ft')
+    + (taperDrop != null ? fact('Taper', (taperDrop >= 0 ? '−' : '+') + Math.abs(taperDrop) + '%', 'from the peak week') : '')
+    + (rw.length ? fact('After', miles(avg(rw)) + ' mi / wk', rw.length + ' week' + (rw.length === 1 ? '' : 's') + ' of recovery') : '')
+    + '</div>' : '';
+
+  return '<article class="rcp">'
+    + '<header><button class="rcp-n" data-sact="info" data-id="' + E(r.id) + '"><b>' + E(r.name) + '</b><span>' + DOW[dowOf(r.date)] + ', ' + fmtD(dOf(r.date)) + (r.priority ? ' · ' + r.priority + ' race' : '') + '</span></button>'
+    + (a ? '<button class="rcp-open" data-sact="act" data-id="' + E(a.id) + '">Open the run ›</button>' : '') + '</header>'
+    + res
+    + (wks.length ? '<div class="rcp-build"><div class="rcp-lb">The build<small>' + b.p[0] + ' weeks, ' + b.p[1] + ' taper, ' + b.p[2] + ' after</small></div><div class="rcp-bars">' + bars + '</div>'
+      /* "race week" sits under the race's own bar, not midway along the axis */
+      + '<div class="rcp-ax"><span>' + fmtD(wks[0].d) + '</span>' + (function(){ const ri = wks.findIndex(function(w){ return w.ph === 'race'; }); return ri < 0 ? '' : '<span class="rw" style="left:' + ((ri + .5)/wks.length*100).toFixed(2) + '%">race week</span>'; })() + '<span>' + fmtD(wks[wks.length-1].d) + '</span></div></div>' : '')
+    + facts + '</article>';
 }
 $month.addEventListener('click', function(e){
   const b = e.target.closest('[data-sact]'); if (!b || st.view !== 'season') return;
@@ -21746,6 +21848,7 @@ $month.addEventListener('click', function(e){
     try { saveRaces(); } catch(err){ console.error('[plx] season save', err); }
     render();
   } else if (a === 'info' && r){ openRaceInfo(r.id); }
+  else if (a === 'act'){ openActDetail(b.dataset.id); }
   else if (a === 'scale'){ fillScale(); }
   else if (a === 'rebal'){ fillRebalance(); }
   else if (a === 'add'){
