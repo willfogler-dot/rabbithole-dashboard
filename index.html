@@ -7432,7 +7432,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v260';
+const RH_BUILD = 'v261';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -24303,9 +24303,8 @@ render();
   #dskHome{display:flex;flex-direction:column;gap:12px;}
   #dskHome .hm-row,#dskHome .hm-side{display:contents;}
   #dskHome .hm-weekcard,#dskHome .hm-tiles{display:none;}
-  /* v260: the phone Overview is the call for today and nothing else. Last
-     night lives on Health, training on Progress, activities on Routes. */
-  #dskHome #hmVolSlot,#dskHome .hm-r1 > .dk-card:not(.hm-ready),#dskHome .hm-side,#dskHome .hm-trh{display:none!important;}
+  /* v260 hid everything below the call on the phone; v261 put it back — the
+     page felt empty. The call leads; the rest is there to scroll to. */
   /* the day-by-day heatmap needs width to read; on the phone it was a sideways-scrolling strip */
   .dk-grid:has(> .dk-heatcard:only-child){display:none;}
   #dskHome .hm-head{order:0;margin:2px 2px 0;}
