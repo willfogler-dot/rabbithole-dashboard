@@ -7432,7 +7432,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v254';
+const RH_BUILD = 'v255';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -20157,6 +20157,36 @@ if ('serviceWorker' in navigator){
 .rcp-calls b{display:block;margin-top:2px;font:600 15px var(--fd);color:var(--n1);font-variant-numeric:tabular-nums;}
 .rcp-calls em{display:block;font-style:normal;font-size:11.5px;color:var(--n3);overflow-wrap:anywhere;}
 @media (max-width:759px){ .rcp-calls{grid-template-columns:repeat(2,minmax(0,1fr));} }
+
+/* ═══ v255 · BUILD PLANS ═══ */
+.ss-plan{display:block;width:100%;margin-top:10px;border:none;border-radius:10px;background:color-mix(in srgb,var(--ph-build) 18%,transparent);color:var(--n1);font:600 13px var(--fb);padding:8px 10px;}
+.bp{margin-top:14px;background:var(--sf,rgba(170,185,235,.045));border-radius:20px;padding:16px;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--ph-build) 30%,transparent);}
+.bp-h{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;margin:0 2px 12px;}
+.bp-h b{font:600 17px var(--fd);color:var(--n1);}
+.bp-h span{font-size:12.5px;color:var(--n3);}
+.bp-grid{display:grid;grid-template-columns:290px minmax(0,1fr);gap:18px;align-items:start;}
+.bp-ctl{background:rgba(0,0,0,.16);border-radius:16px;padding:4px 12px 8px;}
+.bp-ctl h4{margin:10px 0 2px;display:flex;align-items:center;gap:8px;font:600 13px var(--fd);color:var(--n1);}
+.bp-ctl h4 i{width:10px;height:10px;border-radius:3px;display:block;}
+.bp-row{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:40px;}
+.bp-row + .bp-row{box-shadow:inset 0 1px 0 color-mix(in srgb,var(--n1) 8%,transparent);}
+.bp-row span{font-size:13.5px;color:var(--n2);}
+.bp-stp{display:flex;align-items:center;gap:2px;}
+.bp-stp button{width:34px;height:30px;border:none;background:rgba(0,0,0,.3);color:var(--n2);font-size:17px;line-height:1;}
+.bp-stp button:first-child{border-radius:8px 0 0 8px;} .bp-stp button:last-child{border-radius:0 8px 8px 0;}
+.bp-stp output{min-width:66px;text-align:center;font:600 14px var(--fd);color:var(--n1);font-variant-numeric:tabular-nums;}
+.bp-out{min-width:0;}
+.bp-sum{display:flex;flex-wrap:wrap;gap:10px 24px;margin:2px 2px 6px;}
+.bp-sum b{display:block;font:600 21px/1 var(--fd);color:var(--n1);font-variant-numeric:tabular-nums;}
+.bp-sum span{display:block;margin-top:4px;font-size:12px;color:var(--n3);}
+.bp-acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;}
+.bp-acts button{border:none;border-radius:11px;background:var(--sf2,rgba(170,185,235,.09));color:var(--n1);font:600 13px var(--fb);padding:9px 14px;}
+.bp-acts button.pri{background:var(--ph-build);color:#0b0f18;}
+.bp-acts button.dg{background:none;color:var(--ph-bad);}
+.bp-prog{font-size:13px;color:var(--n3);margin:-2px 0 2px;}
+.bp-prog b{color:var(--n1);font-weight:600;}
+@media (max-width:900px){ .bp-grid{grid-template-columns:minmax(0,1fr);} }
+@media (max-width:759px){ .bp{padding:12px;} .bp-stp button{width:38px;height:34px;} }
 /* ═══ PHONE ═══
    Kept LAST so it wins over the base rules above without !important wars.
    The phone is for looking at the plan, with the odd edit, so it keeps the
@@ -20448,13 +20478,15 @@ function weekRun(ix, mon, metric){
 
 /* ── undo: one snapshot per action — plan, goals and repeat rules together ── */
 function snap(){
-  st.undo.push({ p: JSON.stringify(PLANNED), g: JSON.stringify(GOALS), r: JSON.stringify(REPEATS) });
+  /* races too (v255): a build plan lives on its race, and Undo must take it back with its weekly targets */
+  st.undo.push({ p: JSON.stringify(PLANNED), g: JSON.stringify(GOALS), r: JSON.stringify(REPEATS), rc: JSON.stringify(RACES || []) });
   if (st.undo.length > 30) st.undo.shift();
 }
 function undo(){
   const s = st.undo.pop();
   if (!s){ return; }
   PLANNED = JSON.parse(s.p); GOALS = JSON.parse(s.g); REPEATS = JSON.parse(s.r || '[]');
+  if (s.rc){ try { RACES = JSON.parse(s.rc); saveRaces(); } catch(e){ console.error('[plx] undo races', e); } }
   lsSet(GOALS_KEY, GOALS); lsSet(REPEATS_KEY, REPEATS);
   closePop();
   planChanged(TODAY);
@@ -21706,10 +21738,13 @@ function raceAct(r){
   return best && (best.distance_mi || 0) >= 3 ? best : null;
 }
 function raceMi(r){ const v = parseFloat(r.distance_mi); if (v) return v; if (r.date < TODAY){ const a = raceAct(r); if (a) return a.distance_mi || 0; } return 0; }
-function seasonWeeks(r){ const mi = raceMi(r);
+function seasonWeeks(r){ if (r && r.build) return [r.build.b, r.build.t, r.build.r]; const mi = raceMi(r);
   return mi >= 90 ? [16,3,4] : mi >= 45 ? [12,2,3] : mi >= 26 ? [10,2,1] : [8,1,1]; }
 function seasonBlocks(r){
   const p = seasonWeeks(r), day = dOf(r.date);
+  /* a planned build is laid out in whole Monday weeks around the race's own week */
+  if (r && r.build){ const rw = weekStart(day);
+    return { day:day, build:addDays(rw, -7*(p[0] + p[1])), taper:addDays(rw, -7*p[1]), recEnd:addDays(rw, 7*(p[2] + 1)), p:p }; }
   const taper = addDays(day, -7*p[1]), build = addDays(taper, -7*p[0]), recEnd = addDays(day, 7*p[2]);
   return { day:day, build:build, taper:taper, recEnd:recEnd, p:p };
 }
@@ -21983,8 +22018,11 @@ function renderSeason(ix){
           + '<button class="ss-sw" role="switch" aria-checked="' + on + '" aria-label="Show ' + E(r.name) + ' in the season" data-sact="tog" data-id="' + E(r.id) + '"><i></i></button></div>'
           + '<button class="bd" data-sact="info" data-id="' + E(r.id) + '"><b>' + E(r.name) + '</b>'
           + '<span class="meta">' + DOW[dowOf(r.date)] + ', ' + fmtD(dOf(r.date)) + (mi ? ' · ' + miles(mi) + ' mi' : '') + '</span>'
-          + '<span class="meta">' + p[0] + ' wk build · ' + p[1] + ' taper · ' + p[2] + ' recovery</span>' + blk(p) + '</button></div>';
+          + '<span class="meta">' + p[0] + ' wk build · ' + p[1] + ' taper · ' + p[2] + ' recovery' + (r.build ? ' · planned' : '') + '</span>' + blk(p) + '</button>'
+          + (st.sedit ? '<button class="ss-plan" data-sact="bplan" data-id="' + E(r.id) + '">' + (r.build ? 'Edit the build' : 'Plan the build') + '</button>' : '') + '</div>';
       }).join('') + '</div>';
+      const pr = st.sedit && st.bplan != null ? up.find(function(r){ return String(r.id) === String(st.bplan); }) : null;
+      if (pr && st.bdraft) h += plannerHTML(ix, pr, st.bdraft);
     }
     h += '</section>';
     /* clashes among this year's races still to come, plus anything early next
@@ -21999,6 +22037,8 @@ function renderSeason(ix){
         + '</div><p class="ss-note">Block lengths come from distance: 100 mi 16/3/4 weeks, 50 mi–100K 12/2/3, marathon–50K 10/2/1.</p></section>';
     }
   }
+  const planned = up.filter(function(r){ return r.build && seasonOn(r); });
+  if (planned.length && !st.sedit) h += '<section><h3>The builds<small>dashed = the plan · filled = what you ran</small></h3><div class="rcp-list">' + planned.map(function(r){ return buildProgressHTML(ix, r); }).join('') + '</div></section>';
   if (past.length) h += '<section><h3>How the races went<small>' + y + '</small></h3><div class="rcp-list">' + past.map(function(r){ return raceRecap(ix, r); }).join('') + '</div></section>';
   else if (y < curY) h += '<section><h3>Races</h3><div class="ss-empty">No races on record for ' + y + '.</div></section>';
   h += '</div>';
@@ -22015,6 +22055,120 @@ function renderSeason(ix){
    the peak week, the average build week, the longest run, how far the taper
    came down, and what the weeks after looked like. The weeks are the same
    build / taper / recovery blocks the planner draws, sized from the distance. */
+
+/* ═══ BUILD PLANS (v255) ═══
+   In edit mode a race can be given a build: how many weeks, where the miles
+   start and peak, a down week every so often, how the taper steps down, how
+   long recovery runs, and how much vert per mile. It is drawn as the same climb
+   as the recap, live as he changes it, and "Set as weekly targets" writes one
+   target per week (miles and vert) that the Week view reads. The plan is stored
+   on the race (r.build), so the season's blocks and clashes follow it too. */
+function wkTgt(k){ const g = GOALS && GOALS[k.slice(0, 4)], w = g && g.Run && g.Run.weeks; return (w && w[k]) || null; }
+function setWkTgt(k, v){ const r = gWrite(+k.slice(0, 4)); r.weeks = r.weeks || {}; if (v == null) delete r.weeks[k]; else r.weeks[k] = v; }
+function buildDefault(r){
+  const mi = raceMi(r), p = (function(){ const q = r.build; delete r.build; const x = seasonWeeks(r); if (q) r.build = q; return x; })();
+  /* where he is now: the last four weeks' average, to the nearest 5 */
+  const ix = buildIndex(); let s = 0; for (let i=1;i<=4;i++) s += weekRun(ix, addDays(weekStart(todayD), -7*i), 'distance').done;
+  const now = Math.max(15, Math.round(s/4/5)*5);
+  const pk = mi >= 90 ? 70 : mi >= 45 ? 55 : mi >= 26 ? 45 : 35;
+  const ft = parseFloat(r.elevation_ft), fpm = (ft && mi) ? Math.round(ft/mi/10)*10 : 200;
+  return { b:p[0], s:Math.min(now, pk - 10), pk:pk, dw:4, dd:25, t:p[1], t1:30, t2:50, r:p[2], fpm:Math.max(50, Math.min(400, fpm)) };
+}
+/* the weeks a plan makes, race week as 0: taper before it, build before that, recovery after */
+function buildWeeks(r, B){
+  const rw = weekStart(dOf(r.date)), mi = raceMi(r), raceFt = parseFloat(r.elevation_ft) || mi*B.fpm;
+  const out = [], step5 = function(v){ return Math.max(0, Math.round(v/5)*5); }, ft100 = function(v){ return Math.max(0, Math.round(v/100)*100); };
+  for (let i=0;i<B.b;i++){
+    const base = B.s + (B.pk - B.s)*i/Math.max(1, B.b - 1);
+    const down = B.dw > 0 && (i + 1) % B.dw === 0 && i < B.b - 1;
+    out.push({ ph:'build', pm: step5(down ? base*(1 - B.dd/100) : base) });
+  }
+  for (let i=0;i<B.t;i++) out.push({ ph:'taper', pm: step5(B.pk*(1 - (i === 0 ? B.t1 : B.t2)/100)) });
+  const before = step5(B.pk*.2);
+  out.push({ ph:'race', pm: Math.round(before + mi), pfx: ft100(before*B.fpm + raceFt) });
+  for (let i=0;i<B.r;i++) out.push({ ph:'rec', pm: step5(B.pk*Math.min(.7, .15 + .2*i)) });
+  out.forEach(function(x, i){
+    x.d = addDays(rw, 7*(i - B.b - B.t)); x.k = iso(x.d);
+    x.pf = x.pfx != null ? x.pfx : ft100(x.pm*B.fpm); delete x.pfx;
+  });
+  return out;
+}
+/* plan + what has been run, for drawing */
+function buildClimbWeeks(ix, r, B){
+  return buildWeeks(r, B).map(function(x){
+    const past = x.k <= TODAY;
+    return { d:x.d, k:x.k, ph:x.ph, pm:x.pm, pf:x.pf, mi: past ? weekRun(ix, x.d, 'distance').done : 0, ft: past ? weekRun(ix, x.d, 'elevation').done : 0 };
+  });
+}
+const BCTL = [
+  ['Build', '#8f9ae8', [['b','Weeks',4,26,1,' wk'],['s','Starts at',5,90,5,' mi'],['pk','Peaks at',15,120,5,' mi'],['dw','Down week every',0,6,1,''],['dd','Down week cut',0,50,5,'%']]],
+  ['Taper', '#b39ae8', [['t','Weeks',0,4,1,' wk'],['t1','First week',0,60,5,'% down'],['t2','After that',0,80,5,'% down']]],
+  ['Recovery', '#7fd9bd', [['r','Weeks',0,8,1,' wk']]],
+  ['Vert', '#7fd9bd', [['fpm','Per mile',0,500,10,' ft']]]
+];
+function bpVal(k, v){ const row = [].concat.apply([], BCTL.map(function(s){ return s[2]; })).find(function(x){ return x[0] === k; }); return k === 'dw' && !v ? 'off' : k === 'dw' ? v + ' wk' : v + row[5]; }
+function plannerHTML(ix, r, B){
+  const W = buildClimbWeeks(ix, r, B), bw = W.filter(function(x){ return x.ph === 'build'; });
+  const tot = W.filter(function(x){ return x.ph !== 'race' && x.ph !== 'rec'; }).reduce(function(s, x){ return s + x.pm; }, 0);
+  const totF = W.filter(function(x){ return x.ph !== 'race' && x.ph !== 'rec'; }).reduce(function(s, x){ return s + x.pf; }, 0);
+  let pk = 0; W.forEach(function(x, i){ if (x.ph !== 'race' && x.pm > W[pk].pm) pk = i; });
+  CLIMBS['bp' + r.id] = { W:W, opts:{ id:'bp' + r.id, marks:[{ i:pk, key:'pm', t:'Peak ' + W[pk].pm + ' mi · ' + MON[W[pk].d.getMonth()] + ' ' + W[pk].d.getDate() }], marksN:[{ i:pk, key:'pm', t:'Peak ' + W[pk].pm }] } };
+  const ctl = BCTL.map(function(s){
+    return '<h4><i style="background:' + s[1] + '"></i>' + s[0] + '</h4>' + s[2].map(function(c){
+      return '<div class="bp-row"><span>' + c[1] + '</span><div class="bp-stp"><button data-sact="bstep" data-k="' + c[0] + '" data-d="-' + c[4] + '" aria-label="Less">−</button><output>' + bpVal(c[0], B[c[0]]) + '</output><button data-sact="bstep" data-k="' + c[0] + '" data-d="' + c[4] + '" aria-label="More">+</button></div></div>';
+    }).join('');
+  }).join('');
+  const st0 = bw.length ? bw[0].d : W[0].d, started = iso(st0) <= TODAY;
+  return '<div class="bp" data-bp="' + E(r.id) + '"><div class="bp-h"><b>The build for ' + E(r.name) + '</b><span>' + (r.build ? 'Saved plan, editing' : 'Not set yet, starting from defaults for ' + miles(raceMi(r)) + ' mi') + '</span></div>'
+    + '<div class="bp-grid"><div class="bp-ctl">' + ctl + '</div><div class="bp-out">'
+    + '<div class="bp-sum"><div><b>' + MON[st0.getMonth()] + ' ' + st0.getDate() + '</b><span>' + (started ? 'build started' : 'build starts') + '</span></div>'
+    + '<div><b>' + fmt(tot) + ' mi</b><span>build and taper</span></div><div><b>' + ftK(totF) + ' ft</b><span>of vert</span></div><div><b>' + B.pk + ' mi</b><span>peak week</span></div></div>'
+    + '<div class="rcp-climb" data-climb="bp' + E(r.id) + '"></div>'
+    + '<div class="bp-acts"><button class="pri" data-sact="bsave" data-id="' + E(r.id) + '">Set as weekly targets</button><button data-sact="breset" data-id="' + E(r.id) + '">Reset to defaults</button>'
+    + (r.build ? '<button class="dg" data-sact="bclear" data-id="' + E(r.id) + '">Remove the plan</button>' : '') + '<button data-sact="bclose">Close</button></div>'
+    + '<p class="ss-note">Weekly targets are what the Week view checks you against. They stay editable week by week; setting them again replaces only this race\'s weeks.</p>'
+    + '</div></div></div>';
+}
+function redrawPlanner(r){
+  const host = $month.querySelector('[data-bp="' + r.id + '"]'); if (!host) return;
+  host.outerHTML = plannerHTML(buildIndex(), r, st.bdraft);
+  drawClimbs();
+}
+function saveBuild(r){
+  const B = st.bdraft; if (!B) return;
+  snap();
+  /* clear this race's old weeks first, so a shorter plan leaves nothing behind */
+  (r.build && r.build.keys || []).forEach(function(k){ setWkTgt(k, null); });
+  const W = buildWeeks(r, B);
+  W.forEach(function(x){ setWkTgt(x.k, { distance:x.pm, elevation:x.pf, race:r.id }); });
+  r.build = Object.assign({}, B, { keys: W.map(function(x){ return x.k; }) });
+  try { saveRaces(); } catch(e){ console.error('[plx] build save', e); }
+  saveGoals();
+  st.bplan = null; render();
+  toast(W.length + ' weekly targets set for ' + r.name);
+}
+function clearBuild(r){
+  snap();
+  (r.build && r.build.keys || []).forEach(function(k){ setWkTgt(k, null); });
+  delete r.build;
+  try { saveRaces(); } catch(e){}
+  saveGoals(); st.bplan = null; render();
+  toast('Build plan removed');
+}
+/* a race with a plan, in the read view: the climb it signed up for, filled in as the weeks are run */
+function buildProgressHTML(ix, r){
+  const W = buildClimbWeeks(ix, r, r.build);
+  const ki = W.findIndex(function(x){ return x.k === iso(weekStart(todayD)); });
+  let pk = 0; W.forEach(function(x, i){ if (x.ph !== 'race' && x.pm > W[pk].pm) pk = i; });
+  const marks = [{ i:pk, key:'pm', t:'Peak ' + W[pk].pm + ' mi' }];
+  if (ki >= 0) marks.push({ i:ki, key:'pm', t:'This week', c:'#c2c9ff' });
+  CLIMBS['bg' + r.id] = { W:W, opts:{ id:'bg' + r.id, marks:marks } };
+  const done = W.filter(function(x){ return x.k < iso(weekStart(todayD)) && x.ph !== 'race'; });
+  const sum = function(l, k){ return l.reduce(function(s, x){ return s + (x[k] || 0); }, 0); };
+  return '<article class="rcp"><header><button class="rcp-n" data-sact="info" data-id="' + E(r.id) + '"><b>' + E(r.name) + '</b><span>' + r.build.b + ' week build · ' + r.build.t + ' taper · ' + r.build.r + ' recovery' + (raceIsMaybe(r) ? ' · maybe' : '') + '</span></button></header>'
+    + (done.length ? '<div class="bp-prog">So far: <b>' + fmt(sum(done, 'mi')) + '</b> of ' + fmt(sum(done, 'pm')) + ' mi planned · <b>' + ftK(sum(done, 'ft')) + '</b> of ' + ftK(sum(done, 'pf')) + ' ft</div>' : '')
+    + '<div class="rcp-climb" data-climb="bg' + E(r.id) + '"></div></article>';
+}
 /* ═══ THE CLIMB (v254) ═══
    A build drawn the way a trail runner reads a course profile. Miles a week rise
    out of a ground line; vert a week hangs beneath it, mirrored, on its own scale
@@ -22098,7 +22252,8 @@ function raceRecap(ix, r){
     const k = iso(d), past = k <= TODAY, mid = addDays(d, 3);
     const ph = k === raceWk ? 'race' : d > b.day ? 'rec' : mid >= b.taper ? 'taper' : 'build';
     const x = { d:new Date(d), k:k, ph:ph, mi: past ? weekRun(ix, d, 'distance').done : 0, ft: past ? weekRun(ix, d, 'elevation').done : 0 };
-    if (plan && plan[k]){ x.pm = plan[k].distance; x.pf = plan[k].elevation; }
+    const wt = r.build ? wkTgt(k) : null;
+    if (wt && String(wt.race) === String(r.id)){ x.pm = wt.distance; x.pf = wt.elevation; }
     W.push(x);
   }
   const bw = W.filter(function(w){ return w.ph === 'build'; }), tw = W.filter(function(w){ return w.ph === 'taper'; });
@@ -22152,7 +22307,20 @@ $month.addEventListener('click', function(e){
   } else if (a === 'info' && r){ openRaceInfo(r.id); }
   else if (a === 'act'){ openActDetail(b.dataset.id); }
   else if (a === 'scale' || a === 'rebal'){ seasonFit(); }
-  else if (a === 'sdone'){ st.sedit = false; render(); }
+  else if (a === 'sdone'){ st.sedit = false; st.bplan = null; render(); }
+  else if (a === 'bplan' && r){ st.bplan = r.id; st.bdraft = r.build ? Object.assign({}, r.build) : buildDefault(r); delete st.bdraft.keys; render();
+    const el = $month.querySelector('[data-bp]'); if (el) el.scrollIntoView({ behavior:'smooth', block:'start' }); }
+  else if (a === 'bstep'){
+    const rr = (RACES || []).find(function(x){ return String(x.id) === String(st.bplan); }); if (!rr || !st.bdraft) return;
+    const row = [].concat.apply([], BCTL.map(function(s){ return s[2]; })).find(function(x){ return x[0] === b.dataset.k; });
+    const B = st.bdraft, k = b.dataset.k; B[k] = Math.max(row[2], Math.min(row[3], (B[k] || 0) + (+b.dataset.d)));
+    if (k === 'pk' && B.s > B.pk) B.s = B.pk; if (k === 's' && B.pk < B.s) B.pk = B.s;
+    redrawPlanner(rr);
+  }
+  else if (a === 'breset' && r){ st.bdraft = buildDefault(r); redrawPlanner(r); }
+  else if (a === 'bsave' && r){ saveBuild(r); }
+  else if (a === 'bclear' && r){ clearBuild(r); }
+  else if (a === 'bclose'){ st.bplan = null; render(); }
   else if (a === 'add'){
     openRace(null);
     /* from here he is almost always adding a race he is weighing, not one he has entered */
@@ -22170,7 +22338,8 @@ function render(){
   const ix = buildIndex();
   try { renderYear(ix); } catch(e){ console.error('[plx] year', e); $year.innerHTML = '<div class="empty">The year view hit an error — run rhErrors().</div>'; }
   try { renderLib(); } catch(e){ console.error('[plx] library', e); }
-  if (st.view !== 'season') st.sedit = false;   /* edit mode belongs to the season and ends when he leaves it */
+  if (st.view !== 'season') st.sedit = false;
+  if (!st.sedit) st.bplan = null;   /* edit mode belongs to the season and ends when he leaves it */
   $root.classList.toggle('plx-season', st.view === 'season');
   $root.classList.toggle('plx-sedit-on', !!st.sedit);
   try { if (st.view === 'week') renderWeekView(ix); else if (st.view === 'season') renderSeason(ix); else renderMonth(ix); }
