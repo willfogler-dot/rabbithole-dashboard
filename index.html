@@ -7432,7 +7432,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v250';
+const RH_BUILD = 'v251';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -19932,6 +19932,7 @@ if ('serviceWorker' in navigator){
 .sy-mo .cum.behind{color:var(--ph-warn);}
 .sy-mo .sub{text-align:center;font-size:11px;color:var(--n4);font-variant-numeric:tabular-nums;white-space:nowrap;}
 .sy-mo .sub b{color:var(--n2);font-weight:600;}
+.sy-mo .sub .ph-br{display:none;}
 .sy-lanes{display:flex;flex-direction:column;gap:6px;margin:10px 0 0;}
 .sy-lane{position:relative;height:16px;}
 .sy-lane .ph{position:absolute;top:4px;height:8px;}
@@ -19951,7 +19952,7 @@ if ('serviceWorker' in navigator){
 }
 @media (max-width:759px){
   .sy-k .v b,.sy-k .v input{font-size:30px;}
-  .sy-cols{grid-template-columns:repeat(4,minmax(0,1fr));row-gap:8px;}
+  .sy-cols{grid-template-columns:repeat(3,minmax(0,1fr));row-gap:10px;}
   .sy-mo .plot{height:64px;}
   .sy-lanes,.sy-wks{display:none;}
 }
@@ -19990,6 +19991,47 @@ if ('serviceWorker' in navigator){
   .rcp-res{gap:10px 22px;}
   .rcp-res b{font-size:24px;}
   .rcp-facts{grid-template-columns:repeat(2,minmax(0,1fr));}
+}
+
+/* ═══ v251 · MILES AND VERT TOGETHER ═══ */
+.sy-k .v2{display:flex;align-items:baseline;gap:5px;margin-top:5px;font-variant-numeric:tabular-nums;}
+.sy-k .v2 b,.sy-k .v2 input{font:600 17px/1.1 var(--fd);letter-spacing:-.01em;color:var(--n2);}
+.sy-k .v2 span{font-size:12.5px;color:var(--n3);}
+.sy-k .v2 b.short{color:var(--ph-warn);} .sy-k .v2 b.over{color:var(--ph-bad);} .sy-k .v2 b.ok{color:var(--n2);}
+.sy-yv{min-width:0;width:7ch;border:none;background:none;padding:0 0 1px;outline:none;border-bottom:1.5px dashed var(--n4);}
+.sy-yv::placeholder{color:var(--n4);font-weight:500;font-size:14px;}
+.sy-yv:focus{border-bottom-color:var(--a);}
+.sy-k.left .sy-fit{margin-top:9px;}
+/* month fields: miles in the big field, feet under it, each with its unit inside */
+.sy-in,.sy-iv{display:flex;align-items:baseline;justify-content:center;gap:3px;border-radius:9px;background:rgba(0,0,0,.22);cursor:text;}
+.sy-in{padding:5px 4px;}
+.sy-iv{margin-top:4px;padding:3px 4px;background:rgba(0,0,0,.14);}
+.sy-in:focus-within,.sy-iv:focus-within{background:rgba(0,0,0,.4);box-shadow:0 0 0 1.5px color-mix(in srgb,var(--a) 60%,transparent);}
+.sy-in input,.sy-iv input{min-width:0;width:100%;flex:1;border:none;background:none;outline:none;text-align:right;padding:0;font-variant-numeric:tabular-nums;}
+.sy-in input{font:600 17px var(--fd);color:var(--n1);}
+.sy-iv input{font:500 12.5px var(--fb);color:var(--n2);}
+.sy-in input::placeholder,.sy-iv input::placeholder{color:var(--n4);}
+.sy-in span,.sy-iv span{flex:none;font-size:11px;color:var(--n4);margin-right:2px;}
+.sy-in span{font-size:12px;}
+.sy-mo .sub b{color:var(--n2);font-weight:600;}
+/* week hero: feet under each figure */
+.plx-st em.ft{display:block;margin-top:3px;font-style:normal;font-size:12.5px;color:var(--n3);font-variant-numeric:tabular-nums;}
+.plx-st.big em.ft{font-size:13.5px;}
+@media (max-width:759px){
+  /* phone: the four figures stay a 2 × 2; the feet line is smaller, never a third row */
+  .sy-k .v2 b,.sy-k .v2 input{font-size:15px;}
+  .sy-hero{gap:18px 16px;}
+  .sy-fit{font-size:12.5px;padding:6px 10px;}
+  /* four months to a row: the miles field keeps 16px so iOS does not zoom on focus */
+  .sy-in input{font-size:16px;}
+  .sy-iv input{font-size:16px;transform:scale(.8);transform-origin:right center;}
+  /* 16px stops iOS zooming on focus; scaled back down, and widened by the same
+     factor so a note like "Never Summer" is not cut off */
+  .sy-note{font-size:16px;width:143%;margin:-2px -21.5%;transform:scale(.7);transform-origin:center;}
+  .sy-mo{padding:6px 2px;}
+  .sy-mo .sub{white-space:normal;line-height:1.35;}
+  .sy-mo .sub .ph-br{display:inline;}
+  .sy-mo .sub span{display:none;}
 }
 /* ═══ PHONE ═══
    Kept LAST so it wins over the base rules above without !important wars.
@@ -20175,7 +20217,7 @@ const METRIC = { distance:{ f:'distance_mi', unit:'mi', label:'Miles' }, elevati
    week. So the year folds down to one row by default and remembers if he opens it. */
 const YEAR_OPEN_KEY = 'rh_plx_year_open', VIEW_KEY = 'rh_plx_view';
 const st = { year: todayD.getFullYear(), month: todayD.getMonth(), metric:'distance', pop:null, undo:[],
-             yearOpen: lsGet(YEAR_OPEN_KEY, false) === true,
+             yearOpen: false,   /* v251: retired with the fold-down; Season holds the year */
              /* Always opens on the week: that is the view he plans in. Month is
                 one tap away and lasts until the app is reloaded. */
              view: 'week', menu: false,
@@ -20456,12 +20498,12 @@ function renderYear(ix){
     +   '<div class="plx-seg view"><button data-view="week"' + (st.view === 'week' ? ' class="on"' : '') + '>Week</button>'
     +     '<button data-view="month"' + (st.view === 'month' ? ' class="on"' : '') + '>Month</button>'
     +     '<button data-view="season"' + (st.view === 'season' ? ' class="on"' : '') + '>Season</button></div>'
-    +   '<div class="plx-seg"><button data-metric="distance"' + (st.metric === 'distance' ? ' class="on"' : '') + '>Miles</button>'
-    +     '<button data-metric="elevation"' + (st.metric === 'elevation' ? ' class="on"' : '') + '>Vert</button></div>'
+    /* v251: no Miles/Vert switch. Miles lead everywhere and vert rides beside
+       them, so the plan never needs flipping to read both. */
     /* Undo lives in the tools menu on wide screens (v151). The phone has no
        tools menu, so it keeps this button, shown only when there is something to undo. */
     +   '<button class="plx-txt plx-undo-ph" data-act="undo"' + (st.undo.length ? '' : ' disabled') + '>Undo</button>'
-    +   '<button class="plx-tog' + (st.yearOpen ? ' on' : '') + '" data-act="toggle" aria-expanded="' + st.yearOpen + '">Year plan<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>'
+    /* v251: the Year plan fold-down is gone: the Season view is the year plan */
     +   '<div class="plx-gearwrap"><button class="plx-nav plx-gear' + (st.menu ? ' on' : '') + '" data-act="gear" aria-label="Planner tools" aria-expanded="' + st.menu + '" title="Planner tools">' + GEAR + '</button>'
     +     (st.menu ? menuHTML(ix) : '') + '</div>'
     + '</div>';
@@ -20777,8 +20819,9 @@ function monthStatHTML(ix){
   const mT = monthTarget(y, mo), proj = mDone + mTogo, isPastMonth = new Date(y, mo+1, 0) < todayD;
   const D = '<span class="dot">·</span>';
   let stat = '<span class="tgt">Target<input data-fk="mh" data-mth inputmode="decimal" autocomplete="off" placeholder="set" value="' + (mT != null ? fmt(mT) : '') + '" title="Target for ' + MON_FULL[mo] + ' — takes arithmetic">' + m.unit + '</span>' + D;
-  if (isPastMonth) stat += '<span><b>' + fmt1(mDone) + '</b> run</span>';
-  else stat += '<span><b>' + fmt1(proj) + '</b> on the calendar</span>';
+  const fv = mCal(ix, y, mo, 'elevation');
+  if (isPastMonth) stat += '<span><b>' + fmt1(mDone) + '</b> mi · <b>' + ftK(fv.done) + '</b> ft run</span>';
+  else stat += '<span><b>' + fmt1(proj) + '</b> mi · <b>' + ftK(fv.total) + '</b> ft on the calendar</span>';
   if (mT != null && !isPastMonth){
     const gap = mT - proj;
     stat += D + (Math.round(gap) > 0 ? '<span class="gap">' + fmt1(gap) + ' still to place</span>'
@@ -20973,8 +21016,7 @@ function renderWeekView(ix){
   const oTxt = other === 'elevation' ? feet(O.head) + ' ft' : miles(O.head) + ' mi';
   const mixKeys = Object.keys(mix);
   const facts =
-      '<div class="plx-fact"><span>' + (other === 'elevation' ? 'Vert' : 'Miles') + '</span><b>' + oTxt + '</b></div>'
-    + '<div class="plx-fact"><span>Longest run</span><b>' + (longest ? miles(longest.mi) + ' mi<small>' + longest.day + '</small>' : '—') + '</b></div>'
+      '<div class="plx-fact"><span>Longest run</span><b>' + (longest ? miles(longest.mi) + ' mi<small>' + longest.day + '</small>' : '—') + '</b></div>'
     + '<div class="plx-fact"><span>vs week before</span><b class="' + rampCls + '">' + ramp + '<small>' + rampSub + '</small></b></div>'
     /* the breakdown is the value: a total in front of it ("12") said less and cost the room that made it wrap */
     + '<div class="plx-fact"><span>Other sessions</span><b class="mixv">' + (mixKeys.length ? E(mixKeys.map(function(k){ return k + ' ' + mix[k]; }).join(' · ')) : '—') + '</b></div>';
@@ -20990,12 +21032,14 @@ function renderWeekView(ix){
                                                     : fmt1(goal - W.done) + ' ' + m.unit + ' short of the plan') : 'No plan was set';
   else note = hasGoal ? (W.done >= goal ? 'Plan done' + (W.done - goal >= 0.5 ? ' · ' + fmt1(W.done - goal) + ' ' + m.unit + ' over' : '')
                                         : fmt1(goal - W.done) + ' ' + m.unit + ' to go') : 'No plan set';
-  const stat = function(cls, label, v, big){
-    return '<div class="plx-st ' + cls + (big ? ' big' : '') + (v > 0 ? '' : ' zero') + '"><span class="k"><i></i>' + label + '</span><b>' + fmt1(v) + '<small>' + m.unit + '</small></b></div>';
+  const stat = function(cls, label, v, big, ft){
+    return '<div class="plx-st ' + cls + (big ? ' big' : '') + (v > 0 ? '' : ' zero') + '"><span class="k"><i></i>' + label + '</span><b>' + fmt1(v) + '<small>' + m.unit + '</small></b>'
+      + (ft != null ? '<em class="ft">' + Math.round(ft).toLocaleString() + ' ft</em>' : '') + '</div>';
   };
+  const OV = weekRun(ix, mon, 'elevation');
   const hero = '<div class="plx-hero">'
     + '<div><div class="plx-hx-l">' + rel + '</div>'
-    +   '<div class="plx-sts">' + (started ? stat('run', 'Run', W.done, true) : '') + stat('pl', 'Planned', goal, !started) + '</div>'
+    +   '<div class="plx-sts">' + (started ? stat('run', 'Run', W.done, true, OV.done) : '') + stat('pl', 'Planned', goal, !started, OV.planned) + '</div>'
     +   (started && (hasGoal || W.done > 0) ? '<div class="plx-wbar v2" title="' + fmt1(W.done) + ' run of ' + fmt1(goal) + ' planned"><i class="dn" style="width:' + (hasGoal ? Math.min(100, W.done/goal*100) : 100).toFixed(1) + '%"></i></div>' : '')
     +   (note ? '<div class="plx-hx-s">' + note + '</div>' : '')
     +   '<div class="plx-hx-t">' + monthLine(ix, addDays(mon, 3)) + '</div></div>'
@@ -21583,39 +21627,100 @@ function seasonClashes(list){
    each week holds (run, or run + planned) on the same timeline as the races.
    A week across two months counts toward each by its days (monthCal works by
    day), so nothing here rounds weeks into months. */
+/* v251: both measures at once. ft() formats feet for display; tgt/setTgt read and
+   write a target for a named measure, so nothing here depends on st.metric. */
+const ftF = function(v){ return Math.round(v || 0).toLocaleString(); };
+const ftK = function(v){ v = Math.round(v || 0); return v >= 10000 ? Math.round(v/1000) + 'k' : v >= 1000 ? (v/1000).toFixed(1).replace(/\.0$/, '') + 'k' : String(v); };
+function yTgt(y, mt){ const r = gRead(y); return (r.year && r.year[mt] != null) ? r.year[mt] : null; }
+function setYTgt(y, mt, v){ const r = gWrite(y); r.year = r.year || {}; if (v == null) delete r.year[mt]; else r.year[mt] = v; }
+function setMTgt(y, m, mt, v){ const r = gWrite(y); r.months = r.months || {}; r.months[mt] = r.months[mt] || {}; if (v == null) delete r.months[mt][m]; else r.months[mt][m] = v; }
+function mCal(ix, y, mo, mt){
+  const key = y + '-' + String(mo+1).padStart(2,'0'), dim = new Date(y, mo+1, 0).getDate();
+  let done = 0, togo = 0;
+  for (let d=1; d<=dim; d++){ const r = dayRun(ix, key + '-' + String(d).padStart(2,'0'), mt); done += r.done; togo += r.togo; }
+  return { done:done, togo:togo, total:done + togo };
+}
+/* Scale (next year) or rebalance (this year) both measures at once, as one undo
+   step. Whole miles; feet to the nearest 100. Rebalance sets past months to what
+   was run and spreads the rest over the months left in their current shape. */
+function seasonFit(){
+  const y = st.year, curY = todayD.getFullYear(), ix = buildIndex(), cm = y === curY ? todayD.getMonth() : 0;
+  let did = false;
+  snap();
+  ['distance','elevation'].forEach(function(mt){
+    const T = yTgt(y, mt); if (!T) return;
+    const step = mt === 'elevation' ? 100 : 1;
+    const out = [], w = []; let past = 0, wsum = 0;
+    for (let i=0;i<cm;i++){ out[i] = Math.round(monthActual(ix, y, i, mt)/step)*step; past += out[i]; }
+    /* a month with no vert target yet takes its shape from its miles (at the
+       ft-per-mile of the months that do have one), so one filled month does not
+       swallow the whole year's vert */
+    let ratio = null;
+    if (mt === 'elevation'){
+      let fv = 0, fm = 0;
+      for (let i=0;i<12;i++){ const v = monthTarget(y, i, 'elevation'), m2 = monthTarget(y, i, 'distance'); if (v != null && m2){ fv += v; fm += m2; } }
+      const Td = yTgt(y, 'distance');
+      ratio = fm > 0 ? fv/fm : (Td ? T/Td : null);
+    }
+    for (let i=cm;i<12;i++){
+      const own = monthTarget(y, i, mt);
+      w[i] = own != null ? own : (ratio != null ? (monthTarget(y, i, 'distance') || 0)*ratio : 0);
+      wsum += w[i];
+    }
+    if (!wsum && !cm) return;
+    const rest = Math.max(0, T - past);
+    for (let i=cm;i<12;i++) out[i] = Math.round((wsum > 0 ? w[i]/wsum*rest : rest/(12-cm))/step)*step;
+    let diff = Math.round(T) - out.reduce(function(s,v){ return s + v; }, 0), bi = -1;
+    for (let i=cm;i<12;i++) if (bi < 0 || out[i] > out[bi]) bi = i;
+    if (bi >= 0) out[bi] += diff;
+    for (let i=0;i<12;i++) setMTgt(y, i, mt, out[i]);
+    did = true;
+  });
+  if (!did){ st.undo.pop(); return; }
+  saveGoals(); render();
+  toast(y > curY ? 'Months scaled to the annual targets' : 'Rest of the year rebalanced');
+}
 function seasonYearHTML(ix){
-  const y = st.year, m = METRIC[st.metric], curY = todayD.getFullYear(), cm = todayD.getMonth();
-  const T = yearTarget(y), U = m.unit;
-  const tg = [], cal = [], ly = []; let sum = 0, anyT = false, done = 0, lyTot = 0;
+  const y = st.year, curY = todayD.getFullYear(), cm = todayD.getMonth();
+  const T = yTgt(y, 'distance'), TV = yTgt(y, 'elevation');
+  const tg = [], tv = [], cal = [], calV = [], ly = [], lyV = [];
+  let sum = 0, sumV = 0, anyT = false, anyV = false, done = 0, doneV = 0, lyTot = 0, lyTotV = 0;
   for (let i=0;i<12;i++){
-    tg[i] = monthTarget(y, i); if (tg[i] != null){ sum += tg[i]; anyT = true; }
-    cal[i] = monthCal(ix, y, i); done += cal[i].done;
-    ly[i] = monthActual(ix, y-1, i); lyTot += ly[i];
+    tg[i] = monthTarget(y, i, 'distance'); if (tg[i] != null){ sum += tg[i]; anyT = true; }
+    tv[i] = monthTarget(y, i, 'elevation'); if (tv[i] != null){ sumV += tv[i]; anyV = true; }
+    cal[i] = mCal(ix, y, i, 'distance'); done += cal[i].done;
+    calV[i] = mCal(ix, y, i, 'elevation'); doneV += calV[i].done;
+    ly[i] = monthActual(ix, y-1, i, 'distance'); lyTot += ly[i];
+    lyV[i] = monthActual(ix, y-1, i, 'elevation'); lyTotV += lyV[i];
   }
-  const left = T != null ? T - sum : null;
-  const k = function(lab, val, unit, d, cls){ return '<div class="sy-k' + (cls ? ' ' + cls : '') + '"><label>' + lab + '</label><div class="v">' + val + (unit ? '<span>' + unit + '</span>' : '') + '</div>' + (d ? '<div class="d">' + d + '</div>' : '') + '</div>'; };
-  let hero = k('Annual target', '<input class="sy-yt" data-sy inputmode="decimal" autocomplete="off" aria-label="Annual target" placeholder="set" value="' + (T != null ? fmt(T) : '') + '">', U,
-    lyTot > 0 ? (y-1) + ': <b>' + fmt(lyTot) + '</b> run' + (T ? ' (' + (T >= lyTot ? '+' : '−') + Math.abs(Math.round((T/lyTot - 1)*100)) + '%)' : '') : '');
-  hero += k('Placed in months', '<b data-sy-placed>' + (anyT ? fmt(sum) : '—') + '</b>', U, anyT ? '<span data-sy-avg>' + fmt(sum/12) + '</span> a month on average' : 'No month targets yet');
-  if (T != null){
-    const st8 = Math.round(left) === 0 ? 'ok' : left < 0 ? 'over' : 'short';
-    const btn = y > curY ? '<button class="sy-fit" data-sact="scale">Scale months to ' + fmt(T) + '</button>'
-              : y === curY ? '<button class="sy-fit" data-sact="rebal" title="Sets past months to what you ran and spreads the rest over the months left, keeping their shape">Rebalance the months left</button>' : '';
-    hero += '<div class="sy-k left ' + st8 + '" data-sy-leftk><label data-sy-leftl>' + (st8 === 'ok' ? 'Every mile placed' : st8 === 'over' ? 'Over the target by' : 'Still to place') + '</label>'
-      + '<div class="v"><b data-sy-left>' + fmt(Math.abs(left)) + '</b><span>' + U + '</span></div>' + (st8 === 'ok' ? '' : btn) + '</div>';
-  } else hero += k('Still to place', '<b>—</b>', '', 'Set the annual target first');
-  if (y < curY) hero += k('Run', '<b>' + fmt(done) + '</b>', U, T ? Math.round(done/T*100) + '% of the target' : '');
-  else if (y === curY && T != null){
+  const left = T != null ? T - sum : null, leftV = TV != null ? TV - sumV : null;
+  /* each figure: miles large, feet as a quieter second line in the same place */
+  const k = function(lab, val, unit, ftLine, d, cls, extra){
+    return '<div class="sy-k' + (cls ? ' ' + cls : '') + '"' + (extra || '') + '><label>' + lab + '</label><div class="v">' + val + (unit ? '<span>' + unit + '</span>' : '') + '</div>'
+      + (ftLine ? '<div class="v2">' + ftLine + '</div>' : '') + (d ? '<div class="d">' + d + '</div>' : '') + '</div>'; };
+  let hero = k('Annual target', '<input class="sy-yt" data-sy inputmode="decimal" autocomplete="off" aria-label="Annual miles target" placeholder="set" value="' + (T != null ? fmt(T) : '') + '">', 'mi',
+    '<input class="sy-yv" data-syv inputmode="decimal" autocomplete="off" aria-label="Annual vert target" placeholder="set vert" value="' + (TV != null ? ftF(TV) : '') + '"><span>ft</span>',
+    lyTot > 0 ? (y-1) + ': <b>' + fmt(lyTot) + '</b> mi · <b>' + ftK(lyTotV) + '</b> ft' : '');
+  hero += k('Placed in months', '<b data-sy-placed>' + (anyT ? fmt(sum) : '—') + '</b>', 'mi', '<b data-sy-placedv>' + (anyV ? ftF(sumV) : '—') + '</b><span>ft</span>', '');
+  const st8 = left == null ? '' : Math.round(left) === 0 ? 'ok' : left < 0 ? 'over' : 'short';
+  const allPlaced = (left == null || Math.round(left) === 0) && (leftV == null || Math.abs(leftV) < 50);
+  const btn = (T != null || TV != null) && !allPlaced
+    ? (y > curY ? '<button class="sy-fit" data-sact="scale">Scale months to the targets</button>'
+       : y === curY ? '<button class="sy-fit" data-sact="rebal" title="Sets past months to what you ran and spreads the rest over the months left, keeping their shape">Rebalance the months left</button>' : '') : '';
+  const lab = function(l){ return l == null ? 'Still to place' : Math.round(l) === 0 ? 'Every mile placed' : l < 0 ? 'Over the target by' : 'Still to place'; };
+  hero += k('<span data-sy-leftl>' + (T != null ? lab(left) : 'Still to place') + '</span>',
+    '<b data-sy-left>' + (left != null ? fmt(Math.abs(left)) : '—') + '</b>', 'mi',
+    '<b data-sy-leftv class="' + (leftV == null ? '' : leftV < -50 ? 'over' : leftV > 50 ? 'short' : 'ok') + '">' + (leftV != null ? (leftV < -50 ? '+' : '') + ftF(Math.abs(leftV)) : '—') + '</b><span>ft</span>',
+    T == null && TV == null ? 'Set the annual target first' : '', 'left ' + st8, ' data-sy-leftk') .replace('</div></div>', '</div>' + btn + '</div>');
+  if (y < curY) hero += k('Run', '<b>' + fmt(done) + '</b>', 'mi', '<b>' + ftF(doneV) + '</b><span>ft</span>', T ? Math.round(done/T*100) + '% of the miles target' : '');
+  else if (y === curY && (T != null || TV != null)){
     const wl = Math.max(0.1, (new Date(y, 11, 31) - todayD)/864e5/7);
-    hero += k('Needed from here', '<b>' + (st.metric === 'distance' ? miles(Math.max(0, T - done)/wl) : fmt(Math.max(0, T - done)/wl)) + '</b>', U + ' / wk', fmt(done) + ' run so far · ' + Math.round(wl) + ' weeks left');
-  } else hero += k('A week, on average', '<b data-sy-wk>' + (T != null ? (st.metric === 'distance' ? miles(T/52) : fmt(T/52)) : '—') + '</b>', U, 'at the annual target, over 52 weeks');
+    hero += k('Needed from here', '<b>' + (T != null ? miles(Math.max(0, T - done)/wl) : '—') + '</b>', 'mi / wk',
+      TV != null ? '<b>' + ftF(Math.max(0, TV - doneV)/wl) + '</b><span>ft / wk</span>' : '', Math.round(wl) + ' weeks left');
+  } else hero += k('A week, on average', '<b data-sy-wk>' + (T != null ? miles(T/52) : '—') + '</b>', 'mi',
+    '<b data-sy-wkv>' + (TV != null ? ftF(TV/52) : '—') + '</b><span>ft</span>', 'at the annual targets');
 
-  /* the annual target as one bar: each month a slice, what is unplaced hatched */
-  const den = Math.max(T || 0, sum, 1);
-  const alloc = '<div class="sy-alloc" data-sy-alloc>' + tg.map(function(v){ return '<i style="flex:0 0 calc(' + ((v||0)/den*100).toFixed(2) + '% - 2px)"></i>'; }).join('') + '</div>'
-    + '<div class="sy-allocl"><span>Jan</span><span data-sy-allocl>' + (left == null ? '' : left > .5 ? fmt(left) + ' ' + U + ' unplaced' : left < -.5 ? fmt(-left) + ' ' + U + ' over' : 'all placed') + '</span><span>' + (T != null ? fmt(T) : '') + '</span></div>';
-
-  /* months */
+  /* months: the chart is miles only (two scales on one bar would mislead); feet are the second field and line */
   let mx = 1; for (let i=0;i<12;i++) mx = Math.max(mx, tg[i] || 0, cal[i].total, ly[i]);
   let run = 0;
   const cols = MON.map(function(nm, i){
@@ -21626,16 +21731,17 @@ function seasonYearHTML(ix){
     return '<div class="sy-mo' + (isCur ? ' cur' : '') + '" data-i="' + i + '">'
       + '<div class="nm">' + nm.toUpperCase() + '</div>'
       + '<input class="sy-note" data-sn="' + i + '" maxlength="40" autocomplete="off" placeholder="note" aria-label="' + MON_FULL[i] + ' note" value="' + E(nt) + '" title="' + E(nt || 'Races, travel, anything that shapes this month') + '">'
-      + '<div class="plot" title="' + E(MON_FULL[i] + ': ' + (tg[i] != null ? 'target ' + fmt(tg[i]) + ' · ' : '') + fmt1(cal[i].done) + ' run' + (cal[i].togo > 0 ? ' + ' + fmt1(cal[i].togo) + ' planned' : '') + ' · ' + fmt(ly[i]) + ' in ' + (y-1)) + '">'
+      + '<div class="plot" title="' + E(MON_FULL[i] + ': ' + (tg[i] != null ? 'target ' + fmt(tg[i]) + ' mi · ' : '') + fmt1(cal[i].done) + ' mi run' + (cal[i].togo > 0 ? ' + ' + fmt1(cal[i].togo) + ' planned' : '') + ' · ' + fmt(ly[i]) + ' in ' + (y-1)) + '">'
       +   (tg[i] != null ? '<i class="tg" style="height:' + h(tg[i]) + '%"></i>' : '')
       +   (cal[i].total > 0 ? '<i class="cal" style="height:' + h(cal[i].total) + '%"></i>' : '')
       +   (cal[i].done > 0 ? '<i class="dn" style="height:' + h(cal[i].done) + '%"></i>' : '')
       +   (ly[i] > 0 ? '<i class="ly" style="bottom:' + h(ly[i]) + '%"></i>' : '') + '</div>'
-      + '<input class="sy-in" data-sm="' + i + '" inputmode="decimal" autocomplete="off" aria-label="' + MON_FULL[i] + ' target" placeholder="—" value="' + (tg[i] != null ? fmt(tg[i]) : '') + '">'
-      + '<div class="cum' + (even != null && anyT && run < even - .5 ? ' behind' : '') + '" data-cum="' + i + '" title="' + (even != null ? 'Even pace to ' + fmt(T) + ' is ' + fmt(even) + ' by the end of ' + MON_FULL[i] : '') + '">' + (anyT ? fmt(run) + ' by ' + nm : '&nbsp;') + '</div>'
-      + '<div class="sub">' + (past ? '<b>' + fmt(cal[i].done) + '</b> run' : ly[i] > 0 ? fmt(ly[i]) + ' in ’' + String(y-1).slice(2) : '&nbsp;') + '</div></div>';
+      + '<label class="sy-in"><input data-sm="' + i + '" inputmode="decimal" autocomplete="off" aria-label="' + MON_FULL[i] + ' miles target" placeholder="—" value="' + (tg[i] != null ? fmt(tg[i]) : '') + '"><span>mi</span></label>'
+      + '<label class="sy-iv"><input data-sv="' + i + '" inputmode="decimal" autocomplete="off" aria-label="' + MON_FULL[i] + ' vert target" placeholder="—" value="' + (tv[i] != null ? ftF(tv[i]) : '') + '"><span>ft</span></label>'
+      + '<div class="cum' + (even != null && anyT && run < even - .5 ? ' behind' : '') + '" data-cum="' + i + '" title="' + (even != null ? 'Even pace to ' + fmt(T) + ' mi is ' + fmt(even) + ' by the end of ' + MON_FULL[i] : '') + '">' + (anyT ? fmt(run) + ' by ' + nm : '&nbsp;') + '</div>'
+      /* run months say what was run, both measures, each on its own short line so a narrow column never wraps mid-figure */
+      + '<div class="sub">' + (past ? '<b>' + fmt(cal[i].done) + '</b> mi<span> · </span><br class="ph-br"><b>' + ftK(calV[i].done) + '</b> ft' : ly[i] > 0 ? fmt(ly[i]) + ' mi in ’' + String(y-1).slice(2) : '&nbsp;') + '</div></div>';
   }).join('');
-
   /* the races' blocks on the same Jan–Dec axis */
   const Y0 = new Date(y, 0, 1), Y1 = new Date(y+1, 0, 1);
   const pc = function(d){ return Math.max(0, Math.min(100, (d - Y0)/(Y1 - Y0)*100)); };
@@ -21652,11 +21758,11 @@ function seasonYearHTML(ix){
 
   /* weeks: what each holds, on the same axis */
   const wk = []; let wmax = T ? T/52*1.7 : 1;
-  for (let d = weekStart(Y0); d < Y1; d = addDays(d, 7)){ const W = weekRun(ix, d); wk.push({ d:new Date(d), v:W.head, past:W.past }); wmax = Math.max(wmax, W.head); }
+  for (let d = weekStart(Y0); d < Y1; d = addDays(d, 7)){ const W = weekRun(ix, d, 'distance'), V = weekRun(ix, d, 'elevation'); wk.push({ d:new Date(d), v:W.head, ft:V.head, past:W.past }); wmax = Math.max(wmax, W.head); }
   const thisMon = iso(weekStart(todayD));
   const weeks = wk.map(function(w){
     const l = pc(w.d < Y0 ? Y0 : w.d), r = pc(addDays(w.d, 7) > Y1 ? Y1 : addDays(w.d, 7));
-    return '<i class="' + (w.past ? 'p' : 'f') + (iso(w.d) === thisMon ? ' now' : '') + '" data-wk="' + iso(w.d) + '" style="left:calc(' + l + '% + 1px);width:calc(' + (r - l) + '% - 2px);height:' + Math.max(3, w.v/wmax*100).toFixed(1) + '%" title="Week of ' + MON[w.d.getMonth()] + ' ' + w.d.getDate() + ': ' + (w.v > 0 ? fmt1(w.v) + ' ' + U + (w.past ? ' run' : ' run + planned') : 'nothing yet') + '"></i>';
+    return '<i class="' + (w.past ? 'p' : 'f') + (iso(w.d) === thisMon ? ' now' : '') + '" data-wk="' + iso(w.d) + '" style="left:calc(' + l + '% + 1px);width:calc(' + (r - l) + '% - 2px);height:' + Math.max(3, w.v/wmax*100).toFixed(1) + '%" title="Week of ' + MON[w.d.getMonth()] + ' ' + w.d.getDate() + ': ' + (w.v > 0 ? fmt1(w.v) + ' mi · ' + ftF(w.ft) + ' ft' + (w.past ? ' run' : ' run + planned') : 'nothing yet') + '"></i>';
   }).join('');
 
   /* v250: the allocation bar that stood here (months as alternating slices of
@@ -21685,46 +21791,53 @@ function fitAnnual(f){
   } catch(e){}
 }
 function seasonLive(){
-  const T = (function(){ const f = $month.querySelector('[data-sy]'); const v = f ? calc(f.value) : null; return (v == null || isNaN(v)) ? null : v; })();
-  const tg = []; let sum = 0, any = false;
-  $month.querySelectorAll('[data-sm]').forEach(function(f){ const v = calc(f.value); const n = (v == null || isNaN(v)) ? 0 : Math.max(0, v); tg[+f.dataset.sm] = n; sum += n; if (f.value.trim()) any = true; });
+  const num = function(sel){ const f = $month.querySelector(sel); const v = f ? calc(f.value) : null; return (v == null || isNaN(v)) ? null : v; };
+  const T = num('[data-sy]'), TV = num('[data-syv]');
+  const tally = function(attr){ const out = []; let sum = 0, any = false;
+    $month.querySelectorAll('[' + attr + ']').forEach(function(f){ const v = calc(f.value); const n = (v == null || isNaN(v)) ? 0 : Math.max(0, v); out[+f.getAttribute(attr)] = n; sum += n; if (f.value.trim()) any = true; });
+    return { v:out, sum:sum, any:any }; };
+  const M = tally('data-sm'), V = tally('data-sv');
   const set = function(sel, txt){ const el = $month.querySelector(sel); if (el) el.textContent = txt; };
-  set('[data-sy-placed]', any ? fmt(sum) : '—'); set('[data-sy-avg]', fmt(sum/12));
-  const U = METRIC[st.metric].unit;
+  set('[data-sy-placed]', M.any ? fmt(M.sum) : '—'); set('[data-sy-placedv]', V.any ? ftF(V.sum) : '—');
   if (T != null){
-    const left = T - sum, K = $month.querySelector('[data-sy-leftk]');
+    const left = T - M.sum, K = $month.querySelector('[data-sy-leftk]');
     set('[data-sy-left]', fmt(Math.abs(left)));
     if (K){ K.classList.toggle('ok', Math.round(left) === 0); K.classList.toggle('over', left < -.5); K.classList.toggle('short', left > .5); }
     set('[data-sy-leftl]', Math.round(left) === 0 ? 'Every mile placed' : left < -.5 ? 'Over the target by' : 'Still to place');
-    set('[data-sy-allocl]', left > .5 ? fmt(left) + ' ' + U + ' unplaced' : left < -.5 ? fmt(-left) + ' ' + U + ' over' : 'all placed');
-    set('[data-sy-wk]', st.metric === 'distance' ? miles(T/52) : fmt(T/52));
+    set('[data-sy-wk]', miles(T/52));
   }
-  const den = Math.max(T || 0, sum, 1), A = $month.querySelector('[data-sy-alloc]');
-  if (A) Array.prototype.forEach.call(A.children, function(i, n){ i.style.flexBasis = 'calc(' + ((tg[n]||0)/den*100).toFixed(2) + '% - 2px)'; });
+  if (TV != null){
+    const lv = TV - V.sum, el = $month.querySelector('[data-sy-leftv]');
+    if (el){ el.textContent = (lv < -50 ? '+' : '') + ftF(Math.abs(lv)); el.className = lv < -50 ? 'over' : lv > 50 ? 'short' : 'ok'; }
+    set('[data-sy-wkv]', ftF(TV/52));
+  }
   let run = 0;
-  for (let i=0;i<12;i++){ run += tg[i] || 0; const c = $month.querySelector('[data-cum="' + i + '"]'); if (c){ c.textContent = any ? fmt(run) + ' by ' + MON[i] : ''; c.classList.toggle('behind', T != null && any && run < T*(i+1)/12 - .5); } }
+  for (let i=0;i<12;i++){ run += M.v[i] || 0; const c = $month.querySelector('[data-cum="' + i + '"]'); if (c){ c.textContent = M.any ? fmt(run) + ' by ' + MON[i] : ''; c.classList.toggle('behind', T != null && M.any && run < T*(i+1)/12 - .5); } }
 }
 $month.addEventListener('input', function(e){
-  if (st.view !== 'season' || !e.target.matches || !e.target.matches('[data-sm],[data-sy]')) return;
+  if (st.view !== 'season' || !e.target.matches || !e.target.matches('[data-sm],[data-sy],[data-sv],[data-syv]')) return;
   /* the annual field grows with what is typed, so the unit stays beside the number */
-  if (e.target.hasAttribute('data-sy')) fitAnnual(e.target);
+  if (e.target.hasAttribute('data-sy') || e.target.hasAttribute('data-syv')) fitAnnual(e.target);
   seasonLive();
 });
 $month.addEventListener('change', function(e){
   if (st.view !== 'season') return;
   const t = e.target, y = st.year;
   if (t.hasAttribute('data-sn')){ snap(); setMonthNote(y, +t.dataset.sn, t.value.trim()); saveGoals(); return; }
-  if (!t.hasAttribute('data-sm') && !t.hasAttribute('data-sy')) return;
+  if (!t.matches('[data-sm],[data-sy],[data-sv],[data-syv]')) return;
   let v = calc(t.value);
   if (t.value.trim() !== '' && (v == null || isNaN(v))){ toast('That is not a number'); setTimeout(render, 0); return; }
   if (v != null && v < 0) v = 0;
   snap();
-  if (t.hasAttribute('data-sm')) setMonthTarget(y, +t.dataset.sm, v == null ? null : Math.round(v));
-  else setYearTarget(y, v == null ? null : Math.round(v));
+  const r = function(x){ return x == null ? null : Math.round(x); };
+  if (t.hasAttribute('data-sm')) setMTgt(y, +t.dataset.sm, 'distance', r(v));
+  else if (t.hasAttribute('data-sv')) setMTgt(y, +t.dataset.sv, 'elevation', r(v));
+  else if (t.hasAttribute('data-syv')) setYTgt(y, 'elevation', r(v));
+  else setYTgt(y, 'distance', r(v));
   saveGoals(); setTimeout(render, 0);
 });
-$month.addEventListener('keydown', function(e){ if (e.key === 'Enter' && st.view === 'season' && e.target.matches && e.target.matches('[data-sm],[data-sy],[data-sn]')) e.target.blur(); });
-$month.addEventListener('focusin', function(e){ if (st.view === 'season' && e.target.matches && e.target.matches('[data-sm],[data-sy]')) e.target.select(); });
+$month.addEventListener('keydown', function(e){ if (e.key === 'Enter' && st.view === 'season' && e.target.matches && e.target.matches('[data-sm],[data-sy],[data-sn],[data-sv],[data-syv]')) e.target.blur(); });
+$month.addEventListener('focusin', function(e){ if (st.view === 'season' && e.target.matches && e.target.matches('[data-sm],[data-sy],[data-sv],[data-syv]')) e.target.select(); });
 
 function renderSeason(ix){
   ix = ix || buildIndex();
@@ -21772,7 +21885,7 @@ function renderSeason(ix){
   else if (y < curY) h += '<section><h3>Races</h3><div class="ss-empty">No races on record for ' + y + '.</div></section>';
   h += '</div>';
   $month.innerHTML = h;
-  fitAnnual($month.querySelector('[data-sy]'));
+  fitAnnual($month.querySelector('[data-sy]')); fitAnnual($month.querySelector('[data-syv]'));
 }
 
 /* ═══ RACE RECAP (v250) ═══
@@ -21849,8 +21962,7 @@ $month.addEventListener('click', function(e){
     render();
   } else if (a === 'info' && r){ openRaceInfo(r.id); }
   else if (a === 'act'){ openActDetail(b.dataset.id); }
-  else if (a === 'scale'){ fillScale(); }
-  else if (a === 'rebal'){ fillRebalance(); }
+  else if (a === 'scale' || a === 'rebal'){ seasonFit(); }
   else if (a === 'add'){
     openRace(null);
     /* from here he is almost always adding a race he is weighing, not one he has entered */
@@ -21874,6 +21986,9 @@ function render(){
   $year.querySelectorAll('.plx-k .v input').forEach(fitField);
   if (fk){ const el = $root.querySelector('[data-fk="' + fk + '"]'); if (el){ el.focus(); if (el.select) el.select(); } }
   if (st.pop) placePop();
+  /* the frosted top bar shows this page's title once it scrolls away (v233); it
+     reads the title when the tab changes, so a new year or week has to tell it */
+  try { if (window._hdrTitleUpd) window._hdrTitleUpd(); } catch(e){}
 }
 window.plxRender = render;
 const _repop = function(){ if (st.pop && !wide.matches && !$pop.hidden) placePop(); };
