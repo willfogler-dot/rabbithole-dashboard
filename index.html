@@ -7432,7 +7432,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v259';
+const RH_BUILD = 'v260';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -23497,6 +23497,7 @@ render();
 #hmVolSlot .ov-volume > .hsec{display:none;}
 @media (min-width:760px){ #hmVolSlot .vol-svg{height:260px;} }
 .hm-rtxt{min-width:0;flex:1;}
+.hm-callsub{font-size:15px;line-height:1.4;color:var(--n2);margin:-4px 0 12px;text-wrap:balance;}
 .hm-verdict{font-family:var(--fd);font-size:19px;font-weight:600;letter-spacing:-.015em;color:var(--n1);margin-bottom:10px;}
 .hm-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;}
 .hm-pts{display:flex;align-items:center;gap:10px;width:100%;max-width:440px;border:none;background:none;padding:2px 0;margin:0 0 4px;color:inherit;font:inherit;cursor:pointer;text-align:left;}
@@ -24302,6 +24303,9 @@ render();
   #dskHome{display:flex;flex-direction:column;gap:12px;}
   #dskHome .hm-row,#dskHome .hm-side{display:contents;}
   #dskHome .hm-weekcard,#dskHome .hm-tiles{display:none;}
+  /* v260: the phone Overview is the call for today and nothing else. Last
+     night lives on Health, training on Progress, activities on Routes. */
+  #dskHome #hmVolSlot,#dskHome .hm-r1 > .dk-card:not(.hm-ready),#dskHome .hm-side,#dskHome .hm-trh{display:none!important;}
   /* the day-by-day heatmap needs width to read; on the phone it was a sideways-scrolling strip */
   .dk-grid:has(> .dk-heatcard:only-child){display:none;}
   #dskHome .hm-head{order:0;margin:2px 2px 0;}
@@ -24322,6 +24326,7 @@ render();
     background:radial-gradient(120% 62% at 50% 0%,rgba(143,154,232,.20),transparent 70%),var(--glass);}
   .hm-ringslot .portal{zoom:.94;}
   .hm-verdict{text-align:center;font-size:20px;margin:2px 0 12px;}
+  .hm-callsub{text-align:center;}
   .hm-chips{justify-content:center;}
   .hm-rtxt{width:100%;}
   .hm-night{grid-template-columns:repeat(2,minmax(0,1fr));row-gap:16px;}
@@ -25410,6 +25415,40 @@ function progBar(done, target, paceFrac){
   return '<div class="dk-prog" title="Bar: done. Mark: where an even pace would have you today."><i style="width:' + Math.min(100, done/target*100).toFixed(1) + '%"></i>'
     + (paceFrac != null ? '<em style="left:' + Math.min(100, paceFrac*100).toFixed(1) + '%"></em>' : '') + '</div>';
 }
+/* Today's call: a headline and one supporting line, from the readiness score
+   (null when there is no usable night) and today's planned sessions.
+   "Hard" matches planReadinessNote in the main script: 12+ mi, 2,000+ ft, or
+   a session the planner classifies as long, big, vert or quality. */
+function todayCall(s, todays){
+  const open = todays.filter(function(w){ try { return !isFulfilled(w); } catch(e){ return true; } });
+  if (todays.length && !open.length) return { h:'Done for today', s:'Everything on the plan is in.' };
+  if (!open.length) return { h:'Rest day', s: s == null ? '' : s >= 66 ? 'Nothing planned. Take it.' : 'Nothing planned, and the numbers agree.' };
+  const runs = open.filter(function(w){ return RUNLIKE.has(w.type); });
+  const mi = runs.reduce(function(a,w){ return a + (parseFloat(w.distance_mi) || 0); }, 0);
+  const ft = runs.reduce(function(a,w){ return a + (parseFloat(w.elevation_ft) || 0); }, 0);
+  let t = ''; try { t = classifyPlan(iso(todayD)); } catch(e){}
+  const hard = mi >= 12 || ft >= 2000 || ['longrun','bigday','vertday','quality'].indexOf(t) >= 0;
+  const lead = runs[0] || open[0];
+  const what = mi > 0 ? MET.distance.fine(mi) + ' mi' + (ft >= 800 ? ' and ' + fmtK(ft) + ' ft' : '') : (lead.title || lead.type);
+  /* nothing to run, only Qi Gong, sauna, strength and the like: those are
+     never the thing a low score argues against, so no easy/skip advice */
+  if (!runs.length && s != null && s < 66) return { h:'Go as planned', s:'Recovery work suits a morning like this.' };
+  if (s == null) return { h:'Go by feel', s:'No read on last night yet. ' + what + ' is on the plan.' };
+  if (hard){
+    if (s >= 78) return { h:'Green light', s: what + ' as planned. You’re ready for it.' };
+    if (s >= 66) return { h:'Go, but start easy', s: what + ' is on. Let the effort come to you.' };
+    if (s >= 52) return { h:'Shorten it or slow it', s: what + ' will cost more than usual today.' };
+    return { h:'Swap it for easy', s:'Not a day for ' + what + '. Move it if you can.' };
+  }
+  /* the list under the call already names every session, so the supporting
+     line says why the call is what it is rather than repeating the list */
+  if (s >= 66) return { h: runs.length ? 'Run it as planned' : 'Go as planned',
+    s: what + ' on the plan. ' + (s >= 88 ? 'You\u2019re well above your normal.' : s >= 78 ? 'You\u2019re right around your best.' : 'A little under your normal, fine for this.') };
+  if (s >= 52) return { h:'Keep it easy', s: what + ', conversational the whole way.' };
+  return { h:'Easy, or take the day', s:'Take ' + what + ' gently, or skip it.' };
+}
+/* console: rhCall(score, sessions) shows the call for any morning */
+window.rhCall = todayCall;
 function renderHome(){
   let hmNowP = null;     /* this week's carrots, for the phone's Training heading (v227) */
   /* every width: the phone uses this page too (see the note in the stylesheet) */
@@ -25489,8 +25528,15 @@ function renderHome(){
      how does today compare with a normal day, what is pushing the score, and
      what is on today. It used to be a heading and two grey sentences, which is
      a thin thing to put first on the page. */
-  const verdict = !hasScore ? 'Waiting on last night' : Rd.score >= 88 ? 'Well above your normal' : Rd.score >= 78 ? 'Right around your best' : Rd.score >= 66 ? 'A little under your normal' : Rd.score >= 52 ? 'Below your normal' : 'Well below your normal';
-  let rt = '<div class="hm-verdict">' + verdict + '</div>';
+  /* ── THE CALL (v260) ──
+     The ring said how he slept; the list said what was planned; the sum was
+     left to him. The headline is now that sum: one call for today. The
+     v212 coach line tried this as a sentence with a "move it" button and was
+     removed (v221) — this is a headline with no buttons, and the plan stays
+     his to change. Thresholds are the readiness label bands (78 Ready,
+     66 Steady, 52 Strained), so the call never disagrees with the ring. */
+  const call = todayCall(hasScore ? Rd.score : null, todays);
+  let rt = '<div class="hm-verdict">' + E(call.h) + '</div>' + (call.s ? '<div class="hm-callsub">' + E(call.s) + '</div>' : '');
   if (sEl && sEl.textContent) rt += '<p class="warn">' + E(sEl.textContent) + '</p>';
   /* ── TODAY, AS ADVICE (v212) ──
      The score and the plan sat side by side and left the sum to him. This line
