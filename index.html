@@ -7432,7 +7432,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v253';
+const RH_BUILD = 'v254';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -20146,6 +20146,17 @@ if ('serviceWorker' in navigator){
   .sz-num input,.sz-note{font-size:16px;}
   .sz-note{transform:scale(.68);width:147%;margin:-3px -23.5%;}
 }
+
+/* ═══ v254 · THE CLIMB ═══ */
+.rcp-res > div.t b{color:var(--ph-race);}
+.rcp-climb{margin-top:6px;min-height:200px;}
+.rcp-climb svg{display:block;width:100%;height:auto;overflow:visible;}
+.rcp-calls{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:2px;border-radius:14px;overflow:hidden;}
+.rcp-calls > div{background:rgba(0,0,0,.18);padding:10px 12px;min-width:0;}
+.rcp-calls span{display:block;font-size:11.5px;color:var(--n3);}
+.rcp-calls b{display:block;margin-top:2px;font:600 15px var(--fd);color:var(--n1);font-variant-numeric:tabular-nums;}
+.rcp-calls em{display:block;font-style:normal;font-size:11.5px;color:var(--n3);overflow-wrap:anywhere;}
+@media (max-width:759px){ .rcp-calls{grid-template-columns:repeat(2,minmax(0,1fr));} }
 /* ═══ PHONE ═══
    Kept LAST so it wins over the base rules above without !important wars.
    The phone is for looking at the plan, with the odd edit, so it keeps the
@@ -21993,6 +22004,7 @@ function renderSeason(ix){
   h += '</div>';
   $month.innerHTML = h;
   /* the year scrolls sideways on a phone: start it at this month */
+  drawClimbs();
   const sc = $month.querySelector('.sz-scroll'), cur = sc && sc.querySelector('.sz-mh.cur');
   if (sc && cur && sc.scrollWidth > sc.clientWidth + 4) sc.scrollLeft = Math.max(0, cur.offsetLeft - sc.clientWidth/2 + cur.offsetWidth/2);
 }
@@ -22003,62 +22015,130 @@ function renderSeason(ix){
    the peak week, the average build week, the longest run, how far the taper
    came down, and what the weeks after looked like. The weeks are the same
    build / taper / recovery blocks the planner draws, sized from the distance. */
+/* ═══ THE CLIMB (v254) ═══
+   A build drawn the way a trail runner reads a course profile. Miles a week rise
+   out of a ground line; vert a week hangs beneath it, mirrored, on its own scale
+   (never measured against the miles); the phases run as bands along the bottom.
+   A planned build, when there is one, is a dashed line over the same ground. The
+   few moments worth remembering are marked on the drawing where they happened,
+   instead of in a table. Drawn at the width it is shown at, so its 12px labels
+   stay 12px on a phone; redrawn when that width changes. */
+const CLIMBS = {};
+function climbSVG(W, opts, w){
+  w = Math.max(320, Math.round(w || 880)); opts = opts || {};
+  const narrow = w < 560, n = W.length, top = narrow ? 118 : 150, bot = narrow ? 70 : 90, h = top + bot + 34, pad = 4, bw = (w - pad*2)/Math.max(1, n);
+  const X = function(i){ return pad + i*bw; };
+  let mxM = 1, mxF = 1;
+  W.forEach(function(x){ mxM = Math.max(mxM, x.mi || 0, x.pm || 0); mxF = Math.max(mxF, x.ft || 0, x.pf || 0); });
+  mxM *= 1.08; mxF *= 1.08;
+  const HM = top - 24, HF = bot - 10, id = opts.id || 'c';
+  const yv = function(v, mx, dir, H){ return top - dir*Math.min(v || 0, mx)/mx*H; };
+  const ridge = function(k, mx, dir, H){ let d = 'M' + X(0) + ' ' + top; W.forEach(function(x, i){ const y = yv(x[k], mx, dir, H); d += ' L' + X(i) + ' ' + y + ' L' + X(i+1) + ' ' + y; }); return d + ' L' + X(n) + ' ' + top + ' Z'; };
+  const line = function(k, mx, dir, H){ let d = ''; W.forEach(function(x, i){ const y = yv(x[k], mx, dir, H); d += (i ? ' L' : 'M') + X(i) + ' ' + y + ' L' + X(i+1) + ' ' + y; }); return d; };
+  const hasRun = W.some(function(x){ return (x.mi || 0) > 0 || (x.ft || 0) > 0; }), hasPlan = W.some(function(x){ return x.pm != null; });
+  let g = '<svg viewBox="0 0 ' + w + ' ' + h + '" width="100%" role="img" aria-label="Miles a week above the line and vert a week below it, through build, taper, race and recovery">'
+    + '<defs><linearGradient id="cm' + id + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8f9ae8" stop-opacity=".9"/><stop offset="1" stop-color="#8f9ae8" stop-opacity=".22"/></linearGradient>'
+    + '<linearGradient id="cf' + id + '" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#7fd9bd" stop-opacity=".78"/><stop offset="1" stop-color="#7fd9bd" stop-opacity=".16"/></linearGradient></defs>';
+  if (hasRun){ g += '<path d="' + ridge('mi', mxM, 1, HM) + '" fill="url(#cm' + id + ')"/><path d="' + ridge('ft', mxF, -1, HF) + '" fill="url(#cf' + id + ')"/>'; }
+  if (hasPlan){
+    if (!hasRun) g += '<path d="' + ridge('pm', mxM, 1, HM) + '" fill="url(#cm' + id + ')" opacity=".5"/><path d="' + ridge('pf', mxF, -1, HF) + '" fill="url(#cf' + id + ')" opacity=".5"/>';
+    g += '<path d="' + line('pm', mxM, 1, HM) + '" fill="none" stroke="#c2c9ff" stroke-width="2" stroke-dasharray="5 4"/><path d="' + line('pf', mxF, -1, HF) + '" fill="none" stroke="#9fe3cf" stroke-width="2" stroke-dasharray="5 4"/>';
+  }
+  g += '<line x1="0" x2="' + w + '" y1="' + top + '" y2="' + top + '" stroke="rgba(230,236,255,.35)" stroke-width="1"/>'
+    + '<text x="2" y="14" fill="#8f9ae8" font-size="12" font-family="Inter,system-ui,sans-serif">miles a week</text>'
+    + '<text x="' + (w - 2) + '" y="' + (top + bot - 2) + '" text-anchor="end" fill="#7fd9bd" font-size="12" font-family="Inter,system-ui,sans-serif">vert a week</text>';
+  /* phase bands */
+  const col = { build:'#8f9ae8', taper:'#b39ae8', race:'#e05cc2', rec:'#7fd9bd' }, lab = { build:'Build', taper:'Taper', race:'Race', rec:'Recovery' };
+  const by = top + bot + 6; let run = null, start = 0;
+  W.concat([{ ph:'end' }]).forEach(function(x, i){
+    if (x.ph === run) return;
+    if (run){ const x0 = X(start), x1 = X(i);
+      g += '<rect x="' + (x0 + 1) + '" y="' + by + '" width="' + Math.max(2, x1 - x0 - 2) + '" height="6" rx="3" fill="' + col[run] + '" opacity="' + (run === 'race' ? 1 : .75) + '"/>';
+      if (x1 - x0 > 74) g += '<text x="' + (x0 + 2) + '" y="' + (by + 22) + '" fill="#a8b0c4" font-size="12" font-family="Inter,system-ui,sans-serif">' + lab[run] + ' · ' + (i - start) + ' wk</text>'; }
+    run = x.ph; start = i;
+  });
+  /* marks */
+  /* labels that would land on each other step up (or down) out of the way */
+  const placed = [];
+  (narrow ? (opts.marksN || opts.marks) : opts.marks || []).forEach(function(m){
+    const v = W[m.i][m.key], dir = (m.key === 'ft' || m.key === 'pf') ? -1 : 1, mx = dir < 0 ? mxF : mxM, H = dir < 0 ? HF : HM;
+    const x = X(m.i) + bw/2, y = yv(v, mx, dir, H), anc = m.anchor || (x > w*.72 ? 'end' : x < w*.2 ? 'start' : 'middle');
+    const tw = m.t.length*7, tx = anc === 'end' ? x + 4 : anc === 'start' ? x - 4 : x;
+    const x0 = anc === 'end' ? tx - tw : anc === 'start' ? tx : tx - tw/2;
+    let ty = dir > 0 ? y - 10 : y + 18;
+    for (let k = 0; k < 4 && placed.some(function(b){ return x0 < b.x1 && x0 + tw > b.x0 && Math.abs(ty - b.y) < 15; }); k++) ty += dir > 0 ? -16 : 16;
+    placed.push({ x0:x0, x1:x0 + tw, y:ty });
+    g += '<circle cx="' + x + '" cy="' + y + '" r="3.5" fill="' + (m.c || '#e6e9f2') + '"/>'
+      + '<text x="' + tx + '" y="' + ty + '" text-anchor="' + anc + '" fill="' + (m.c || '#e6e9f2') + '" font-size="12.5" font-weight="600" font-family="Inter,system-ui,sans-serif">' + m.t + '</text>';
+  });
+  return g + '</svg>';
+}
+function drawClimbs(root){
+  (root || $month).querySelectorAll('[data-climb]').forEach(function(el){
+    const c = CLIMBS[el.dataset.climb]; if (!c) return;
+    const w = el.clientWidth; if (!w || el._w === w) return;
+    el._w = w; el.innerHTML = climbSVG(c.W, c.opts, w);
+  });
+}
+let _climbRz = null;
+window.addEventListener('resize', function(){ clearTimeout(_climbRz); _climbRz = setTimeout(function(){ if (st.view === 'season') drawClimbs(); }, 150); });
+
+/* ═══ RACE RECAP (v250, drawn as a climb in v254) ═══
+   For a race already run: the result, read off the run on race day, and the
+   build that led to it as a climb (above), with four numbers a runner looks
+   back at: the build, the peak week, the longest run before, and the taper. */
 function raceRecap(ix, r){
   const a = raceAct(r), mi = raceMi(r), b = seasonBlocks(r);
   const fmtD = function(d){ return MON[d.getMonth()] + ' ' + d.getDate(); };
   const dur = function(s){ s = Math.round(s || 0); const hh = Math.floor(s/3600), mm = Math.floor(s%3600/60), ss = s%60; return hh ? hh + ':' + String(mm).padStart(2,'0') + ':' + String(ss).padStart(2,'0') : mm + ':' + String(ss).padStart(2,'0'); };
-  const pace = function(s, d){ if (!s || !d) return ''; const v = s/d; return Math.floor(v/60) + ':' + String(Math.round(v%60)).padStart(2,'0') + ' /mi'; };
-  /* the race's own week counts as "race"; anything after it, recovery */
-  const raceWk = iso(weekStart(b.day));
-  const wks = [];
-  for (let d = weekStart(b.build); d <= b.recEnd && iso(d) <= TODAY; d = addDays(d, 7)){
-    const k = iso(d), W = weekRun(ix, d, 'distance'), V = weekRun(ix, d, 'elevation');
-    const mid = addDays(d, 3);
+  const pace = function(s, d){ if (!s || !d) return ''; const v = s/d; return Math.floor(v/60) + ':' + String(Math.round(v%60)).padStart(2,'0'); };
+  const raceWk = iso(weekStart(b.day)), plan = r.plan && r.plan.weeks ? r.plan.weeks : null;
+  const W = [];
+  for (let d = weekStart(b.build); d <= b.recEnd; d = addDays(d, 7)){
+    const k = iso(d), past = k <= TODAY, mid = addDays(d, 3);
     const ph = k === raceWk ? 'race' : d > b.day ? 'rec' : mid >= b.taper ? 'taper' : 'build';
-    /* the race week's miles, minus the race itself, are what the taper's last week looked like */
-    wks.push({ d:new Date(d), k:k, ph:ph, mi:W.done, ft:V.done });
+    const x = { d:new Date(d), k:k, ph:ph, mi: past ? weekRun(ix, d, 'distance').done : 0, ft: past ? weekRun(ix, d, 'elevation').done : 0 };
+    if (plan && plan[k]){ x.pm = plan[k].distance; x.pf = plan[k].elevation; }
+    W.push(x);
   }
-  const bw = wks.filter(function(w){ return w.ph === 'build'; }), tw = wks.filter(function(w){ return w.ph === 'taper'; }), rw = wks.filter(function(w){ return w.ph === 'rec'; });
+  const bw = W.filter(function(w){ return w.ph === 'build'; }), tw = W.filter(function(w){ return w.ph === 'taper'; });
   const avg = function(l){ return l.length ? l.reduce(function(s,w){ return s + w.mi; }, 0)/l.length : 0; };
-  let peak = null; bw.concat(tw).forEach(function(w){ if (!peak || w.mi > peak.mi) peak = w; });
-  const bft = bw.concat(tw).reduce(function(s,w){ return s + w.ft; }, 0), bmi = bw.concat(tw).reduce(function(s,w){ return s + w.mi; }, 0);
-  /* the longest run of the build, not counting the race */
+  let pk = -1, pf = -1;
+  W.forEach(function(w, i){ if (w.ph === 'build' || w.ph === 'taper'){ if (pk < 0 || w.mi > W[pk].mi) pk = i; if (pf < 0 || w.ft > W[pf].ft) pf = i; } });
+  const ri = W.findIndex(function(w){ return w.ph === 'race'; });
+  const bmi = bw.concat(tw).reduce(function(s,w){ return s + w.mi; }, 0), bft = bw.concat(tw).reduce(function(s,w){ return s + w.ft; }, 0);
   let lr = null; const lo = iso(b.build), hi = iso(addDays(b.day, -2));
   (ACTS || []).forEach(function(x){ if (x && x._iso >= lo && x._iso <= hi && RUNLIKE.has(x.type) && (!lr || (x.distance_mi||0) > (lr.distance_mi||0))) lr = x; });
-  const taperDrop = peak && peak.mi > 0 && tw.length ? Math.round((1 - avg(tw)/peak.mi)*100) : null;
+  const peak = pk >= 0 ? W[pk] : null;
+  const lastTaper = tw.length ? tw[tw.length - 1] : null;
+  const taperDrop = peak && peak.mi > 0 && lastTaper ? Math.round((1 - lastTaper.mi/peak.mi)*100) : null;
+  /* a long run that was itself a race (Rock Hawk inside the Run Rabbit Run build) is named as such */
+  const lrRace = lr ? (RACES || []).find(function(x){ return x && x.date && Math.abs(dOf(x.date) - dOf(lr._iso)) <= 864e5 && x !== r; }) : null;
 
-  /* the weeks as bars; the race week's bar is the race, in race colour */
-  let mx = 1; wks.forEach(function(w){ mx = Math.max(mx, w.mi); });
-  const bars = wks.map(function(w){
-    return '<i class="' + w.ph + (peak && w.k === peak.k ? ' pk' : '') + '" style="height:' + Math.max(2, w.mi/mx*100).toFixed(1) + '%" title="Week of ' + fmtD(w.d) + ' · ' + miles(w.mi) + ' mi · ' + Math.round(w.ft).toLocaleString() + ' ft (' + ({ build:'build', taper:'taper', race:'race week', rec:'recovery' })[w.ph] + ')"></i>';
-  }).join('');
+  const marks = [], marksN = [];
+  if (peak && peak.mi > 0){ marks.push({ i:pk, key:'mi', t:'Peak ' + Math.round(peak.mi) + ' mi · ' + fmtD(peak.d) }); marksN.push({ i:pk, key:'mi', t:'Peak ' + Math.round(peak.mi) }); }
+  if (ri >= 0 && W[ri].mi > 0){ marks.push({ i:ri, key:'mi', t:'Race week ' + Math.round(W[ri].mi) + ' mi', c:'#e05cc2' }); marksN.push({ i:ri, key:'mi', t:'Race ' + Math.round(W[ri].mi), c:'#e05cc2' }); }
+  if (pf >= 0 && W[pf].ft > 0){ marks.push({ i:pf, key:'ft', t:'Most vert ' + ftK(W[pf].ft) + ' ft', c:'#7fd9bd' }); marksN.push({ i:pf, key:'ft', t:'Most vert ' + ftK(W[pf].ft), c:'#7fd9bd' }); }
+  CLIMBS['r' + r.id] = { W:W, opts:{ id:'r' + r.id, marks:marks, marksN:marksN } };
 
   const res = a
-    ? '<div class="rcp-res"><div><b>' + dur(a.elapsed_time || a.moving_time) + '</b><span>' + (a.elapsed_time ? 'finish' : 'moving') + '</span></div>'
+    ? '<div class="rcp-res"><div class="t"><b>' + dur(a.elapsed_time || a.moving_time) + '</b><span>' + (a.elapsed_time ? 'finish' : 'moving') + '</span></div>'
       + '<div><b>' + miles(a.distance_mi || mi) + '<small>mi</small></b><span>distance</span></div>'
       + '<div><b>' + Math.round(a.elevation_ft || 0).toLocaleString() + '<small>ft</small></b><span>vert</span></div>'
-      + '<div><b>' + pace(a.elapsed_time || a.moving_time, a.distance_mi) .replace(' /mi', '<small>/mi</small>') + '</b><span>' + (a.elapsed_time ? 'overall pace' : 'pace') + '</span></div>'
-      + (a.elapsed_time && a.moving_time && a.elapsed_time - a.moving_time > 300 ? '<div><b>' + dur(a.moving_time) + '</b><span>moving</span></div>' : '') + '</div>'
+      + '<div><b>' + pace(a.elapsed_time || a.moving_time, a.distance_mi) + '<small>/mi</small></b><span>' + (a.elapsed_time ? 'overall pace' : 'pace') + '</span></div></div>'
     : '<div class="ss-empty">No run on race day to read a result from' + (raceIsMaybe(r) ? ' (it was a maybe)' : '') + '.</div>';
-
-  const fact = function(k, v, s){ return '<div class="rcp-f"><span>' + k + '</span><b>' + v + '</b>' + (s ? '<em>' + s + '</em>' : '') + '</div>'; };
-  const facts = wks.length ? '<div class="rcp-facts">'
-    + (peak ? fact('Peak week', miles(peak.mi) + ' mi', 'week of ' + fmtD(peak.d)) : '')
-    + fact('Average build week', miles(avg(bw)) + ' mi', bw.length + ' weeks')
-    + (lr ? fact('Longest run', miles(lr.distance_mi) + ' mi', E(lr.name || lr.type) + ' · ' + fmtD(lr._date || dOf(lr._iso))) : '')
-    + fact('Build total', fmt(bmi) + ' mi', Math.round(bft).toLocaleString() + ' ft')
-    + (taperDrop != null ? fact('Taper', (taperDrop >= 0 ? '−' : '+') + Math.abs(taperDrop) + '%', 'from the peak week') : '')
-    + (rw.length ? fact('After', miles(avg(rw)) + ' mi / wk', rw.length + ' week' + (rw.length === 1 ? '' : 's') + ' of recovery') : '')
-    + '</div>' : '';
+  const call = function(k, v, s){ return '<div><span>' + k + '</span><b>' + v + '</b>' + (s ? '<em>' + s + '</em>' : '') + '</div>'; };
+  const calls = '<div class="rcp-calls">'
+    + call('Build', b.p[0] + ' weeks · ' + Math.round(avg(bw)) + ' mi avg', fmt(bmi) + ' mi · ' + ftK(bft) + ' ft')
+    + (peak ? call('Peak week', Math.round(peak.mi) + ' mi', fmtD(peak.d) + (W[pk].ft ? ' · ' + ftK(W[pk].ft) + ' ft' : '')) : '')
+    + (lr ? call('Longest run before', miles(lr.distance_mi) + ' mi', (lrRace ? E(lrRace.name) : E(lr.name || lr.type)) + ', ' + fmtD(dOf(lr._iso))) : '')
+    + (taperDrop != null ? call('Taper', (taperDrop > 0 ? '−' : taperDrop < 0 ? '+' : '') + Math.abs(taperDrop) + '%', 'to ' + miles(lastTaper.mi) + ' mi the week before') : '')
+    + '</div>';
 
   return '<article class="rcp">'
     + '<header><button class="rcp-n" data-sact="info" data-id="' + E(r.id) + '"><b>' + E(r.name) + '</b><span>' + DOW[dowOf(r.date)] + ', ' + fmtD(dOf(r.date)) + (r.priority ? ' · ' + r.priority + ' race' : '') + '</span></button>'
     + (a ? '<button class="rcp-open" data-sact="act" data-id="' + E(a.id) + '">Open the run ›</button>' : '') + '</header>'
-    + res
-    + (wks.length ? '<div class="rcp-build"><div class="rcp-lb">The build<small>' + b.p[0] + ' weeks, ' + b.p[1] + ' taper, ' + b.p[2] + ' after</small></div><div class="rcp-bars">' + bars + '</div>'
-      /* "race week" sits under the race's own bar, not midway along the axis */
-      + '<div class="rcp-ax"><span>' + fmtD(wks[0].d) + '</span>' + (function(){ const ri = wks.findIndex(function(w){ return w.ph === 'race'; }); return ri < 0 ? '' : '<span class="rw" style="left:' + ((ri + .5)/wks.length*100).toFixed(2) + '%">race week</span>'; })() + '<span>' + fmtD(wks[wks.length-1].d) + '</span></div></div>' : '')
-    + facts + '</article>';
+    + res + '<div class="rcp-climb" data-climb="r' + E(r.id) + '"></div>' + calls + '</article>';
 }
 $month.addEventListener('click', function(e){
   const b = e.target.closest('[data-sact]'); if (!b || st.view !== 'season') return;
