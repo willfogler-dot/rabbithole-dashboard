@@ -7432,7 +7432,7 @@ function sleepScoreFor(row){
 /* Answers "why is the map not responding" without another round trip. */
 /* Reports exactly why the trail layer is or is not showing, and tries a live
    fetch so a network failure surfaces as a message rather than an empty map. */
-const RH_BUILD = 'v251';
+const RH_BUILD = 'v252';
 window.rhPaths = function(){
   console.log('%c  build            : ' + RH_BUILD, 'font-weight:bold');
   console.log('  page origin      : ' + location.protocol + '//' + location.host);
@@ -20033,6 +20033,48 @@ if ('serviceWorker' in navigator){
   .sy-mo .sub .ph-br{display:inline;}
   .sy-mo .sub span{display:none;}
 }
+
+/* ═══ v252 · VERT AS AN EQUAL ═══ */
+/* season figures: feet at the same size and colour as miles */
+.sy-k .v2 b,.sy-k .v2 input{font:600 36px/1 var(--fd);letter-spacing:-.03em;color:var(--n1);}
+.sy-k .v2 span{font-size:14px;}
+.sy-k .v2{margin-top:6px;}
+.sy-k.left.short .v2 b.short{color:var(--ph-warn);}
+.sy-yv{width:7ch;}
+.sy-yv::placeholder{font:500 16px var(--fb);}
+/* two charts per month: miles (blue) and vert (the brand's green), same height */
+.sy-mo .plot.v{margin-top:12px;}
+.sy-mo .plot.v .tg{background:linear-gradient(180deg,color-mix(in srgb,var(--ph-rec) 38%,transparent),color-mix(in srgb,var(--ph-rec) 10%,transparent));}
+.sy-mo .plot.v .cal{background:color-mix(in srgb,var(--ph-rec) 35%,transparent);}
+.sy-mo .plot.v .dn{background:var(--ph-rec);}
+.sy-mo .plot{height:96px;}
+.sy-mo .sy-in + .cum{margin-bottom:0;}
+.sy-wkl{margin:12px 2px 4px;font-size:11px;color:var(--n3);}
+/* the line under each month is two short lines everywhere now: one mi, one ft */
+.sy-mo .sub{white-space:normal;line-height:1.35;}
+.sy-mo .sub .ph-br{display:inline;}
+.sy-mo .sub span{display:none;}
+.sy-wks{margin-top:0;height:44px;}
+.sy-wks.v i.p{background:color-mix(in srgb,var(--ph-rec) 70%,transparent);}
+.sy-wks.v i.f{background:color-mix(in srgb,var(--ph-rec) 26%,transparent);}
+/* week hero: miles and feet stacked at one size */
+.plx-st b.ft{margin-top:6px;}
+.plx-st.big b{font-size:40px;}
+.plx-st.big b.ft{background:linear-gradient(100deg,#7fd9bd,#9fe3cf);-webkit-background-clip:text;background-clip:text;color:transparent;}
+.plx-st.zero b.ft{background:none;color:var(--n4);}
+.plx-cl{margin:8px 0 0;font-size:11px;color:var(--n3);}
+.plx-cols.two{height:78px;margin-top:2px;}
+.plx-cols.two + .plx-cl{margin-top:10px;}
+.plx-cols.two:last-child .plx-col .cp i{background:var(--ph-rec);}
+/* month view: the week's two totals */
+.plx-wk .big.ft{margin-top:3px;}
+.plx-wk .big.ft b{font-size:20px;color:var(--n2);}
+@media (max-width:759px){
+  .sy-k .v2 b,.sy-k .v2 input{font-size:30px;}
+  .sy-mo .plot{height:52px;}
+  .sy-wkl{display:none;}
+  .plx-st.big b{font-size:34px;}
+}
 /* ═══ PHONE ═══
    Kept LAST so it wins over the base rules above without !important wars.
    The phone is for looking at the plan, with the odd edit, so it keeps the
@@ -20919,10 +20961,10 @@ function renderMonth(ix){
     const lbl = MON[mon.getMonth()] + ' ' + mon.getDate() + ' – ' + (sun.getMonth() !== mon.getMonth() ? MON[sun.getMonth()] + ' ' : '') + sun.getDate();
     grid += '<div title="Open this week" class="plx-wk' + (isNow ? ' cur' : '') + (W.past ? ' old' : '') + (W.head > 0 ? '' : ' zero') + '" data-week="' + monISO + '">'
       + '<div class="wl">' + lbl + '</div>'
-      + '<div class="big"><b>' + fmt1(W.head) + '</b><span>' + m.unit + '</span></div>'
+      + '<div class="big"><b>' + fmt1(W.head) + '</b><span>mi</span></div>'
+      + '<div class="big ft"><b>' + Math.round(O.head).toLocaleString() + '</b><span>ft</span></div>'
       + '<div class="sub">' + sub + '</div>'
       + (W.planned > 0 || W.done > 0 ? '<div class="plx-wbar" title="' + fmt1(W.done) + ' done of ' + fmt1(W.planned) + ' planned"><i class="pl" style="width:' + pc(W.planned) + '%"></i><i class="dn" style="width:' + pc(W.done) + '%"></i></div>' : '')
-      + '<div class="sub">' + oTxt + '</div>'
       + (mixTxt ? '<div class="mix">' + E(mixTxt) + '</div>' : '')
       + '</div>';
   });
@@ -20989,18 +21031,24 @@ function renderWeekView(ix){
      them side by side with a "5.1/5" label, and two bars plus a fraction per
      day left him unsure which was which. The label is the one number that
      matters for that day: what was run once the day has started, the plan before. */
-  const cols = days.map(function(d, i){
-    const fut = d.key > TODAY, pl = d.r.planned, dn = fut ? 0 : d.r.done;
-    const hp = pl > 0 ? Math.max(4, Math.round(pl/dmax*86)) : 0, hd = dn > 0 ? Math.max(4, Math.round(dn/dmax*86)) : 0;
-    const showAct = !fut && (dn > 0 || (pl > 0 && d.key < TODAY));
-    const lab = showAct ? '<b' + (dn > 0 ? '' : ' class="miss"') + '>' + fmt1(dn) + '</b>'
-              : (pl > 0 ? '<span class="solo">' + fmt1(pl) + '</span>' : '');
-    return '<div class="plx-col' + (pl > 0 || dn > 0 ? '' : ' none') + (d.key === TODAY ? ' now' : '') + '" title="' + DOW[i] + ': '
-      + (pl > 0 ? fmt1(pl) + ' ' + m.unit + ' planned' : 'nothing planned') + (fut ? '' : ' · ' + fmt1(dn) + ' ' + m.unit + ' done') + '">'
-      + '<div class="cv">' + lab + '</div>'
-      + '<div class="cp"><div class="slot" style="height:' + Math.max(hp, showAct && dn > 0 ? hd : 0, 1) + 'px">' + (showAct && dn > 0 ? '<i style="height:' + hd + 'px"></i>' : '') + (pl > 0 ? '<u style="height:' + hp + 'px"></u>' : '') + '</div></div>'
-      + '<div class="cd">' + DOW[i] + '</div></div>';
-  }).join('');
+  /* v252: one chart per measure, the same size, each on its own scale */
+  const colsFor = function(mt){
+    const rs = days.map(function(d){ return mt === 'distance' ? d.r : dayRun(ix, d.key, 'elevation'); });
+    let dmax = 0.0001; rs.forEach(function(r){ dmax = Math.max(dmax, r.planned, r.done); });
+    const f1 = mt === 'distance' ? fmt1 : function(v){ return v >= 1000 ? (v/1000).toFixed(1).replace(/\.0$/, '') + 'k' : String(Math.round(v)); };
+    const u = mt === 'distance' ? 'mi' : 'ft';
+    return days.map(function(d, i){
+      const r = rs[i], fut = d.key > TODAY, pl = r.planned, dn = fut ? 0 : r.done;
+      const hp = pl > 0 ? Math.max(4, Math.round(pl/dmax*54)) : 0, hd = dn > 0 ? Math.max(4, Math.round(dn/dmax*54)) : 0;
+      const showAct = !fut && (dn > 0 || (pl > 0 && d.key < TODAY));
+      const lab = showAct ? '<b' + (dn > 0 ? '' : ' class="miss"') + '>' + f1(dn) + '</b>' : (pl > 0 ? '<span class="solo">' + f1(pl) + '</span>' : '');
+      return '<div class="plx-col' + (pl > 0 || dn > 0 ? '' : ' none') + (d.key === TODAY ? ' now' : '') + '" title="' + DOW[i] + ': '
+        + (pl > 0 ? f1(pl) + ' ' + u + ' planned' : 'nothing planned') + (fut ? '' : ' · ' + f1(dn) + ' ' + u + ' done') + '">'
+        + '<div class="cv">' + lab + '</div>'
+        + '<div class="cp"><div class="slot" style="height:' + Math.max(hp, showAct && dn > 0 ? hd : 0, 1) + 'px">' + (showAct && dn > 0 ? '<i style="height:' + hd + 'px"></i>' : '') + (pl > 0 ? '<u style="height:' + hp + 'px"></u>' : '') + '</div></div>'
+        + (mt === 'elevation' ? '<div class="cd">' + DOW[i] + '</div>' : '') + '</div>';
+    }).join('');
+  };
 
   /* the step from last week */
   let ramp = '—', rampCls = '', rampSub = 'no running the week before';
@@ -21033,8 +21081,8 @@ function renderWeekView(ix){
   else note = hasGoal ? (W.done >= goal ? 'Plan done' + (W.done - goal >= 0.5 ? ' · ' + fmt1(W.done - goal) + ' ' + m.unit + ' over' : '')
                                         : fmt1(goal - W.done) + ' ' + m.unit + ' to go') : 'No plan set';
   const stat = function(cls, label, v, big, ft){
-    return '<div class="plx-st ' + cls + (big ? ' big' : '') + (v > 0 ? '' : ' zero') + '"><span class="k"><i></i>' + label + '</span><b>' + fmt1(v) + '<small>' + m.unit + '</small></b>'
-      + (ft != null ? '<em class="ft">' + Math.round(ft).toLocaleString() + ' ft</em>' : '') + '</div>';
+    return '<div class="plx-st ' + cls + (big ? ' big' : '') + (v > 0 || ft > 0 ? '' : ' zero') + '"><span class="k"><i></i>' + label + '</span><b>' + fmt1(v) + '<small>mi</small></b>'
+      + '<b class="ft">' + Math.round(ft || 0).toLocaleString() + '<small>ft</small></b></div>';
   };
   const OV = weekRun(ix, mon, 'elevation');
   const hero = '<div class="plx-hero">'
@@ -21043,7 +21091,9 @@ function renderWeekView(ix){
     +   (started && (hasGoal || W.done > 0) ? '<div class="plx-wbar v2" title="' + fmt1(W.done) + ' run of ' + fmt1(goal) + ' planned"><i class="dn" style="width:' + (hasGoal ? Math.min(100, W.done/goal*100) : 100).toFixed(1) + '%"></i></div>' : '')
     +   (note ? '<div class="plx-hx-s">' + note + '</div>' : '')
     +   '<div class="plx-hx-t">' + monthLine(ix, addDays(mon, 3)) + '</div></div>'
-    + '<div><div class="plx-hx-l">' + (st.metric === 'distance' ? 'Miles by day' : 'Vert by day') + '<span class="plx-key"><i></i>Run<u></u>Planned</span></div><div class="plx-cols">' + cols + '</div></div>'
+    + '<div><div class="plx-hx-l">By day<span class="plx-key"><i></i>Run<u></u>Planned</span></div>'
+    +   '<div class="plx-cl">Miles</div><div class="plx-cols two">' + colsFor('distance') + '</div>'
+    +   '<div class="plx-cl">Vert</div><div class="plx-cols two">' + colsFor('elevation') + '</div></div>'
     + '<div><div class="plx-hx-l">The week</div><div class="plx-facts">' + facts + '</div></div>'
     + '</div>';
 
@@ -21721,26 +21771,34 @@ function seasonYearHTML(ix){
     '<b data-sy-wkv>' + (TV != null ? ftF(TV/52) : '—') + '</b><span>ft</span>', 'at the annual targets');
 
   /* months: the chart is miles only (two scales on one bar would mislead); feet are the second field and line */
-  let mx = 1; for (let i=0;i<12;i++) mx = Math.max(mx, tg[i] || 0, cal[i].total, ly[i]);
-  let run = 0;
+  let mx = 1, mxV = 1; for (let i=0;i<12;i++){ mx = Math.max(mx, tg[i] || 0, cal[i].total, ly[i]); mxV = Math.max(mxV, tv[i] || 0, calV[i].total, lyV[i]); }
+  let run = 0, runV = 0;
+  /* v252: vert is an equal, not a footnote. Each month has two charts of the
+     same size, miles and vert, each on its own scale (never one bar measured
+     against the other), and two fields of the same size under them. */
+  const plotOf = function(i, T0, c, l, M, unit, lyTxt){
+    const h = function(v){ return Math.min(100, (v||0)/M*100).toFixed(1); };
+    return '<div class="plot" title="' + E(MON_FULL[i] + ' ' + unit + ': ' + (T0 != null ? 'target ' + lyTxt(T0) + ' · ' : '') + lyTxt(c.done) + ' run' + (c.togo > 0 ? ' + ' + lyTxt(c.togo) + ' planned' : '') + ' · ' + lyTxt(l) + ' in ' + (y-1)) + '">'
+      + (T0 != null ? '<i class="tg" style="height:' + h(T0) + '%"></i>' : '')
+      + (c.total > 0 ? '<i class="cal" style="height:' + h(c.total) + '%"></i>' : '')
+      + (c.done > 0 ? '<i class="dn" style="height:' + h(c.done) + '%"></i>' : '')
+      + (l > 0 ? '<i class="ly" style="bottom:' + h(l) + '%"></i>' : '') + '</div>';
+  };
   const cols = MON.map(function(nm, i){
-    run += tg[i] || 0;
+    run += tg[i] || 0; runV += tv[i] || 0;
     const isCur = y === curY && i === cm, past = y < curY || (y === curY && i < cm);
-    const even = T ? T*(i+1)/12 : null, nt = monthNote(y, i);
-    const h = function(v){ return Math.min(100, (v||0)/mx*100).toFixed(1); };
+    const even = T ? T*(i+1)/12 : null, evenV = TV ? TV*(i+1)/12 : null, nt = monthNote(y, i);
     return '<div class="sy-mo' + (isCur ? ' cur' : '') + '" data-i="' + i + '">'
       + '<div class="nm">' + nm.toUpperCase() + '</div>'
       + '<input class="sy-note" data-sn="' + i + '" maxlength="40" autocomplete="off" placeholder="note" aria-label="' + MON_FULL[i] + ' note" value="' + E(nt) + '" title="' + E(nt || 'Races, travel, anything that shapes this month') + '">'
-      + '<div class="plot" title="' + E(MON_FULL[i] + ': ' + (tg[i] != null ? 'target ' + fmt(tg[i]) + ' mi · ' : '') + fmt1(cal[i].done) + ' mi run' + (cal[i].togo > 0 ? ' + ' + fmt1(cal[i].togo) + ' planned' : '') + ' · ' + fmt(ly[i]) + ' in ' + (y-1)) + '">'
-      +   (tg[i] != null ? '<i class="tg" style="height:' + h(tg[i]) + '%"></i>' : '')
-      +   (cal[i].total > 0 ? '<i class="cal" style="height:' + h(cal[i].total) + '%"></i>' : '')
-      +   (cal[i].done > 0 ? '<i class="dn" style="height:' + h(cal[i].done) + '%"></i>' : '')
-      +   (ly[i] > 0 ? '<i class="ly" style="bottom:' + h(ly[i]) + '%"></i>' : '') + '</div>'
+      + plotOf(i, tg[i], cal[i], ly[i], mx, 'miles', function(v){ return fmt(v) + ' mi'; })
       + '<label class="sy-in"><input data-sm="' + i + '" inputmode="decimal" autocomplete="off" aria-label="' + MON_FULL[i] + ' miles target" placeholder="—" value="' + (tg[i] != null ? fmt(tg[i]) : '') + '"><span>mi</span></label>'
-      + '<label class="sy-iv"><input data-sv="' + i + '" inputmode="decimal" autocomplete="off" aria-label="' + MON_FULL[i] + ' vert target" placeholder="—" value="' + (tv[i] != null ? ftF(tv[i]) : '') + '"><span>ft</span></label>'
-      + '<div class="cum' + (even != null && anyT && run < even - .5 ? ' behind' : '') + '" data-cum="' + i + '" title="' + (even != null ? 'Even pace to ' + fmt(T) + ' mi is ' + fmt(even) + ' by the end of ' + MON_FULL[i] : '') + '">' + (anyT ? fmt(run) + ' by ' + nm : '&nbsp;') + '</div>'
-      /* run months say what was run, both measures, each on its own short line so a narrow column never wraps mid-figure */
-      + '<div class="sub">' + (past ? '<b>' + fmt(cal[i].done) + '</b> mi<span> · </span><br class="ph-br"><b>' + ftK(calV[i].done) + '</b> ft' : ly[i] > 0 ? fmt(ly[i]) + ' mi in ’' + String(y-1).slice(2) : '&nbsp;') + '</div></div>';
+      + '<div class="cum' + (even != null && anyT && run < even - .5 ? ' behind' : '') + '" data-cum="' + i + '">' + (anyT ? fmt(run) + ' by ' + nm : '&nbsp;') + '</div>'
+      + plotOf(i, tv[i], calV[i], lyV[i], mxV, 'vert', function(v){ return ftF(v) + ' ft'; }).replace('class="plot"', 'class="plot v"')
+      + '<label class="sy-in"><input data-sv="' + i + '" inputmode="decimal" autocomplete="off" aria-label="' + MON_FULL[i] + ' vert target" placeholder="—" value="' + (tv[i] != null ? ftF(tv[i]) : '') + '"><span>ft</span></label>'
+      + '<div class="cum' + (evenV != null && anyV && runV < evenV - 50 ? ' behind' : '') + '" data-cumv="' + i + '">' + (anyV ? ftK(runV) + ' by ' + nm : '&nbsp;') + '</div>'
+      + '<div class="sub">' + (past ? '<b>' + fmt(cal[i].done) + '</b> mi<span> · </span><br class="ph-br"><b>' + ftK(calV[i].done) + '</b> ft run'
+                                    : (ly[i] > 0 || lyV[i] > 0) ? fmt(ly[i]) + ' mi<span> · </span><br class="ph-br">' + ftK(lyV[i]) + ' ft in ’' + String(y-1).slice(2) : '&nbsp;') + '</div></div>';
   }).join('');
   /* the races' blocks on the same Jan–Dec axis */
   const Y0 = new Date(y, 0, 1), Y1 = new Date(y+1, 0, 1);
@@ -21760,6 +21818,11 @@ function seasonYearHTML(ix){
   const wk = []; let wmax = T ? T/52*1.7 : 1;
   for (let d = weekStart(Y0); d < Y1; d = addDays(d, 7)){ const W = weekRun(ix, d, 'distance'), V = weekRun(ix, d, 'elevation'); wk.push({ d:new Date(d), v:W.head, ft:V.head, past:W.past }); wmax = Math.max(wmax, W.head); }
   const thisMon = iso(weekStart(todayD));
+  let wmaxV = TV ? TV/52*1.7 : 1; wk.forEach(function(w){ wmaxV = Math.max(wmaxV, w.ft); });
+  const weeksV = wk.map(function(w){
+    const l = pc(w.d < Y0 ? Y0 : w.d), r = pc(addDays(w.d, 7) > Y1 ? Y1 : addDays(w.d, 7));
+    return '<i class="' + (w.past ? 'p' : 'f') + (iso(w.d) === thisMon ? ' now' : '') + '" style="left:calc(' + l + '% + 1px);width:calc(' + (r - l) + '% - 2px);height:' + Math.max(3, w.ft/wmaxV*100).toFixed(1) + '%" title="Week of ' + MON[w.d.getMonth()] + ' ' + w.d.getDate() + ': ' + ftF(w.ft) + ' ft"></i>';
+  }).join('');
   const weeks = wk.map(function(w){
     const l = pc(w.d < Y0 ? Y0 : w.d), r = pc(addDays(w.d, 7) > Y1 ? Y1 : addDays(w.d, 7));
     return '<i class="' + (w.past ? 'p' : 'f') + (iso(w.d) === thisMon ? ' now' : '') + '" data-wk="' + iso(w.d) + '" style="left:calc(' + l + '% + 1px);width:calc(' + (r - l) + '% - 2px);height:' + Math.max(3, w.v/wmax*100).toFixed(1) + '%" title="Week of ' + MON[w.d.getMonth()] + ' ' + w.d.getDate() + ': ' + (w.v > 0 ? fmt1(w.v) + ' mi · ' + ftF(w.ft) + ' ft' + (w.past ? ' run' : ' run + planned') : 'nothing yet') + '"></i>';
@@ -21772,7 +21835,8 @@ function seasonYearHTML(ix){
   return '<section class="sy"><div class="sy-hero">' + hero + '</div>'
     + '<div class="sy-panel"><div class="sy-cols">' + cols + '</div>'
     + (lanes ? '<div class="sy-lanes">' + lanes + '</div>' : '')
-    + '<div class="sy-wks" aria-label="Weeks">' + weeks + '</div>'
+    + '<div class="sy-wkl">Weeks · miles</div><div class="sy-wks" aria-label="Weeks, miles">' + weeks + '</div>'
+    + '<div class="sy-wkl">Weeks · vert</div><div class="sy-wks v" aria-label="Weeks, vert">' + weeksV + '</div>'
     + '<div class="ss-key"><span><i style="background:color-mix(in srgb,var(--ph-build) 42%,transparent)"></i>Target</span><span><i style="background:var(--a)"></i>Run</span><span><i style="background:color-mix(in srgb,var(--a) 35%,transparent)"></i>Planned</span><span><i style="height:0;border-top:1.5px dotted var(--n3);border-radius:0"></i>' + (y-1) + '</span>'
     + (lanes ? '<span><i style="background:color-mix(in srgb,var(--ph-build) 55%,transparent)"></i>Build</span><span><i style="background:var(--ph-taper)"></i>Taper</span><span><i style="background:color-mix(in srgb,var(--ph-rec) 55%,transparent)"></i>Recovery</span>' : '')
     + '</div><p class="ss-note">Bars along the bottom are weeks: what each one holds, run or planned. A week across two months counts toward each by its days. Any field takes arithmetic, e.g. 2000/12.</p></div></section>';
@@ -21812,7 +21876,12 @@ function seasonLive(){
     set('[data-sy-wkv]', ftF(TV/52));
   }
   let run = 0;
-  for (let i=0;i<12;i++){ run += M.v[i] || 0; const c = $month.querySelector('[data-cum="' + i + '"]'); if (c){ c.textContent = M.any ? fmt(run) + ' by ' + MON[i] : ''; c.classList.toggle('behind', T != null && M.any && run < T*(i+1)/12 - .5); } }
+  let runV = 0;
+  for (let i=0;i<12;i++){
+    run += M.v[i] || 0; runV += V.v[i] || 0;
+    const c = $month.querySelector('[data-cum="' + i + '"]'); if (c){ c.textContent = M.any ? fmt(run) + ' by ' + MON[i] : ''; c.classList.toggle('behind', T != null && M.any && run < T*(i+1)/12 - .5); }
+    const cv = $month.querySelector('[data-cumv="' + i + '"]'); if (cv){ cv.textContent = V.any ? ftK(runV) + ' by ' + MON[i] : ''; cv.classList.toggle('behind', TV != null && V.any && runV < TV*(i+1)/12 - 50); }
+  }
 }
 $month.addEventListener('input', function(e){
   if (st.view !== 'season' || !e.target.matches || !e.target.matches('[data-sm],[data-sy],[data-sv],[data-syv]')) return;
